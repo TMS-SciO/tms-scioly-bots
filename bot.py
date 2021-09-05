@@ -1,11 +1,12 @@
 from embed import assemble_embed
 from commanderr import CommandNotAllowedInChannel
 import discord
-from discord_components import *
 import requests
+from typing import List
 import random
 import math
 import datetime
+from urllib.parse import quote_plus
 import dateparser
 import pytz
 from discord.ext import commands, tasks
@@ -16,9 +17,6 @@ import re
 import json
 import asyncio
 import unicodedata
-from discord import Webhook, AsyncWebhookAdapter
-import aiohttp
-
 
 intents = discord.Intents.all()
 
@@ -84,11 +82,9 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 SERVER_ID = 816806329925894217
 REPORT_IDS = []
 WARN_IDS = []
-
-CENSORED_WORDS = [
-"BAD WORDS"
+CENSORED_WORDS = ["BAD", "WORDS", "LIST",
                   ]
-                  
+
 RECENT_MESSAGES = []
 
 STOPNUKE = False
@@ -112,198 +108,331 @@ RULES = [
     "⌬ Use good judgment when deciding what content to leave in and take out. As a general rule of thumb: **When in doubt, leave it out.**",
 ]
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("$"),
+
+
+class PersistentViewBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix=commands.when_mentioned_or(BOT_PREFIX1, BOT_PREFIX),
                    case_insensitive=True,
                    help_command=None,
                    intents=intents)
+        self.persistent_views_added = False
+
+    async def on_ready(self):
+        if not self.persistent_views_added:
+            self.add_view(Role1())
+            self.add_view(Role2())
+            self.add_view(Role3())
+            self.add_view(Role4())
+            self.add_view(Role5())
+            self.add_view(Allevents())
+            self.add_view(Pronouns())
+            self.add_view(Ticket())
+            self.persistent_views_added = True
+        print(f'{bot.user} has connected!')
+        print(f'Logged in as {self.user} (ID: {self.user.id})')
+        print('------')
+        print(discord.__version__)
+        await bot.change_presence(status=discord.Status.dnd, activity=discord.Game("Minecraft"))
+        cron.start()
 
 
-@bot.event
-async def on_ready():
-    DiscordComponents(bot)
-    print(f'{bot.user} has connected!')
-    print(discord.__version__)
-    await bot.change_presence(status=discord.Status.dnd, activity=discord.Game("Minecraft"))
-    cron.start()
+bot = PersistentViewBot()
+
+# embedOne = discord.Embed(
+#     title = "Help Page",
+#     description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands",
+#     color=0xff008c
+# )
+
+# embedTwo = discord.Embed(
+#     title = "Fun Commands",
+#     description = f"Only use these commands in <#816809336113201193>",
+#     color=0xff008c
+# )
+
+# embedTwo.add_field(name = "`!candy`", value= "Feeds Panda One or sometimes 100 pieces of candy", inline=False)
+# embedTwo.add_field(name = "`!stealcandy`",
+#                    value= "Steal candy from panda, but be warned you may be caught", inline=False)
+# embedTwo.add_field(name = "`!ping`", value= "Test the bots latency", inline=False)
+# embedTwo.add_field(name = "`!shiba @<>`", value= "Tag someone to get shiba-d", inline=False)
+# embedTwo.add_field(name = "`!akita @<>`", value= "Tag someone to get akita-d", inline=False)
+# embedTwo.add_field(name = "`!doge @<>`", value= "Tage someone to get dogee-d", inline=False)
+# embedTwo.add_field(name = "`!conttondetulear @<>`", value= "Tag someone to get cottondetuleared/buddy-d", inline=False)
+# embedTwo.add_field(name = "`!magic8ball <>`", value= "Ask the magic8ball something", inline=False)
+# embedTwo.add_field(name = "`!count`", value= "Counts how many members there are", inline=False)
 
 
-embedOne = discord.Embed(
-    title = "Help Page",
-    description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands",
-    color=0xff008c
-)
+# embedThree = discord.Embed(
+#     title = "Server Commands",
+#     description = "You can use these commands anywhere but don't abuse them!",
+#     color=0xff008c
+# )
+# embedThree.add_field(name="`!report <reason>`",
+#                      value="This command is used for reporting another member or bot errors, you can use this command or open a ticket",
+#                      inline=False)
+# embedThree.add_field(name="`!latex <math code>`", value= "Input latex math-code to get an image of the equation", inline=False)
+# embedThree.add_field(name="`!info`", value= "Shows info about the server", inline=False)
 
-embedTwo = discord.Embed(
-    title = "Fun Commands",
-    description = f"Only use these commands in <#816809336113201193>",
-    color=0xff008c
-)
+# embedFour = discord.Embed(
+#     title = "Moderation Commands 1/2",
+#     description = "Only users with Server Leader may use these commands, put arguments `< >` in quotes",
+#     color=0xff008c
+# )
+# embedFour.add_field(name="`!ban <@> <reason> <time>`", value="Bans a user", inline=False)
+# embedFour.add_field(name="`!unban <user id>`", value="Unbans a user", inline=False)
+# embedFour.add_field(name="`!kick <@> <reason>`", value="Kicks a user", inline=False)
+# embedFour.add_field(name="`!mute <@> <time>`", value="Mutes a user", inline=False)
+# embedFour.add_field(name="`!unmute <@>`", value="Unmutes a user", inline=False)
+# embedFour.add_field(name="`!warn <@> <reason>`", value="Warns a user and sends a dm through the bot about the warning",
+#                     inline=False)
+# embedFour.add_field(name="`!nuke <amount>`", value="Clears a certain amount of messages", inline=False)
+# embedFour.add_field(name="`!stopnuke`", value="Stops a clearing of messages", inline=False)
+# embedFour.add_field(name="`!whu '<message>'`", value="Creates a schoology update webhook and can only be used in <#848983128445943828>",
+#                     inline=False)
+# embedFour.add_field(name="`!whv '<message>'`", value="Creates a schoology vote webhook and can only be used in <#848981610112352256>",
+#                     inline=False)
+# embedFour.add_field(name="`!whe '<message>'`", value="Creates a schoology event webhook and can only be used in <#878796296364900422>",
+#                     inline=False)
+# embedFour.add_field(name="`!embed '<title>' '<description>'`", value="Creates an embed message", inline=False)
+# embedFour.add_field(name="`!clrreact <message id>`", value="Clears all reactions on a given message", inline=False)
 
-embedTwo.add_field(name = "`!candy`", value= "Feeds Panda One or sometimes 100 pieces of candy", inline=False)
-embedTwo.add_field(name = "`!stealcandy`",
-                   value= "Steal candy from panda, but be warned you may be caught", inline=False)
-embedTwo.add_field(name = "`!ping`", value= "Test the bots latency", inline=False)
-embedTwo.add_field(name = "`!shiba @<>`", value= "Tag someone to get shiba-d", inline=False)
-embedTwo.add_field(name = "`!akita @<>`", value= "Tag someone to get akita-d", inline=False)
-embedTwo.add_field(name = "`!doge @<>`", value= "Tage someone to get dogee-d", inline=False)
-embedTwo.add_field(name = "`!conttondetulear @<>`", value= "Tag someone to get cottondetuleared/buddy-d", inline=False)
-embedTwo.add_field(name = "`!magic8ball <>`", value= "Ask the magic8ball something", inline=False)
-embedTwo.add_field(name = "`!count`", value= "Counts how many members there are", inline=False)
-
-
-embedThree = discord.Embed(
-    title = "Server Commands",
-    description = "You can use these commands anywhere but don't abuse them!",
-    color=0xff008c
-)
-embedThree.add_field(name="`!report <reason>`",
-                     value="This command is used for reporting another member or bot errors, you can use this command or open a ticket",
-                     inline=False)
-embedThree.add_field(name="`!latex <math code>`", value= "Input latex math-code to get an image of the equation", inline=False)
-embedThree.add_field(name="`!info`", value= "Shows info about the server", inline=False)
-
-embedFour = discord.Embed(
-    title = "Moderation Commands 1/2",
-    description = "Only users with Server Leader may use these commands, put arguments `< >` in quotes",
-    color=0xff008c
-)
-embedFour.add_field(name="`!ban <@> <reason> <time>`", value="Bans a user", inline=False)
-embedFour.add_field(name="`!unban <user id>`", value="Unbans a user", inline=False)
-embedFour.add_field(name="`!kick <@> <reason>`", value="Kicks a user", inline=False)
-embedFour.add_field(name="`!mute <@> <time>`", value="Mutes a user", inline=False)
-embedFour.add_field(name="`!unmute <@>`", value="Unmutes a user", inline=False)
-embedFour.add_field(name="`!warn <@> <reason>`", value="Warns a user and sends a dm through the bot about the warning",
-                    inline=False)
-embedFour.add_field(name="`!nuke <amount>`", value="Clears a certain amount of messages", inline=False)
-embedFour.add_field(name="`!stopnuke`", value="Stops a clearing of messages", inline=False)
-embedFour.add_field(name="`!whu '<message>'`", value="Creates a schoology update webhook and can only be used in <#848983128445943828>",
-                    inline=False)
-embedFour.add_field(name="`!whv '<message>'`", value="Creates a schoology vote webhook and can only be used in <#848981610112352256>",
-                    inline=False)
-embedFour.add_field(name="`!whe '<message>'`", value="Creates a schoology event webhook and can only be used in <#878796296364900422>",
-                    inline=False)
-embedFour.add_field(name="`!embed '<title>' '<description>'`", value="Creates an embed message", inline=False)
-embedFour.add_field(name="`!clrreact <message id>`", value="Clears all reactions on a given message", inline=False)
-
-embedFive = discord.Embed(
-    title = "Moderation Commands 2/2",
-    description = "Only users with Server Leader may use these commands",
-    color=0xff008c
-)
-embedFive.add_field(name="`!e1`", value="Creates Role buttons for Life Science Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!e2`", value="Creates Role buttons for Earth and Space Science Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!e3`", value="Creates Role buttons for Physical Science & Chemistry Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!e4`", value="Creates Role buttons for Technology & Engineering Design Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!e5`", value="Creates Role buttons for Inquiry & Nature of Science Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!e6`", value="Creates Role buttons for All events role (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!e7`", value="Sends Embed instructions for removing roles (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!e8`", value="Creates Button for Self-Unmute Channel (only use in <#872949802495787058>)", inline=False)
-embedFive.add_field(name="`!e9`", value="Creates Role buttons for Pronouns (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!ticket`", value="Creates ticket button (only use in <#848996283288518718>)", inline=False)
+# embedFive = discord.Embed(
+#     title = "Moderation Commands 2/2",
+#     description = "Only users with Server Leader may use these commands",
+#     color=0xff008c
+# )
+# embedFive.add_field(name="`!e1`", value="Creates Role buttons for Life Science Events (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!e2`", value="Creates Role buttons for Earth and Space Science Events (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!e3`", value="Creates Role buttons for Physical Science & Chemistry Events (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!e4`", value="Creates Role buttons for Technology & Engineering Design Events (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!e5`", value="Creates Role buttons for Inquiry & Nature of Science Events (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!e6`", value="Creates Role buttons for All events role (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!e7`", value="Sends Embed instructions for removing roles (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!e8`", value="Creates Button for Self-Unmute Channel (only use in <#872949802495787058>)", inline=False)
+# embedFive.add_field(name="`!e9`", value="Creates Role buttons for Pronouns (only use in <#863054629787664464>)", inline=False)
+# embedFive.add_field(name="`!ticket`", value="Creates ticket button (only use in <#848996283288518718>)", inline=False)
 
 
-paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
+# paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
+
+# # class MyMenu(menus.Menu):
+# #     async def send_initial_message(self, ctx, channel):
+# #         return await channel.send(f'Hello {ctx.author}')
+# #
+# #     @menus.button('\N{THUMBS UP SIGN}')
+# #     async def on_thumbs_up(self, payload):
+# #         await self.message.edit(content=f'Thanks {self.ctx.author}!')
+# #
+# #     @menus.button('\N{THUMBS DOWN SIGN}')
+# #     async def on_thumbs_down(self, payload):
+# #         await self.message.edit(content=f"That's not nice {self.ctx.author}...")
+# #
+# #     @menus.button('\N{BLACK SQUARE FOR STOP}\ufe0f')
+# #     async def on_stop(self, payload):
+# #         self.stop()
+# class Pagination(discord.ui.View):
+#     def __init__(self, ctx):
+#         super().__init__(timeout=60.0)
+#         self.value = None
+#         self.author = ctx.message.author
+
+#     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+#         if interaction.user == self.author:
+#             return True
+#         else:
+#             await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+#             return False
+
+#     @discord.ui.button(label='\U000027a1', custom_id="right", style=discord.ButtonStyle.blurple)
+#     async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
+#         await interaction.response.edit_message()
 
 
-@bot.command()
-async def help(ctx):
-    member = ctx.author
-    await ctx.message.add_reaction("\U0001f44d")
-    current = 0
-    mainMessage = await member.send(
-        ":loudspeaker: HELP HAS ARRIVED!",
-        embed = paginationList[current],
-        components = [
-            [
-                Button(
-                    label = EMOJI_LEFT_ARROW,
-                    id = "back",
-                    style = ButtonStyle.blue
-                ),
-                Button(
-                    label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",
-                    id = "cur",
-                    style = ButtonStyle.grey,
-                    disabled = True
-                ),
-                Button(
-                    label = EMOJI_RIGHT_ARROW,
-                    id = "front",
-                    style = ButtonStyle.blue
-                )
-            ]
-        ]
-    )
-    while True:
+# # later
+# @bot.command()
+# async def help(ctx):
+#     view=Pagination(ctx)
+#     await ctx.send('hi', view=view)
 
-        try:
-            interaction = await bot.wait_for(
-                "button_click",
-                check = lambda i: i.component.id in ["back", "front"], #You can add more
-                timeout = 45.0
-            )
+# # @bot.command()
+# # async def help(ctx):
+# #     member = ctx.author
+# #     await ctx.message.add_reaction("\U0001f44d")
+# #     current = 0
+# #     mainmessage = await member.send(
+# #         ":loudspeaker: HELP HAS ARRIVED!",
+# #         embed = paginationList[current],
+# #         components = [
+# #             [
+# #
+# #             ]
+# #         ]
+# #     )
+# #     while True:
+# #
+# #         try:
+# #             interaction = await bot.wait_for(
+# #                 "button_click",
+# #                 check = lambda i: i.component.id in ["back", "front"], #You can add more
+# #                 timeout = 45.0
+# #             )
+# #
+# #             if interaction.component.id == "back":
+# #                 current -= 1
+# #             elif interaction.component.id == "front":
+# #                 current += 1
+# #             #If its out of index, go back to start / end
+# #             if current == len(paginationList):
+# #                 current = 0
+# #             elif current < 0:
+# #                 current = len(paginationList) - 1
+# #
+# #             #Edit to new page + the center counter changes
+# #             await interaction.respond(
+# #                 type = 7,
+# #                 embed = paginationList[current],
+# #                 components = [
+# #                     [
+# #                         Button(
+# #                             label = EMOJI_LEFT_ARROW,
+# #                             id = "back",
+# #                             style = ButtonStyle.blue
+# #                         ),
+# #                         Button(
+# #                             label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",
+# #                             id = "cur",
+# #                             style = ButtonStyle.grey,
+# #                             disabled = True
+# #                         ),
+# #                         Button(
+# #                             label = EMOJI_RIGHT_ARROW,
+# #                             id = "front",
+# #                             style = ButtonStyle.blue
+# #                         )
+# #                     ]
+# #                 ]
+# #             )
+# #         except asyncio.TimeoutError:
+# #             await mainmessage.edit(
+# #
+# #
+# #             )
+# #             break
 
-            if interaction.component.id == "back":
-                current -= 1
-            elif interaction.component.id == "front":
-                current += 1
-            #If its out of index, go back to start / end
-            if current == len(paginationList):
-                current = 0
-            elif current < 0:
-                current = len(paginationList) - 1
 
-            #Edit to new page + the center counter changes
-            await interaction.respond(
-                type = 7,
-                embed = paginationList[current],
-                components = [
-                    [
-                        Button(
-                            label = EMOJI_LEFT_ARROW,
-                            id = "back",
-                            style = ButtonStyle.blue
-                        ),
-                        Button(
-                            label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",
-                            id = "cur",
-                            style = ButtonStyle.grey,
-                            disabled = True
-                        ),
-                        Button(
-                            label = EMOJI_RIGHT_ARROW,
-                            id = "front",
-                            style = ButtonStyle.blue
-                        )
-                    ]
-                ]
-            )
-        except asyncio.TimeoutError:
-            await mainMessage.edit(
-                components = [
-                    [
-                        Button(
-                            label = EMOJI_LEFT_ARROW,
-                            id = "back",
-                            style = ButtonStyle.blue,
-                            disabled = True
-                        ),
-                        Button(
-                            label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",
-                            id = "cur",
-                            style = ButtonStyle.grey,
-                            disabled = True
-                        ),
-                        Button(
-                            label = EMOJI_RIGHT_ARROW,
-                            id = "front",
-                            style = ButtonStyle.blue,
-                            disabled = True
-                        )
-                    ]
-                ]
-            )
-            break
+class Ticket(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.value = None
+
+
+    @discord.ui.button(label='\U0001f4e9 Create Ticket', custom_id="ticket", style=discord.ButtonStyle.secondary)
+    async def ticket(self, button: discord.ui.Button, interaction: discord.Interaction):
+        with open("data.json") as f:
+            data = json.load(f)
+
+            ticket_number = int(data["ticket-counter"])
+            ticket_number += 1
+
+            ticket_channel = await interaction.guild.create_text_channel("ticket-{}".format(ticket_number))
+            await ticket_channel.set_permissions(interaction.guild.get_role(interaction.guild.id), send_messages=False,
+                                                     read_messages=False)
+
+            for role_id in data["valid-roles"]:
+                    role = interaction.guild.get_role(role_id)
+
+                    await ticket_channel.set_permissions(role, send_messages=True, read_messages=True,
+                                                         add_reactions=True,
+                                                         embed_links=True, attach_files=True,
+                                                         read_message_history=True,
+                                                         external_emojis=True)
+
+                    await ticket_channel.set_permissions(interaction.user, send_messages=True, read_messages=True,
+                                                         add_reactions=True,
+                                                         embed_links=True, attach_files=True,
+                                                         read_message_history=True,
+                                                         external_emojis=True)
+
+                    pinged_msg_content = ""
+                    non_mentionable_roles = []
+
+                    if data["pinged-roles"] != []:
+
+                        for role_id in data["pinged-roles"]:
+                            role = interaction.guild.get_role(role_id)
+
+                            pinged_msg_content += role.mention
+                            pinged_msg_content += " "
+
+                            if role.mentionable:
+                                pass
+                            else:
+                                await role.edit(mentionable=True)
+                                non_mentionable_roles.append(role)
+
+                    message_content = "Please wait and a moderator will assist you! To close this ticket press the `Close` button below"
+                    em = discord.Embed(
+                        title="New ticket from {}#{}".format(interaction.user.name, interaction.user.discriminator),
+                        description=f"{message_content} {pinged_msg_content}", color=0x00a8ff)
+                    view = Close()
+                    await ticket_channel.send(embed=em, view=view)
+
+
+
+                    data["ticket-channel-ids"].append(ticket_channel.id)
+
+                    data["ticket-counter"] = int(ticket_number)
+                    with open("data.json", 'w') as f:
+                        json.dump(data, f)
+
+                        em3 = discord.Embed(title="TMS Tickets",
+                                            description="Your ticket has been created at {}".format(
+                                                ticket_channel.mention),
+                                            color=0x00a8ff)
+
+
+                        await interaction.response.send_message(embed=em3, ephemeral=True)
+
+
+class Close(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.value = None
+
+    @discord.ui.button(label='Close', custom_id="close", style=discord.ButtonStyle.danger)
+    async def close(self, button: discord.ui.Button, interaction: discord.Interaction):
+        with open('data.json') as f:
+            data = json.load(f)
+
+            if interaction.channel.id in data["ticket-channel-ids"]:
+
+                channel_id = interaction.channel.id
+
+                def check(message):
+                    return message.author == interaction.user and message.channel == interaction.channel and message.content.lower() == "close"
+
+                try:
+
+                    em = discord.Embed(title="TMS Tickets",
+                                       description="Are you sure you want to close this ticket? Reply with `close` if you are sure.",
+                                       color=0x00a8ff)
+
+                    await interaction.response.send_message(embed=em)
+                    await bot.wait_for('message',check=check, timeout=60)
+                    await interaction.channel.delete()
+
+                    index = data["ticket-channel-ids"].index(channel_id)
+                    del data["ticket-channel-ids"][index]
+
+                    with open('data.json', 'w') as f:
+                        json.dump(data, f)
+
+                except asyncio.TimeoutError:
+                    em = discord.Embed(title="TMS Tickets",
+                                       description="You have run out of time to close this ticket. Please press the red `Close` button again.",
+                                       color=0x00a8ff)
+                    await interaction.response.send_message(embed=em)
 
 
 async def is_staff(ctx):
@@ -312,6 +441,18 @@ async def is_staff(ctx):
     staffRole = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
     return staffRole in member.roles
 
+
+@bot.command()
+@commands.check(is_staff)
+async def ticket(ctx):
+    view = Ticket()
+    em1 = discord.Embed(title="TMS Tickets",
+                       description="To create a ticket press the button below",color=0xff008c)
+    em1.set_thumbnail(url="https://cdn.discordapp.com/avatars/747126643587416174/ef6094b40ab077ec40f33197571429f3.png?size=2048")
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+    em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
+    await ctx.send(embed=em1, view=view)
 
 def not_blacklisted_channel(blacklist):
     """Given a string array blacklist, check if command was not invoked in specified blacklist channels."""
@@ -326,9 +467,10 @@ def not_blacklisted_channel(blacklist):
     return commands.check(predicate)
 
 
-@tasks.loop(minutes=1)
+@tasks.loop(seconds=60)
 async def cron():
-    print("Executed cron.")
+    print(f"Executed cron.")
+
     global CRON_LIST
     for c in CRON_LIST:
         date = c['date']
@@ -381,7 +523,7 @@ async def rule(ctx, num):
 @commands.check(is_staff)
 async def embed(ctx, title, description):
     await ctx.message.delete()
-    ava = ctx.author.avatar_url
+    ava = ctx.author.avatar
     embed=discord.Embed(title=title,
                         description=description,
                         color=0xff008c,
@@ -393,7 +535,7 @@ async def embed(ctx, title, description):
 
 @bot.command(blacklist=WELCOME_CHANNEL)
 async def magic8ball(ctx):
-    msg = await ctx.send("Swishing the magic 8 ball...")
+    msg = await ctx.send("<a:typing:883864406537162793> Swishing the magic 8 ball...")
     await ctx.channel.trigger_typing()
     await asyncio.sleep(3)
     await msg.delete()
@@ -427,7 +569,7 @@ async def report(ctx, *args):
     """Creates a report that is sent to staff members."""
     server = bot.get_guild(SERVER_ID)
     reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
-    ava = ctx.message.author.avatar_url
+    ava = ctx.message.author.avatar
     message = args[0]
     if len(args) > 1:
         message = ' '.join(args)
@@ -466,8 +608,8 @@ async def warn(ctx, member:discord.Member, *args):
     server = bot.get_guild(SERVER_ID)
     reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
     mod = ctx.message.author
-    avatar = mod.avatar_url
-    ava = member.avatar_url
+    avatar = mod.avatar
+    avatar1 = member.avatar
     message = args[0]
     if len(args) > 1:
         message = ' '.join(args)
@@ -487,7 +629,7 @@ async def warn(ctx, member:discord.Member, *args):
     embed.add_field(name="Reason:", value=f"`{message}`")
     embed.add_field(name="Responsible Moderator:", value=f"{mod.mention}")
     embed.set_author(name=f"{member}",
-                     icon_url=ava)
+                     icon_url=avatar1)
 
 
     embed1=discord.Embed(title=" ", description=f"{member} has been warned", color= 0x2E66B6)
@@ -504,8 +646,6 @@ async def warn(ctx, member:discord.Member, *args):
     await message.add_reaction("\U0000274C")
     await ctx.reply(embed=embed1, mention_author=False)
     await member.send(embed=embed2)
-
-
 
 
 @bot.event
@@ -666,7 +806,7 @@ async def ban(ctx, member:discord.User=None, reason=None, *args):
                            color=0xFF0000)
     embed1.add_field(name="Reason:", value=f'`{reason}`')
     embed1.add_field(name="Responsible Moderator:", value=f"`{ctx.message.author}`")
-    embed1.set_author(name=f'{member}', icon_url=f"{member.avatar_url}")
+    embed1.set_author(name=f'{member}', icon_url=f"{member.avatar}")
 
     await reports_channel.send(embed=embed1)
     await ctx.reply(embed=embed, mention_author=False)
@@ -962,8 +1102,15 @@ async def mute(ctx, user: discord.Member, *args):
     :param *args: The time to mute the user for.
     :type *args: str
     """
-    time = "".join(args)
-    await _mute(ctx, user, time, self=False)
+    view = Confirm(ctx)
+    time = " ".join(args)
+    await ctx.reply(f"Are you sure you want to mute {user} for {time}", view=view)
+    await view.wait()
+    if view.value is False:
+        await ctx.send('Aborting...')
+    if view.value is True:
+        await _mute(ctx, user, time, self=False)
+    return view.value
 
 async def _mute(ctx, user:discord.Member, time: str, self: bool):
     """
@@ -1004,22 +1151,93 @@ async def selfmute(ctx, *args):
     :param *args: The time to mute the user for.
     :type *args: str
     """
+    view = Confirm(ctx)
     user = ctx.message.author
-    if await is_staff(ctx):
-        return await ctx.send("Staff members can't self mute.")
     time = " ".join(args)
-    await _mute(ctx, user, time, self=True)
+    await ctx.reply(f"Are you sure you want to selfmute for {time}", view=view)
+    await view.wait()
+    if view.value is False:
+
+        await ctx.send('Aborting...')
+    if view.value is True:
+
+        await _mute(ctx, user, time, self=True)
+    return view.value
+
+
+class Confirm(discord.ui.View):
+    def __init__(self, ctx):
+        super().__init__()
+        self.value = None
+        self.author = ctx.message.author
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user == self.author:
+            return True
+        else:
+            await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+            return False
+
+    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
+    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = 0
+        if number + 1 >= 1:
+            button.style = discord.ButtonStyle.green
+            button.disabled = True
+            button.label = "Selcted"
+        self.value = True
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
+    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = 0
+        if number + 1 >= 1:
+            button.style = discord.ButtonStyle.green
+            button.disabled = True
+            button.label = "Selcted"
+        self.value = False
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+
+class Counter(discord.ui.View):
+
+    @discord.ui.button(label='0', style=discord.ButtonStyle.red)
+    async def count(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = int(button.label) if button.label else 0
+        if number + 1 >= 10:
+            button.style = discord.ButtonStyle.green
+            button.disabled = True
+        button.label = str(number + 1)
+
+        await interaction.response.edit_message(view=self)
+
+
+@bot.command()
+async def counter(ctx: commands.Context):
+    """Starts a counter for pressing."""
+    await ctx.send('Press!', view=Counter())
 
 
 @bot.command()
 @commands.check(is_staff)
 async def unmute(ctx, user: discord.Member):
-    role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
-    await user.remove_roles(role)
+    view = Confirm(ctx)
+    await ctx.reply(f"Are you sure you want to unmute `{user}`?", view=view)
+    await view.wait()
+    if view.value is False:
+        await ctx.send('Unmute Canceled')
+    if view.value is True:
+        role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
+        await user.remove_roles(role)
     em5=discord.Embed(title="",
                       description=f"Successfully unmuted {user.mention}.",
                       color=0x16F22C)
+
     await ctx.send(embed=em5)
+    return view.value
 
 
 
@@ -1029,40 +1247,47 @@ async def unmute(ctx, user: discord.Member):
 @commands.check(is_staff)
 async def nuke(ctx, count):
     """Nukes (deletes) a specified amount of messages."""
-    global STOPNUKE
-
-
-    if (ctx.message.channel.name == "rules"):
-        return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR NUKE.")
-    if STOPNUKE:
-        return await ctx.send("TRANSMISSION FAILED. ALL NUKES ARE CURRENTLY PAUSED. TRY AGAIN LATER.")
-    if int(count) > 100:
-        return await ctx.send("Chill. No more than deleting 100 messages at a time.")
-    channel = ctx.message.channel
-    if int(count) < 0:
-        history = await channel.history(limit=105).flatten()
-        message_count = len(history)
-        print(message_count)
-        if message_count > 100:
-            count = 100
-        else:
-            count = message_count + int(count) - 1
-        if count <= 0:
-            return await ctx.send("Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
-    await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
-    await ctx.send("PREPARE FOR IMPACT.")
-    for i in range(10, 0, -1):
-        await ctx.send(f"NUKING {count} MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
-        await asyncio.sleep(1)
+    view = Confirm(ctx)
+    await ctx.reply(f"Are you sure you want to clear {count} messages", view=view)
+    await view.wait()
+    if view.value is False:
+        await ctx.send('Aborting...')
+        await asyncio.sleep(3)
+        await ctx.send('Nuke Aborted')
+    if view.value is True:
+        global STOPNUKE
+        if (ctx.message.channel.name == "rules"):
+            return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR NUKE.")
         if STOPNUKE:
-            return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
-    if not STOPNUKE:
-        async for m in channel.history(limit=(int(count) + 13)):
-            if not m.pinned and not STOPNUKE:
-                await m.delete()
-        msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
-        await asyncio.sleep(5)
-        await msg.delete()
+            return await ctx.send("TRANSMISSION FAILED. ALL NUKES ARE CURRENTLY PAUSED. TRY AGAIN LATER.")
+        if int(count) > 100:
+            return await ctx.send("Chill. No more than deleting 100 messages at a time.")
+        channel = ctx.message.channel
+        if int(count) < 0:
+            history = await channel.history(limit=105).flatten()
+            message_count = len(history)
+            print(message_count)
+            if message_count > 100:
+                count = 100
+            else:
+                count = message_count + int(count) - 1
+            if count <= 0:
+                return await ctx.send("Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
+        await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
+        await ctx.send("PREPARE FOR IMPACT.")
+        for i in range(10, 0, -1):
+            await ctx.send(f"NUKING {count} MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
+            await asyncio.sleep(1)
+            if STOPNUKE:
+                return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
+        if not STOPNUKE:
+            async for m in channel.history(limit=(int(count) + 13)):
+                if not m.pinned and not STOPNUKE:
+                    await m.delete()
+            msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
+            await asyncio.sleep(5)
+            await msg.delete()
+            return view.value
 
 @bot.command()
 @commands.check(is_staff)
@@ -1106,6 +1331,126 @@ async def wiki(ctx, request:str=False, *args):
             return await ctx.send(f"Sorry, but the `{term}` page doesn't exist! Try another term!")
         except wikip.exceptions.DisambiguationError as e:
             return await ctx.send(f"Sorry, but the `{term}` page is a disambiguation page. Please try again!")
+
+
+class TicTacToeButton(discord.ui.Button['TicTacToe']):
+    def __init__(self, x: int, y: int):
+        # A label is required, but we don't need one so a zero-width space is used
+        # The row parameter tells the View which row to place the button under.
+        # A View can only contain up to 5 rows -- each row can only have 5 buttons.
+        # Since a Tic Tac Toe grid is 3x3 that means we have 3 rows and 3 columns.
+        super().__init__(style=discord.ButtonStyle.secondary, label='\u200b', row=y)
+        self.x = x
+        self.y = y
+
+    # This function is called whenever this particular button is pressed
+    # This is part of the "meat" of the game logic
+    async def callback(self, interaction: discord.Interaction):
+        assert self.view is not None
+        view: TicTacToe = self.view
+        state = view.board[self.y][self.x]
+        if state in (view.X, view.O):
+            return
+
+        if view.current_player == view.X:
+            self.style = discord.ButtonStyle.danger
+            self.label = 'X'
+            self.disabled = True
+            view.board[self.y][self.x] = view.X
+            view.current_player = view.O
+            content = "It is now O's turn"
+        else:
+            self.style = discord.ButtonStyle.success
+            self.label = 'O'
+            self.disabled = True
+            view.board[self.y][self.x] = view.O
+            view.current_player = view.X
+            content = "It is now X's turn"
+
+        winner = view.check_board_winner()
+        if winner is not None:
+            if winner == view.X:
+                content = 'X won!'
+            elif winner == view.O:
+                content = 'O won!'
+            else:
+                content = "It's a tie!"
+
+            for child in view.children:
+                child.disabled = True
+
+            view.stop()
+
+        await interaction.response.edit_message(content=content, view=view)
+
+
+# This is our actual board View
+class TicTacToe(discord.ui.View):
+    # This tells the IDE or linter that all our children will be TicTacToeButtons
+    # This is not required
+    children: List[TicTacToeButton]
+    X = -1
+    O = 1
+    Tie = 2
+
+    def __init__(self):
+        super().__init__()
+        self.current_player = self.X
+        self.board = [
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+        ]
+
+        # Our board is made up of 3 by 3 TicTacToeButtons
+        # The TicTacToeButton maintains the callbacks and helps steer
+        # the actual game.
+        for x in range(3):
+            for y in range(3):
+                self.add_item(TicTacToeButton(x, y))
+
+    # This method checks for the board winner -- it is used by the TicTacToeButton
+    def check_board_winner(self):
+        for across in self.board:
+            value = sum(across)
+            if value == 3:
+                return self.O
+            elif value == -3:
+                return self.X
+
+        # Check vertical
+        for line in range(3):
+            value = self.board[0][line] + self.board[1][line] + self.board[2][line]
+            if value == 3:
+                return self.O
+            elif value == -3:
+                return self.X
+
+        # Check diagonals
+        diag = self.board[0][2] + self.board[1][1] + self.board[2][0]
+        if diag == 3:
+            return self.O
+        elif diag == -3:
+            return self.X
+
+        diag = self.board[0][0] + self.board[1][1] + self.board[2][2]
+        if diag == 3:
+            return self.O
+        elif diag == -3:
+            return self.X
+
+        # If we're here, we need to check if a tie was made
+        if all(i != 0 for row in self.board for i in row):
+            return self.Tie
+
+        return None
+
+
+@bot.command()
+async def tictactoe(ctx: commands.Context):
+    """Starts a tic-tac-toe game with yourself."""
+    await ctx.send('Tic Tac Toe: X goes first', view=TicTacToe())
+
 
 @bot.command()
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
@@ -1428,420 +1773,330 @@ async def rules(ctx):
     em4.set_footer(text="TMS SciOly Website https://sites.google.com/student.sd25.org/tmsscioly/home ")
     await ctx.send(embed=em4)
 
+class Role1(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U0001f9e0 Anatomy & Physiology", custom_id='ap', row=1)
+    async def anatomy(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_AP)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f9ec Bio Process Lab", custom_id='bpl', row=1)
+    async def bpl(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_BPL)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f9a0 Disease Detectives", custom_id='dd', row=1)
+    async def dd(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_DD)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f333 Green Generation", custom_id='gg', row=2)
+    async def gg(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_GG)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f985 Ornithology", custom_id='o', row=2)
+    async def orni(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_O)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
 
+class Role2(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U0001f30e Dynamic Planet", custom_id='dp', row=1)
+    async def dp(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_DP)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U000026c8 Meteorology", custom_id='meteo', row=1)
+    async def m(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_M)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U000026f0 Road Scholar", custom_id='rs', row=1)
+    async def rs(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_RS)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f48e Rocks & Minerals", custom_id='rm', row=2)
+    async def rm(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_RM)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f52d Solar System", custom_id='ss', row=2)
+    async def ss(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_SS)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+class Role3(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U0001f30a Crave the Wave", custom_id='ctw', row=1)
+    async def ctw(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_CTW)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f3b5 Sounds of Music", custom_id='som', row=1)
+    async def som(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_SOM)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f3af Storm the Castle", custom_id='stc', row=1)
+    async def stc(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_STC)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f349 Food Science", custom_id='fs', row=2)
+    async def fs(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_FS)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f9ea Crime Busters", custom_id='cb', row=2)
+    async def cb(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_CB)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+class Role4(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U0001f309 Bridges", custom_id='bridge', row=1)
+    async def b(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_B)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U00002708 Electric Wright Stuff", custom_id='ews', row=1)
+    async def ews(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_EWS)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+
+    @discord.ui.button(label="\U000023f1 Mission Possible", custom_id='mp', row=2)
+    async def mp(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_MP)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001faa4 Mousetrap Vehicle", custom_id='mtv', row=2)
+    async def mtv(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_MV)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+class Role5(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U0001f513 Codebusters", custom_id='code', row=1)
+    async def code(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_C)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f97d Experimental Design", custom_id='expd', row=1)
+    async def exp(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_ED)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001fa82 Ping Pong Parachute", custom_id='ppp', row=2)
+    async def ppp(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_PPP)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f4dd Write it, Do it", custom_id='widi', row=2)
+    async def widi(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_WIDI)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+class Pronouns(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U0001f9e1 He/Him", custom_id='he', row=1)
+    async def he(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_HE)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f49b She/Her", custom_id='she', row=1)
+    async def she(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_SHE)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f49c They/Them", custom_id='they', row=1)
+    async def they(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_THEY)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+    @discord.ui.button(label="\U0001f49a Ask", custom_id='ask', row=1)
+    async def ask(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_ASK)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
+class Allevents(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U0001f499 All Events ", custom_id='ae')
+    async def allevents(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(interaction.guild.roles, name=ROLE_AE)
+        member = await interaction.guild.fetch_member(interaction.user.id)
+        await member.add_roles(role)
+        await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
 
 @bot.command()
 @commands.check(is_staff)
-async def e1(ctx):
+async def events1(ctx: commands.Context):
     await ctx.message.delete()
     em1 = discord.Embed(title="What events do you want to do?",
-                       description="To choose your event roles press the buttons below",
+                        description="To choose your event roles press the buttons below",
                         color=0xff008c)
+    em1.set_image(url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
     em1.set_footer(text="Life Science Events - Page 1 of 5")
-    await ctx.send(embed=em1,
-                   components=[[Button(label="🧠 Anatomy & Physiology"),
-                                Button(label="🧬 Bio Process Lab"),
-                                Button(label="🦠 Disease Detectives")],
-
-                               [Button(label="🌳 Green Generation"),
-                                Button(label="🦅 Ornithology")]])
+    await ctx.send(embed=em1, view=Role1())
 
 
 @bot.command()
 @commands.check(is_staff)
-async def e2(ctx):
+async def events2(ctx: commands.Context):
     await ctx.message.delete()
     em1 = discord.Embed(title="What events do you want to do?",
-                       description="To choose your event roles press the buttons below",
+                        description="To choose your event roles press the buttons below",
                         color=0xff008c)
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
     em1.set_footer(text="Earth and Space Science Events - Page 2 of 5")
-    await ctx.send(embed=em1,
-                   components=[[Button(label="🌏 Dynamic Planet"),
-                                Button(label="⛈️ Meteorology"),
-                                Button(label="⛰️ Road Scholar")],
-
-                               [Button(label="💎 Rocks & Minerals"),
-                                Button(label="🔭 Solar System")]])
+    await ctx.send(embed=em1, view=Role2())
 
 
 @bot.command()
 @commands.check(is_staff)
-async def e3(ctx):
+async def events3(ctx: commands.Context):
     await ctx.message.delete()
     em1 = discord.Embed(title="What events do you want to do?",
-                       description="To choose your event roles press the buttons below",
+                        description="To choose your event roles press the buttons below",
                         color=0xff008c)
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
     em1.set_footer(text="Physical Science & Chemistry Events - Page 3 of 5")
-    await ctx.send(embed=em1,
-                   components=[[Button(label="🌊 Crave the Wave"),
-                                Button(label="🎵 Sounds of Music"),
-                                Button(label="🎯 Storm the Castle")],
-
-                               [Button(label="🍉 Food Science"),
-                                Button(label="🧪 Crime Busters")]])
+    await ctx.send(embed=em1, view=Role3())
 
 
 @bot.command()
 @commands.check(is_staff)
-async def e4(ctx):
+async def events4(ctx: commands.Context):
     await ctx.message.delete()
     em1 = discord.Embed(title="What events do you want to do?",
-                       description="To choose your event roles press the buttons below",
+                        description="To choose your event roles press the buttons below",
                         color=0xff008c)
-    em1.set_footer(text="Technology & Engineering Design Events-Page 4 of 5")
-    await ctx.send(embed=em1,
-                   components=[[Button(label="🌉 Bridges"),
-                                Button(label="✈️ Electric Wright Stuff")],
-
-                               [Button(label="⏱️ Mission Possible"),
-                                Button(label="🪤 Mousetrap Vehicle")]])
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+    em1.set_footer(text="Technology & Engineering Design Events - Page 4 of 5")
+    await ctx.send(embed=em1, view=Role4())
 
 
 @bot.command()
 @commands.check(is_staff)
-async def e5(ctx):
+async def events5(ctx: commands.Context):
     await ctx.message.delete()
     em1 = discord.Embed(title="What events do you want to do?",
-                       description="To choose your event roles press the buttons below",
+                        description="To choose your event roles press the buttons below",
                         color=0xff008c)
-    em1.set_footer(text="Inquiry & Nature of Science Events - Page 4 of 5")
-    await ctx.send(embed=em1,
-                   components=[[Button(label="🔓 Codebusters"),
-                                Button(label="🥽 Experimental Design")],
+    em1.set_image(url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+    em1.set_footer(text="Life Science Events - Page 5 of 5")
+    await ctx.send(embed=em1, view=Role5())
 
-                               [Button(label="🪂 Ping Pong Parachute"),
-                                Button(label="✏️ Write It, Do It")]])
 
 @bot.command()
 @commands.check(is_staff)
-async def e6(ctx):
+async def events6(ctx: commands.Context):
     await ctx.message.delete()
     em1 = discord.Embed(title="What events do you want to do?",
-                        description="To get access to all the events channels, press the button below",
+                        description="Press the button below to gain access to all the event channels",
                         color=0xff008c)
-    await ctx.send(embed=em1,
-                   components=[[Button(label="💙 All Events")]])
+    em1.set_image(url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+    await ctx.send(embed=em1, view=Allevents())
 
 
 @bot.command()
 @commands.check(is_staff)
-async def e7(ctx):
-    await ctx.message.delete()
-    em1=discord.Embed(title="What if I accidentally pressed one of the buttons?",
-                       description="If you accidentally pressed a button and dont want the role ping a moderator to remove it",
-                        color=0xff008c)
-    await ctx.send(embed=em1)
-
-
-@bot.command()
-@commands.check(is_staff)
-async def e8(ctx):
-    await ctx.message.delete()
-    em1 = discord.Embed(title="Un-Self Mute Page",
-                        description="To Un-Self Mute press the button below",
-                        color=0xff008c)
-    await ctx.send(embed=em1,
-                   components=[Button(label="Un-Self Mute", style=ButtonStyle.green)])
-
-
-@bot.command()
-async def e9(ctx):
+async def pronouns(ctx: commands.Context):
     await ctx.message.delete()
     em1 = discord.Embed(title="What pronouns do you use?",
-                        description="To select your pronouns press the buttons below",
+                        description="Press the buttons below to choose your pronoun role(s)",
                         color=0xff008c)
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
     em1.set_footer(text="Pronoun Roles")
-    await ctx.send(embed=em1,
-                   components=[[Button(label="🧡 He/Him"), Button(label="💛 She/Her"),
-                               Button(label="💜 They/Them"), Button(label="💚 Ask")]])
-
-
-@bot.event
-async def on_button_click(interaction):
-    if interaction.component.label.startswith("🧠 Anatomy & Physiology"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_AP)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🧬 Bio Process Lab"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_BPL)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🦠 Disease Detectives"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_DD)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🌳 Green Generation"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_GG)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🦅 Ornithology"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_O)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🌏 Dynamic Planet"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_DP)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("⛈️ Meteorology"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_M)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("⛰️ Road Scholar"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_RS)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("💎 Rocks & Minerals"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_RM)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🔭 Solar System"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_SS)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🌊 Crave the Wave"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_CTW)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🎵 Sounds of Music"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_SOM)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🎯 Storm the Castle"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_STC)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🍉 Food Science"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_FS)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🧪 Crime Busters"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_CB)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🌉 Bridges"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_B)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("✈️ Electric Wright Stuff"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_EWS)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("⏱️ Mission Possible"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_MP)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🪤 Mousetrap Vehicle"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_MV)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🔓 Codebusters"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_C)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🥽 Experimental Design"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_ED)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🪂 Ping Pong Parachute"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_PPP)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("✏️ Write It, Do It"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_WIDI)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("💜 They/Them"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_THEY)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("💚 Ask"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_ASK)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("💛 She/Her"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_SHE)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("🧡 He/Him"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_HE)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("Un-Self Mute"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_SELFMUTE)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.remove_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("💙 All Events"):
-        role = discord.utils.get(interaction.guild.roles, name=ROLE_AE)
-        member = await interaction.guild.fetch_member(interaction.author.id)
-        await member.add_roles(role)
-        await interaction.respond(type=6)
-
-    elif interaction.component.label.startswith("📩 Create"):
-        with open("data.json") as f:
-            data = json.load(f)
-
-            ticket_number = int(data["ticket-counter"])
-            ticket_number += 1
-
-            ticket_channel = await interaction.guild.create_text_channel("ticket-{}".format(ticket_number))
-            await ticket_channel.set_permissions(interaction.guild.get_role(interaction.guild.id), send_messages=False,
-                                                 read_messages=False)
-
-            for role_id in data["valid-roles"]:
-                role = interaction.guild.get_role(role_id)
-
-                await ticket_channel.set_permissions(role, send_messages=True, read_messages=True,
-                                                     add_reactions=True,
-                                                     embed_links=True, attach_files=True,
-                                                     read_message_history=True,
-                                                     external_emojis=True)
-
-                await ticket_channel.set_permissions(interaction.user, send_messages=True, read_messages=True,
-                                                     add_reactions=True,
-                                                     embed_links=True, attach_files=True,
-                                                     read_message_history=True,
-                                                     external_emojis=True)
-
-                pinged_msg_content = ""
-                non_mentionable_roles = []
-
-                if data["pinged-roles"] != []:
-
-                    for role_id in data["pinged-roles"]:
-                        role = interaction.guild.get_role(role_id)
-
-                        pinged_msg_content += role.mention
-                        pinged_msg_content += " "
-
-                        if role.mentionable:
-                            pass
-                        else:
-                            await role.edit(mentionable=True)
-                            non_mentionable_roles.append(role)
-
-                message_content = "Please wait and a moderator will assist you! To close this ticket press the `Close` button below"
-                em = discord.Embed(
-                    title="New ticket from {}#{}".format(interaction.user.name, interaction.user.discriminator),
-                    description=f"{message_content} {pinged_msg_content}", color=0x00a8ff)
-
-                await ticket_channel.send(embed=em,components=[[Button(label="Close", style=ButtonStyle.red)]])
-
-
-
-                data["ticket-channel-ids"].append(ticket_channel.id)
-
-                data["ticket-counter"] = int(ticket_number)
-                with open("data.json", 'w') as f:
-                    json.dump(data, f)
-
-                    em3 = discord.Embed(title="TMS Tickets",
-                                        description="Your ticket has been created at {}".format(
-                                            ticket_channel.mention),
-                                        color=0x00a8ff)
-
-                    await interaction.respond(embed=em3)
-
-    elif interaction.component.label.startswith("Close"):
-        with open('data.json') as f:
-            data = json.load(f)
-
-        if interaction.channel.id in data["ticket-channel-ids"]:
-
-            channel_id = interaction.channel.id
-
-            def check(message):
-                return message.author == interaction.author and message.channel == interaction.channel and message.content.lower() == "close"
-
-            try:
-
-                em = discord.Embed(title="TMS Tickets",
-                                   description="Are you sure you want to close this ticket? Reply with `close` if you are sure.",
-                                   color=0x00a8ff)
-
-                await interaction.respond(embed=em, type= 4)
-                await bot.wait_for('message',check=check, timeout=60)
-                await interaction.channel.delete()
-
-                index = data["ticket-channel-ids"].index(channel_id)
-                del data["ticket-channel-ids"][index]
-
-                with open('data.json', 'w') as f:
-                    json.dump(data, f)
-
-            except asyncio.TimeoutError:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="You have run out of time to close this ticket. Please press the red `Close` button again.",
-                                   color=0x00a8ff)
-                await interaction.respond(embed=em, type=4)
+    await ctx.send(embed=em1, view=Pronouns())
 
 
 @bot.command()
 @commands.check(is_staff)
-async def ticket(ctx):
-    em1 = discord.Embed(title="TMS Tickets",
-                       description="To create a ticket press the button below",color=0xff008c)
-    em1.set_thumbnail(url="https://cdn.discordapp.com/avatars/747126643587416174/ef6094b40ab077ec40f33197571429f3.png?size=2048")
-    em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
-
-    await ctx.send(embed=em1, components=[Button(label="📩 Create Ticket")])
+async def button1(ctx):
+    await ctx.message.delete()
+    em1 = discord.Embed(title="What if I accidentally added a role?",
+                        description="If you accidentally added a role ping a Server Leader and they will help remove it",
+                        color=0xff008c)
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+    await ctx.send(embed=em1)
 
 
 @bot.command()
@@ -1879,6 +2134,23 @@ async def close(ctx):
                                color=0x00a8ff)
             await ctx.send(embed=em)
 
+class Google(discord.ui.View):
+    def __init__(self, query: str):
+        super().__init__()
+        # we need to quote the query string to make a valid url. Discord will raise an error if it isn't valid.
+        query = quote_plus(query)
+        url = f'https://www.google.com/search?q={query}'
+
+        # Link buttons cannot be made with the decorator
+        # Therefore we have to manually create one.
+        # We add the quoted url to the button, and add the button to the view.
+        self.add_item(discord.ui.Button(label='Click Here', url=url))
+
+
+@bot.command()
+async def google(ctx: commands.Context, *, query: str):
+    """Returns a google link for a query"""
+    await ctx.send(f'Google Result for: `{query}`', view=Google(query))
 
 @bot.command()
 @commands.check(is_staff)
@@ -2319,7 +2591,7 @@ async def on_member_join(member):
 async def censor(message):
     """Constructs Pi-Bot's censor."""
     channel = message.channel
-    ava = message.author.avatar_url
+    ava = message.author.avatar
     wh = await channel.create_webhook(name="Censor (Automated)")
     content = message.content
     for word in CENSORED_WORDS:
@@ -2331,41 +2603,6 @@ async def censor(message):
     await wh.send(content, username=(author + " (Auto-Censor)"), avatar_url=ava, allowed_mentions=mention_perms)
     await wh.delete()
 
-
-@bot.command()
-@commands.check(is_staff)
-async def whu(ctx, message):
-    await ctx.message.delete()
-    async with aiohttp.ClientSession() as session:
-        webhook = Webhook.from_url('',
-                                   adapter=AsyncWebhookAdapter(session))
-
-        e=discord.Embed(title="New TMS SciOly Schoology Post", description=f"{message}", color=0xff008c)
-        await webhook.send(embed=e)
-
-
-@bot.command()
-@commands.check(is_staff)
-async def whv(ctx, message):
-    await ctx.message.delete()
-    async with aiohttp.ClientSession() as session:
-        webhook = Webhook.from_url('',
-                                   adapter=AsyncWebhookAdapter(session))
-
-        e=discord.Embed(title="New TMS SciOly Schoology Voting", description=f"{message}", color=0xff008c)
-        await webhook.send(embed=e)
-
-
-@bot.command()
-@commands.check(is_staff)
-async def whe(ctx, message):
-    await ctx.message.delete()
-    async with aiohttp.ClientSession() as session:
-        webhook = Webhook.from_url('',
-                                   adapter=AsyncWebhookAdapter(session))
-
-        e=discord.Embed(title="New TMS SciOly Event", description=f"{message}", color=0xff008c)
-        await webhook.send(embed=e)
 
 
 @bot.event
