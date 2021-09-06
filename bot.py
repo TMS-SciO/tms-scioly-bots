@@ -18,6 +18,7 @@ import json
 import asyncio
 import unicodedata
 
+
 intents = discord.Intents.all()
 
 ROLE_SELFMUTE = "Self-Muted"
@@ -82,9 +83,7 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 SERVER_ID = 816806329925894217
 REPORT_IDS = []
 WARN_IDS = []
-CENSORED_WORDS = ["BAD", "WORDS", "LIST",
-                  ]
-
+CENSORED_WORDS ['ALL', 'BAD', 'WORDS', 'GO', 'HERE']
 RECENT_MESSAGES = []
 
 STOPNUKE = False
@@ -113,9 +112,9 @@ RULES = [
 class PersistentViewBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or(BOT_PREFIX1, BOT_PREFIX),
-                   case_insensitive=True,
-                   help_command=None,
-                   intents=intents)
+                            case_insensitive=True,
+                            help_command=None,
+                            intents=intents)
         self.persistent_views_added = False
 
     async def on_ready(self):
@@ -139,187 +138,189 @@ class PersistentViewBot(commands.Bot):
 
 bot = PersistentViewBot()
 
-# embedOne = discord.Embed(
-#     title = "Help Page",
-#     description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands",
-#     color=0xff008c
-# )
+embedOne = discord.Embed(
+    title = "Help Page",
+    description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands",
+    color=0xff008c
+)
 
-# embedTwo = discord.Embed(
-#     title = "Fun Commands",
-#     description = f"Only use these commands in <#816809336113201193>",
-#     color=0xff008c
-# )
+embedTwo = discord.Embed(
+    title = "Fun Commands",
+    description = f"Only use these commands in <#816809336113201193>",
+    color=0xff008c
+)
 
-# embedTwo.add_field(name = "`!candy`", value= "Feeds Panda One or sometimes 100 pieces of candy", inline=False)
-# embedTwo.add_field(name = "`!stealcandy`",
-#                    value= "Steal candy from panda, but be warned you may be caught", inline=False)
-# embedTwo.add_field(name = "`!ping`", value= "Test the bots latency", inline=False)
-# embedTwo.add_field(name = "`!shiba @<>`", value= "Tag someone to get shiba-d", inline=False)
-# embedTwo.add_field(name = "`!akita @<>`", value= "Tag someone to get akita-d", inline=False)
-# embedTwo.add_field(name = "`!doge @<>`", value= "Tage someone to get dogee-d", inline=False)
-# embedTwo.add_field(name = "`!conttondetulear @<>`", value= "Tag someone to get cottondetuleared/buddy-d", inline=False)
-# embedTwo.add_field(name = "`!magic8ball <>`", value= "Ask the magic8ball something", inline=False)
-# embedTwo.add_field(name = "`!count`", value= "Counts how many members there are", inline=False)
-
-
-# embedThree = discord.Embed(
-#     title = "Server Commands",
-#     description = "You can use these commands anywhere but don't abuse them!",
-#     color=0xff008c
-# )
-# embedThree.add_field(name="`!report <reason>`",
-#                      value="This command is used for reporting another member or bot errors, you can use this command or open a ticket",
-#                      inline=False)
-# embedThree.add_field(name="`!latex <math code>`", value= "Input latex math-code to get an image of the equation", inline=False)
-# embedThree.add_field(name="`!info`", value= "Shows info about the server", inline=False)
-
-# embedFour = discord.Embed(
-#     title = "Moderation Commands 1/2",
-#     description = "Only users with Server Leader may use these commands, put arguments `< >` in quotes",
-#     color=0xff008c
-# )
-# embedFour.add_field(name="`!ban <@> <reason> <time>`", value="Bans a user", inline=False)
-# embedFour.add_field(name="`!unban <user id>`", value="Unbans a user", inline=False)
-# embedFour.add_field(name="`!kick <@> <reason>`", value="Kicks a user", inline=False)
-# embedFour.add_field(name="`!mute <@> <time>`", value="Mutes a user", inline=False)
-# embedFour.add_field(name="`!unmute <@>`", value="Unmutes a user", inline=False)
-# embedFour.add_field(name="`!warn <@> <reason>`", value="Warns a user and sends a dm through the bot about the warning",
-#                     inline=False)
-# embedFour.add_field(name="`!nuke <amount>`", value="Clears a certain amount of messages", inline=False)
-# embedFour.add_field(name="`!stopnuke`", value="Stops a clearing of messages", inline=False)
-# embedFour.add_field(name="`!whu '<message>'`", value="Creates a schoology update webhook and can only be used in <#848983128445943828>",
-#                     inline=False)
-# embedFour.add_field(name="`!whv '<message>'`", value="Creates a schoology vote webhook and can only be used in <#848981610112352256>",
-#                     inline=False)
-# embedFour.add_field(name="`!whe '<message>'`", value="Creates a schoology event webhook and can only be used in <#878796296364900422>",
-#                     inline=False)
-# embedFour.add_field(name="`!embed '<title>' '<description>'`", value="Creates an embed message", inline=False)
-# embedFour.add_field(name="`!clrreact <message id>`", value="Clears all reactions on a given message", inline=False)
-
-# embedFive = discord.Embed(
-#     title = "Moderation Commands 2/2",
-#     description = "Only users with Server Leader may use these commands",
-#     color=0xff008c
-# )
-# embedFive.add_field(name="`!e1`", value="Creates Role buttons for Life Science Events (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!e2`", value="Creates Role buttons for Earth and Space Science Events (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!e3`", value="Creates Role buttons for Physical Science & Chemistry Events (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!e4`", value="Creates Role buttons for Technology & Engineering Design Events (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!e5`", value="Creates Role buttons for Inquiry & Nature of Science Events (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!e6`", value="Creates Role buttons for All events role (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!e7`", value="Sends Embed instructions for removing roles (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!e8`", value="Creates Button for Self-Unmute Channel (only use in <#872949802495787058>)", inline=False)
-# embedFive.add_field(name="`!e9`", value="Creates Role buttons for Pronouns (only use in <#863054629787664464>)", inline=False)
-# embedFive.add_field(name="`!ticket`", value="Creates ticket button (only use in <#848996283288518718>)", inline=False)
+embedTwo.add_field(name = "`!candy`", value= "Feeds Panda One or sometimes 100 pieces of candy", inline=False)
+embedTwo.add_field(name = "`!stealcandy`",
+                   value= "Steal candy from panda, but be warned you may be caught", inline=False)
+embedTwo.add_field(name = "`!ping`", value= "Test the bots latency", inline=False)
+embedTwo.add_field(name = "`!shiba @<>`", value= "Tag someone to get shiba-d", inline=False)
+embedTwo.add_field(name = "`!akita @<>`", value= "Tag someone to get akita-d", inline=False)
+embedTwo.add_field(name = "`!doge @<>`", value= "Tage someone to get dogee-d", inline=False)
+embedTwo.add_field(name = "`!conttondetulear @<>`", value= "Tag someone to get cottondetuleared/buddy-d", inline=False)
+embedTwo.add_field(name = "`!magic8ball <>`", value= "Ask the magic8ball something", inline=False)
+embedTwo.add_field(name = "`!count`", value= "Counts how many members there are", inline=False)
 
 
-# paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
+embedThree = discord.Embed(
+    title = "Server Commands",
+    description = "You can use these commands anywhere but don't abuse them!",
+    color=0xff008c
+)
+embedThree.add_field(name="`!report <reason>`",
+                     value="This command is used for reporting another member or bot errors, you can use this command or open a ticket",
+                     inline=False)
+embedThree.add_field(name="`!latex <math code>`", value= "Input latex math-code to get an image of the equation", inline=False)
+embedThree.add_field(name="`!info`", value= "Shows info about the server", inline=False)
 
-# # class MyMenu(menus.Menu):
-# #     async def send_initial_message(self, ctx, channel):
-# #         return await channel.send(f'Hello {ctx.author}')
-# #
-# #     @menus.button('\N{THUMBS UP SIGN}')
-# #     async def on_thumbs_up(self, payload):
-# #         await self.message.edit(content=f'Thanks {self.ctx.author}!')
-# #
-# #     @menus.button('\N{THUMBS DOWN SIGN}')
-# #     async def on_thumbs_down(self, payload):
-# #         await self.message.edit(content=f"That's not nice {self.ctx.author}...")
-# #
-# #     @menus.button('\N{BLACK SQUARE FOR STOP}\ufe0f')
-# #     async def on_stop(self, payload):
-# #         self.stop()
-# class Pagination(discord.ui.View):
-#     def __init__(self, ctx):
-#         super().__init__(timeout=60.0)
-#         self.value = None
-#         self.author = ctx.message.author
+embedFour = discord.Embed(
+    title = "Moderation Commands 1/2",
+    description = "Only users with Server Leader may use these commands, put arguments `< >` in quotes",
+    color=0xff008c
+)
+embedFour.add_field(name="`!ban <@> '<reason>' <time>`", value="Bans a user", inline=False)
+embedFour.add_field(name="`!unban <user id>`", value="Unbans a user", inline=False)
+embedFour.add_field(name="`!kick <@> <reason>`", value="Kicks a user", inline=False)
+embedFour.add_field(name="`!mute <@> <time>`", value="Mutes a user", inline=False)
+embedFour.add_field(name="`!unmute <@>`", value="Unmutes a user", inline=False)
+embedFour.add_field(name="`!warn <@> <reason>`", value="Warns a user and sends a dm through the bot about the warning",
+                    inline=False)
+embedFour.add_field(name="`!nuke <amount>`", value="Clears a certain amount of messages", inline=False)
+embedFour.add_field(name="`!stopnuke`", value="Stops a clearing of messages", inline=False)
+embedFour.add_field(name="`!embed '<title>' '<description>'`", value="Creates an embed message", inline=False)
+embedFour.add_field(name="`!clrreact <message id>`", value="Clears all reactions on a given message", inline=False)
 
-#     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-#         if interaction.user == self.author:
-#             return True
-#         else:
-#             await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
-#             return False
+embedFive = discord.Embed(
+    title = "Moderation Commands 2/2",
+    description = "Only users with Server Leader may use these commands",
+    color=0xff008c
+)
+embedFive.add_field(name="`!events1`", value="Creates Role buttons for Life Science Events (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!events2`", value="Creates Role buttons for Earth and Space Science Events (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!events3`", value="Creates Role buttons for Physical Science & Chemistry Events (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!events4`", value="Creates Role buttons for Technology & Engineering Design Events (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!events5`", value="Creates Role buttons for Inquiry & Nature of Science Events (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!events6`", value="Creates Role buttons for All events role (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!button1`", value="Sends Embed instructions for removing roles (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!pronouns`", value="Creates Role buttons for Pronouns (only use in <#863054629787664464>)", inline=False)
+embedFive.add_field(name="`!ticket`", value="Creates ticket button (only use in <#848996283288518718>)", inline=False)
 
-#     @discord.ui.button(label='\U000027a1', custom_id="right", style=discord.ButtonStyle.blurple)
-#     async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
-#         await interaction.response.edit_message()
+
+paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
 
 
-# # later
+class Pagination(discord.ui.View):
+    def __init__(self, ctx, current):
+        super().__init__(timeout=60.0)
+        self.author = ctx.message.author
+        self.current = current
+
+    @discord.ui.button(label='\U00002b05', custom_id="left", style=discord.ButtonStyle.blurple)
+    async def left(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.current -= 1
+        print(self.current)
+        if self.current < 0:
+            self.current = len(paginationList) - 1
+        await interaction.response.edit_message(embed=paginationList[self.current])
+
+
+    # @discord.ui.button(label=f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}",
+    #                    disabled=True)
+    # async def page(self, button: discord.ui.button, interaction: discord.Interaction):
+    #     await interaction.response.defer()
+
+    @discord.ui.button(label='\U000027a1', custom_id="right", style=discord.ButtonStyle.blurple)
+    async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.current += 1
+        if self.current == len(paginationList):
+            self.current = 0
+
+        await interaction.response.edit_message(embed=paginationList[self.current])
+
+    @discord.ui.button(label='Close', custom_id='close_help', style=discord.ButtonStyle.danger)
+    async def close_help(self, button:discord.Button, interaction:discord.Interaction):
+        button.disabled = True
+        button.label = "Session Ended"
+        button.style = discord.ButtonStyle.secondary
+        await interaction.response.edit_message(view=None)
+        Pagination.stop(self)
+
+
+
+
+# later
+@bot.command()
+async def help(ctx):
+    member=ctx.message.author
+    current=0
+    view=Pagination(ctx, current)
+    await member.send(embed=paginationList[current], view=view)
+
+
 # @bot.command()
 # async def help(ctx):
-#     view=Pagination(ctx)
-#     await ctx.send('hi', view=view)
-
-# # @bot.command()
-# # async def help(ctx):
-# #     member = ctx.author
-# #     await ctx.message.add_reaction("\U0001f44d")
-# #     current = 0
-# #     mainmessage = await member.send(
-# #         ":loudspeaker: HELP HAS ARRIVED!",
-# #         embed = paginationList[current],
-# #         components = [
-# #             [
-# #
-# #             ]
-# #         ]
-# #     )
-# #     while True:
-# #
-# #         try:
-# #             interaction = await bot.wait_for(
-# #                 "button_click",
-# #                 check = lambda i: i.component.id in ["back", "front"], #You can add more
-# #                 timeout = 45.0
-# #             )
-# #
-# #             if interaction.component.id == "back":
-# #                 current -= 1
-# #             elif interaction.component.id == "front":
-# #                 current += 1
-# #             #If its out of index, go back to start / end
-# #             if current == len(paginationList):
-# #                 current = 0
-# #             elif current < 0:
-# #                 current = len(paginationList) - 1
-# #
-# #             #Edit to new page + the center counter changes
-# #             await interaction.respond(
-# #                 type = 7,
-# #                 embed = paginationList[current],
-# #                 components = [
-# #                     [
-# #                         Button(
-# #                             label = EMOJI_LEFT_ARROW,
-# #                             id = "back",
-# #                             style = ButtonStyle.blue
-# #                         ),
-# #                         Button(
-# #                             label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",
-# #                             id = "cur",
-# #                             style = ButtonStyle.grey,
-# #                             disabled = True
-# #                         ),
-# #                         Button(
-# #                             label = EMOJI_RIGHT_ARROW,
-# #                             id = "front",
-# #                             style = ButtonStyle.blue
-# #                         )
-# #                     ]
-# #                 ]
-# #             )
-# #         except asyncio.TimeoutError:
-# #             await mainmessage.edit(
-# #
-# #
-# #             )
-# #             break
-
+#     member = ctx.author
+#     await ctx.message.add_reaction("\U0001f44d")
+#     current = 0
+#     mainmessage = await member.send(
+#         ":loudspeaker: HELP HAS ARRIVED!",
+#         embed = paginationList[current],
+#         components = [
+#             [
+#
+#             ]
+#         ]
+#     )
+#     while True:
+#
+#         try:
+#             interaction = await bot.wait_for(
+#                 "button_click",
+#                 check = lambda i: i.component.id in ["back", "front"], #You can add more
+#                 timeout = 45.0
+#             )
+#
+#             if interaction.component.id == "back":
+#                 current -= 1
+#             elif interaction.component.id == "front":
+#                 current += 1
+#             #If its out of index, go back to start / end
+#             if current == len(paginationList):
+#                 current = 0
+#             elif current < 0:
+#                 current = len(paginationList) - 1
+#
+#             #Edit to new page + the center counter changes
+#             await interaction.respond(
+#                 type = 7,
+#                 embed = paginationList[current],
+#                 components = [
+#                     [
+#                         Button(
+#                             label = EMOJI_LEFT_ARROW,
+#                             id = "back",
+#                             style = ButtonStyle.blue
+#                         ),
+#                         Button(
+#                             label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",
+#                             id = "cur",
+#                             style = ButtonStyle.grey,
+#                             disabled = True
+#                         ),
+#                         Button(
+#                             label = EMOJI_RIGHT_ARROW,
+#                             id = "front",
+#                             style = ButtonStyle.blue
+#                         )
+#                     ]
+#                 ]
+#             )
+#         except asyncio.TimeoutError:
+#             await mainmessage.edit(
+#
+#
+#             )
+#             break
 
 class Ticket(discord.ui.View):
     def __init__(self):
@@ -532,6 +533,22 @@ async def embed(ctx, title, description):
                      icon_url=ava)
     await ctx.send(embed=embed)
 
+@bot.command(blacklist=WELCOME_CHANNEL)
+async def roll(ctx):
+    msg = await ctx.send("<a:typing:883864406537162793> Rolling a dice...")
+    await ctx.channel.trigger_typing()
+    await asyncio.sleep(3)
+    await msg.delete()
+    sayings = ['<:dice1:884113954383728730>',
+               '<:dice2:884113968493391932>',
+               '<:dice3:884113979033665556>',
+               '<:dice4:884113988596674631>',
+               '<:dice5:884114002156867635>',
+               '<:dice6:884114012281901056>'
+                ]
+
+    response = sayings[math.floor(random.random() * len(sayings))]
+    await ctx.message.reply(f"{response}", mention_author=False)
 
 @bot.command(blacklist=WELCOME_CHANNEL)
 async def magic8ball(ctx):
@@ -864,16 +881,38 @@ async def dm(ctx, member:discord.Member, *args):
     message = args[0]
     if len(args) > 1:
         message = ' '.join(args)
-    await member.send(f'Message from {ctx.author.mention} \n > {message}')
-    await ctx.send(f"Message sent to {member.mention}")
+    em1=discord.Embed(title=f"Message from {ctx.author}", description=f"> {message}", color=0x2F3136)
+    em1.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar)
+    await member.send(embed=em1)
+    await ctx.reply(f"Message sent to `{member}`", mention_author=False)
 
+
+# @bot.command()
+# async def emoji(ctx, message):
+#     emoji = re.findall(r'<:\w*:\d*>', message)
+#     embed=discord.Embed(title="", description=f"`<{emoji}>`")
+#     embed.set_image(url=f"https://cdn.discordapp.com/emojis/{emoji.id}.png?v=1")
+#     await ctx.reply(embed=embed, mention_author=False)
 
 @bot.command()
-async def emoji(ctx, emoji:discord.Emoji):
-    # emoji = re.findall(r'<:\w*:\d*>', message1)
-    embed=discord.Embed(title="", description=f"`<{emoji.name} : {emoji.id}>`")
-    embed.set_image(url=f"https://cdn.discordapp.com/emojis/{emoji.id}.png?v=1")
-    await ctx.reply(embed=embed, mention_author=False)
+async def emoji(ctx, custom_emojis: commands.Greedy[discord.PartialEmoji]):
+    """
+    Makes an emoji bigger and shows it's formatting
+    """
+    if not custom_emojis:
+        await ctx.send('This command only works for custom emojis')
+
+    if len(custom_emojis) > 5:
+        raise commands.TooManyArguments()
+
+    for emoji in custom_emojis:
+        if emoji.animated:
+            emoticon = f"*`<`*`a:{emoji.name}:{emoji.id}>`"
+        else:
+            emoticon = f"*`<`*`:{emoji.name}:{emoji.id}>`"
+        embed = discord.Embed(description=f"{emoticon}", color=ctx.me.color)
+        embed.set_image(url=emoji.url)
+        await ctx.send(embed=embed)
 
 
 @bot.command()
@@ -898,7 +937,7 @@ async def on_raw_message_edit(payload):
     channel = bot.get_channel(payload.channel_id)
     guild = bot.get_guild(SERVER_ID) if channel.type == discord.ChannelType.private else channel.guild
     edited_channel = discord.utils.get(guild.text_channels, name=CHANNEL_EDITEDM)
-    if channel.type != discord.ChannelType.private and channel.name in [CHANNEL_EDITEDM, CHANNEL_DELETEDM, CHANNEL_DMLOG]:
+    if channel.type != discord.ChannelType.private or discord.DMChannel or channel.name in [CHANNEL_EDITEDM, CHANNEL_DELETEDM, CHANNEL_DMLOG]:
         return
     try:
         message = payload.cached_message
@@ -991,10 +1030,12 @@ async def unvip(ctx, user:discord.Member):
 @bot.event
 async def on_raw_message_delete(payload):
     channel = bot.get_channel(payload.channel_id)
+
     guild = bot.get_guild(SERVER_ID) if channel.type == discord.ChannelType.private else channel.guild
     if channel.type != discord.ChannelType.private and channel.name in [CHANNEL_REPORTS, CHANNEL_DELETEDM, CHANNEL_DMLOG]:
         print("Ignoring deletion event because of the channel it's from.")
         return
+
     deleted_channel = discord.utils.get(guild.text_channels, name=CHANNEL_DELETEDM)
     try:
         message = payload.cached_message
@@ -1067,8 +1108,9 @@ async def on_raw_message_delete(payload):
 
 @bot.command()
 @commands.check(is_staff)
-async def kick(ctx, member:discord.Member, reason: str = False):
+async def kick(ctx, member:discord.Member, *args):
 
+    reason = " ".join(args)
     if reason == False:
         return await ctx.send("Please specify a reason why you want to kick this user!")
     if member.id in TMS_BOT_IDS:
@@ -1080,6 +1122,7 @@ async def kick(ctx, member:discord.Member, reason: str = False):
                       color=0xFF0000)
 
     await ctx.send(embed=em6)
+
 
 @bot.command()
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
@@ -1182,9 +1225,9 @@ class Confirm(discord.ui.View):
     async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
         number = 0
         if number + 1 >= 1:
-            button.style = discord.ButtonStyle.green
+            button.style = discord.ButtonStyle.secondary
             button.disabled = True
-            button.label = "Selcted"
+            button.label = "Confirmed"
         self.value = True
         await interaction.response.edit_message(view=self)
         self.stop()
@@ -1194,9 +1237,9 @@ class Confirm(discord.ui.View):
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
         number = 0
         if number + 1 >= 1:
-            button.style = discord.ButtonStyle.green
+            button.style = discord.ButtonStyle.secondary
             button.disabled = True
-            button.label = "Selcted"
+            button.label = "Canceled"
         self.value = False
         await interaction.response.edit_message(view=self)
         self.stop()
@@ -1288,6 +1331,7 @@ async def nuke(ctx, count):
             await asyncio.sleep(5)
             await msg.delete()
             return view.value
+
 
 @bot.command()
 @commands.check(is_staff)
@@ -1999,6 +2043,36 @@ class Allevents(discord.ui.View):
         await member.add_roles(role)
         await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
+class Nitro(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.value = None
+
+    @discord.ui.button(label="Claim")
+    async def nitroclaim(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = 0
+
+        if number + 1 >= 1:
+            button.style = discord.ButtonStyle.secondary
+            button.disabled = True
+            button.label = "Claimed"
+        self.value = True
+        await interaction.response.send_message('https://tenor.com/view/rick-astley-rick-roll-dancing-dance-moves-gif-14097983', ephemeral=True)
+
+
+@bot.command()
+@commands.check(is_staff)
+async def gift(ctx):
+    await ctx.message.delete()
+    em1=discord.Embed(title="You've been gifted a subscription!", description=" ", color=0x2F3136)
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/882408068242092062/883882671028179014/Screenshot_2021-09-04_201357.jpg')
+    view=Nitro()
+    await ctx.send(embed=em1, view=view)
+
+
+
+
 
 @bot.command()
 @commands.check(is_staff)
@@ -2059,7 +2133,7 @@ async def events5(ctx: commands.Context):
                         description="To choose your event roles press the buttons below",
                         color=0xff008c)
     em1.set_image(url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-    em1.set_footer(text="Life Science Events - Page 5 of 5")
+    em1.set_footer(text="Inquiry & Nature of Science Events")
     await ctx.send(embed=em1, view=Role5())
 
 
@@ -2447,24 +2521,30 @@ async def deladminrole(ctx, role_id=None):
 @commands.check(is_staff)
 async def update(ctx):
     await ctx.message.delete()
-    em5=discord.Embed(title="TMS Bot `v2.0` (v3.0-v3.5-v4.0) Update for 8/26/21",
+    em5=discord.Embed(title="TMS Bot `v2.1.0` Update for 9/5/21",
                       description="", color=0xff008c)
-    em5.add_field(name="**Only** Beta-Bot will be running",
-                  value="Beta-Bot will serve as the primary and only bot being used on this server for now.",
+    em5.add_field(name="Temporarily removed webhook commands",
+                  value="The webhook commands have been removed as the discord.py library beta does not use the old converter",
                   inline=False)
-    em5.add_field(name="New Command Prefixes",
-                  value="In addition to `!` now `?`, `/`, and mentioning the bot (<@!870741665294467082>) also serves as a command prefix",
+    em5.add_field(name="Removed `/` Prefix",
+                  value="The slash prefix was interacting with the discord API thinking it was a slash command",
                   inline=False)
     em5.add_field(name="New commands",
-                  value="New commands including `help, dm, embed, whe, whv, whu, e1-9`, full list can be seen with the help command",
+                  value="`emoji`, `charinfo`, `tictactoe`, `roll`",
                   inline=False)
-    em5.add_field(name="Auto-Censor Feature Added",
-                  value=f"Swearing is allowed as long as it comes out censored, any attempts to evade the censor will be deleted and muted",
+    em5.add_field(name="New confirmation screen",
+                  value=f"The new confirmaton screen when invoking certain commands like `selfmute` has been added",
                   inline=False)
     em5.set_thumbnail(
         url="https://cdn.discordapp.com/avatars/870741665294467082/0da0cbe08327c1081e6a055d957b3229.png?size=1024")
     em5.set_footer(text="TMS SciOly Bot Development Updates")
     await ctx.send(embed=em5)
+
+
+@bot.command()
+async def invite(ctx):
+    x = await ctx.channel.create_invite(max_uses=1)
+    await ctx.send(x)
 
 
 @bot.event
@@ -2571,6 +2651,7 @@ async def on_command_error(ctx, error):
         embed.add_field(name="Error Message:", value=f"```{error}```")
         await reports_channel.send(embed=embed)
         return await ctx.send(embed=embed)
+
     return
 
 
