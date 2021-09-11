@@ -223,7 +223,13 @@ class HelpButtons(discord.ui.View):
         self.current = current
         self.add_item(HelpSelect(ctx, current))
 
-    @discord.ui.button(label='\U00002b05', custom_id="left", style=discord.ButtonStyle.blurple, row=2)
+    @discord.ui.button(emoji='<:first:886264720955437057>', custom_id="first", style=discord.ButtonStyle.blurple, row=2)
+    async def first(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.current = 0
+        print(self.current)
+        await interaction.response.edit_message(embed=paginationList[self.current])
+
+    @discord.ui.button(emoji='<:left:886264769466732574>', custom_id="left", style=discord.ButtonStyle.blurple, row=2)
     async def left(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.current -= 1
         print(self.current)
@@ -231,20 +237,23 @@ class HelpButtons(discord.ui.View):
             self.current = len(paginationList) - 1
         await interaction.response.edit_message(embed=paginationList[self.current])
 
-    @discord.ui.button(label='\U000027a1', custom_id="right", style=discord.ButtonStyle.blurple, row=2)
+    @discord.ui.button(emoji='<:right:886264833320820747>', custom_id="right", style=discord.ButtonStyle.blurple, row=2)
     async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.current += 1
         if self.current == len(paginationList):
             self.current = 0
         await interaction.response.edit_message(embed=paginationList[self.current])
 
-    @discord.ui.button(label='Close', custom_id='close_help', style=discord.ButtonStyle.danger, row=2)
-    async def close_help(self, button:discord.Button, interaction:discord.Interaction):
-        button.disabled = True
-        button.label = "Session Ended"
-        button.style = discord.ButtonStyle.secondary
-        await interaction.response.edit_message(view=None)
-        HelpButtons.stop(self)
+    @discord.ui.button(emoji='<:last:886264854523043860>', custom_id="last", style=discord.ButtonStyle.blurple, row=2)
+    async def last(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.current = 4
+        await interaction.response.edit_message(embed=paginationList[self.current])
+
+    @discord.ui.button(label='Close', style=discord.ButtonStyle.red, row=2)
+    async def stop_pages(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """stops the pagination session."""
+        await interaction.response.defer()
+        await interaction.delete_original_message()
 
 
 
