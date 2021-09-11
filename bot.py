@@ -83,7 +83,8 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 SERVER_ID = 816806329925894217
 REPORT_IDS = []
 WARN_IDS = []
-CENSORED_WORDS ['ALL', 'BAD', 'WORDS', 'GO', 'HERE']
+CENSORED_WORDS = ["BAD WORDS LIST"]
+
 RECENT_MESSAGES = []
 
 STOPNUKE = False
@@ -127,6 +128,7 @@ class PersistentViewBot(commands.Bot):
             self.add_view(Allevents())
             self.add_view(Pronouns())
             self.add_view(Ticket())
+            self.add_view(Close())
             self.persistent_views_added = True
         print(f'{bot.user} has connected!')
         print(f'Logged in as {self.user} (ID: {self.user.id})')
@@ -137,6 +139,12 @@ class PersistentViewBot(commands.Bot):
 
 
 bot = PersistentViewBot()
+
+Paginationselectlist = ["Welcome Page",
+                      "Fun Commands",
+                      "Server Commands",
+                      "Moderation 1/2",
+                      "Moderation 2/2"]
 
 embedOne = discord.Embed(
     title = "Help Page",
@@ -209,13 +217,14 @@ embedFive.add_field(name="`!ticket`", value="Creates ticket button (only use in 
 paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
 
 
-class Pagination(discord.ui.View):
+class HelpButtons(discord.ui.View):
     def __init__(self, ctx, current):
-        super().__init__(timeout=60.0)
+        super().__init__()
         self.author = ctx.message.author
         self.current = current
+        self.add_item(HelpSelect(ctx, current))
 
-    @discord.ui.button(label='\U00002b05', custom_id="left", style=discord.ButtonStyle.blurple)
+    @discord.ui.button(label='\U00002b05', custom_id="left", style=discord.ButtonStyle.blurple, row=2)
     async def left(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.current -= 1
         print(self.current)
@@ -223,104 +232,69 @@ class Pagination(discord.ui.View):
             self.current = len(paginationList) - 1
         await interaction.response.edit_message(embed=paginationList[self.current])
 
-
-    # @discord.ui.button(label=f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}",
-    #                    disabled=True)
-    # async def page(self, button: discord.ui.button, interaction: discord.Interaction):
-    #     await interaction.response.defer()
-
-    @discord.ui.button(label='\U000027a1', custom_id="right", style=discord.ButtonStyle.blurple)
+    @discord.ui.button(label='\U000027a1', custom_id="right", style=discord.ButtonStyle.blurple, row=2)
     async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.current += 1
         if self.current == len(paginationList):
             self.current = 0
-
         await interaction.response.edit_message(embed=paginationList[self.current])
 
-    @discord.ui.button(label='Close', custom_id='close_help', style=discord.ButtonStyle.danger)
+    @discord.ui.button(label='Close', custom_id='close_help', style=discord.ButtonStyle.danger, row=2)
     async def close_help(self, button:discord.Button, interaction:discord.Interaction):
         button.disabled = True
         button.label = "Session Ended"
         button.style = discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=None)
-        Pagination.stop(self)
+        HelpButtons.stop(self)
 
 
 
 
-# later
+class HelpSelect(discord.ui.Select):
+    def __init__(self, ctx, current):
+        options = [
+            discord.SelectOption(label='Welcome Page', value="page1"),
+            discord.SelectOption(label='Fun Commands', value="page2"),
+            discord.SelectOption(label='Server Commands', value="page3"),
+            discord.SelectOption(label='Moderation Commands 1/2', value="page4"),
+            discord.SelectOption(label='Moderation Commands 2/2', value="page5")
+        ]
+        super().__init__(placeholder='Select a category...',
+            min_values=1,
+            max_values=1,
+            row=1, options=options)
+        self.author = ctx.message.author
+        self.current = current
+
+    async def callback(self, interaction: discord.Interaction):
+        value = self.values[0]
+        if value == "page1":
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page2":
+            self.current = 1
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page3":
+            self.current = 2
+
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page4":
+            self.current = 3
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page5":
+            self.current = 4
+            await interaction.response.edit_message(embed=paginationList[self.current])
+
+
 @bot.command()
 async def help(ctx):
+    await ctx.reply('https://cdn.discordapp.com/emojis/884184777438162964.png', mention_author=False)
     member=ctx.message.author
+    await ctx.send(f'{ctx.message.author.mention} Check DM')
     current=0
-    view=Pagination(ctx, current)
+    view= HelpButtons(ctx, current)
     await member.send(embed=paginationList[current], view=view)
 
 
-# @bot.command()
-# async def help(ctx):
-#     member = ctx.author
-#     await ctx.message.add_reaction("\U0001f44d")
-#     current = 0
-#     mainmessage = await member.send(
-#         ":loudspeaker: HELP HAS ARRIVED!",
-#         embed = paginationList[current],
-#         components = [
-#             [
-#
-#             ]
-#         ]
-#     )
-#     while True:
-#
-#         try:
-#             interaction = await bot.wait_for(
-#                 "button_click",
-#                 check = lambda i: i.component.id in ["back", "front"], #You can add more
-#                 timeout = 45.0
-#             )
-#
-#             if interaction.component.id == "back":
-#                 current -= 1
-#             elif interaction.component.id == "front":
-#                 current += 1
-#             #If its out of index, go back to start / end
-#             if current == len(paginationList):
-#                 current = 0
-#             elif current < 0:
-#                 current = len(paginationList) - 1
-#
-#             #Edit to new page + the center counter changes
-#             await interaction.respond(
-#                 type = 7,
-#                 embed = paginationList[current],
-#                 components = [
-#                     [
-#                         Button(
-#                             label = EMOJI_LEFT_ARROW,
-#                             id = "back",
-#                             style = ButtonStyle.blue
-#                         ),
-#                         Button(
-#                             label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",
-#                             id = "cur",
-#                             style = ButtonStyle.grey,
-#                             disabled = True
-#                         ),
-#                         Button(
-#                             label = EMOJI_RIGHT_ARROW,
-#                             id = "front",
-#                             style = ButtonStyle.blue
-#                         )
-#                     ]
-#                 ]
-#             )
-#         except asyncio.TimeoutError:
-#             await mainmessage.edit(
-#
-#
-#             )
-#             break
 
 class Ticket(discord.ui.View):
     def __init__(self):
@@ -887,13 +861,6 @@ async def dm(ctx, member:discord.Member, *args):
     await ctx.reply(f"Message sent to `{member}`", mention_author=False)
 
 
-# @bot.command()
-# async def emoji(ctx, message):
-#     emoji = re.findall(r'<:\w*:\d*>', message)
-#     embed=discord.Embed(title="", description=f"`<{emoji}>`")
-#     embed.set_image(url=f"https://cdn.discordapp.com/emojis/{emoji.id}.png?v=1")
-#     await ctx.reply(embed=embed, mention_author=False)
-
 @bot.command()
 async def emoji(ctx, custom_emojis: commands.Greedy[discord.PartialEmoji]):
     """
@@ -920,6 +887,17 @@ async def emoji(ctx, custom_emojis: commands.Greedy[discord.PartialEmoji]):
 async def count(ctx):
     guild = ctx.message.author.guild
     await ctx.send(f"Currently, there are `{len(guild.members)}` members in the server.")
+
+
+@bot.command()
+@commands.check(is_staff)
+async def sync(ctx, channel:discord.TextChannel=None):
+    if channel == None:
+        await ctx.message.channel.edit(sync_permissions=True)
+        await ctx.send(f'Permissions for {ctx.message.channel.mention} synced with {ctx.message.channel.category}')
+    else:
+        await channel.edit(sync_permissions=True)
+        await ctx.send(f'Permissions for {channel.mention} synced with {channel.category}')
 
 
 @bot.command()
@@ -1109,19 +1087,27 @@ async def on_raw_message_delete(payload):
 @bot.command()
 @commands.check(is_staff)
 async def kick(ctx, member:discord.Member, *args):
-
+    view = Confirm(ctx)
     reason = " ".join(args)
-    if reason == False:
-        return await ctx.send("Please specify a reason why you want to kick this user!")
-    if member.id in TMS_BOT_IDS:
-        return await ctx.send("Hey! You can't kick me!!")
-    await member.kick(reason=reason)
+    await ctx.reply(f"Are you sure you want to kick {member} for {reason}", view=view)
+    await view.wait()
+    if view.value is False:
+        await ctx.send('Aborting...')
+    if view.value is True:
 
-    em6=discord.Embed(title="",
-                      description=f"{member.mention} was kicked for {reason}.",
-                      color=0xFF0000)
+        if reason == None:
+            return await ctx.send("Please specify a reason why you want to kick this user!")
+        if member.id in TMS_BOT_IDS:
+            return await ctx.send("Hey! You can't kick me!!")
+        await member.kick(reason=reason)
 
-    await ctx.send(embed=em6)
+        em6 = discord.Embed(title="",
+                            description=f"{member.mention} was kicked for {reason}.",
+                            color=0xFF0000)
+
+        await ctx.send(embed=em6)
+    return view.value
+
 
 
 @bot.command()
@@ -1250,7 +1236,7 @@ class Counter(discord.ui.View):
     @discord.ui.button(label='0', style=discord.ButtonStyle.red)
     async def count(self, button: discord.ui.Button, interaction: discord.Interaction):
         number = int(button.label) if button.label else 0
-        if number + 1 >= 10:
+        if number + 1 >= 20:
             button.style = discord.ButtonStyle.green
             button.disabled = True
         button.label = str(number + 1)
@@ -1275,15 +1261,12 @@ async def unmute(ctx, user: discord.Member):
     if view.value is True:
         role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
         await user.remove_roles(role)
-    em5=discord.Embed(title="",
+        em5=discord.Embed(title="",
                       description=f"Successfully unmuted {user.mention}.",
                       color=0x16F22C)
 
-    await ctx.send(embed=em5)
+        await ctx.send(embed=em5)
     return view.value
-
-
-
 
 
 @bot.command()
@@ -1299,7 +1282,7 @@ async def nuke(ctx, count):
         await ctx.send('Nuke Aborted')
     if view.value is True:
         global STOPNUKE
-        if (ctx.message.channel.name == "rules"):
+        if ctx.message.channel.name == "rules":
             return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR NUKE.")
         if STOPNUKE:
             return await ctx.send("TRANSMISSION FAILED. ALL NUKES ARE CURRENTLY PAUSED. TRY AGAIN LATER.")
@@ -1338,7 +1321,7 @@ async def nuke(ctx, count):
 async def stopnuke(ctx):
     global STOPNUKE
 
-    if (ctx.message.channel.name == CHANNEL_RULES):
+    if ctx.message.channel.name == CHANNEL_RULES:
         return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR STOPPING NUKE.")
     STOPNUKE = True
     await ctx.send("TRANSMISSION RECEIVED. STOPPED ALL CURRENT NUKES.")
@@ -1348,6 +1331,47 @@ async def stopnuke(ctx):
         await asyncio.sleep(1)
     STOPNUKE = False
 
+
+class Dropdown(discord.ui.Select):
+    def __init__(self):
+        # Set the options that will be presented inside the dropdown
+        options = [
+            discord.SelectOption(label='Red', description='Your favourite colour is red', emoji='🟥'),
+            discord.SelectOption(label='Green', description='Your favourite colour is green', emoji='🟩'),
+            discord.SelectOption(label='Blue', description='Your favourite colour is blue', emoji='🟦')
+        ]
+
+        # The placeholder is what will be shown when no option is chosen
+        # The min and max values indicate we can only pick one of the three options
+        # The options parameter defines the dropdown options. We defined this above
+        super().__init__(placeholder='Choose your favourite colour...', min_values=1, max_values=3, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        await interaction.response.send_message(f'Your favourite colour is {self.values[0]}')
+
+
+class DropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(Dropdown())
+
+
+
+@bot.command()
+async def color(ctx):
+    """Sends a message with our dropdown containing colours"""
+
+    # Create the view containing our dropdown
+    view = DropdownView()
+
+    # Sending a message containing our view
+    await ctx.send('Pick your favourite colour:', view=view)
 
 @bot.command(aliases=["wp"])
 async def wiki(ctx, request:str=False, *args):
@@ -1446,9 +1470,7 @@ class TicTacToe(discord.ui.View):
             [0, 0, 0],
         ]
 
-        # Our board is made up of 3 by 3 TicTacToeButtons
-        # The TicTacToeButton maintains the callbacks and helps steer
-        # the actual game.
+
         for x in range(3):
             for y in range(3):
                 self.add_item(TicTacToeButton(x, y))
@@ -1760,27 +1782,72 @@ async def send_to_dm_log(message):
 
 @bot.command()
 @commands.check(is_staff)
-async def lock(ctx):
+async def lock(ctx, channel:discord.TextChannel=None):
     """Locks a channel to Member access."""
     member = ctx.message.author
-    channel = ctx.message.channel
-    member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
-    await ctx.channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
-    SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-    await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-    await ctx.send(f"Locked :lock: {channel.mention} to Member access.")
+    if channel == None:
+        member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
+        await ctx.channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
+        SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
+        await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
+        await ctx.send(f"Locked :lock: {ctx.channel.mention} to Member access.")
+    else:
+        member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
+        await channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
+        SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
+        await channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
+        await ctx.send(f"Locked :lock: {channel.mention} to Member access.")
+
+
 
 @bot.command()
 @commands.check(is_staff)
-async def unlock(ctx):
+async def unlock(ctx, channel:discord.TextChannel=None):
     """Unlocks a channel to Member access."""
     member = ctx.message.author
-    channel = ctx.message.channel
-    member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
-    await ctx.channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
-    SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-    await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-    await ctx.send(f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
+    if channel == None:
+        member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
+        await channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
+        SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
+        await channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
+        await ctx.send(f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
+    else:
+        member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
+        await ctx.message.channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
+        SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
+        await ctx.message.channelchannel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
+        await ctx.send(f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
+
+
+@bot.command()
+async def tag(ctx, *args):
+    tag = (" ".join(args)).lower()
+    if tag == 'rules':
+        em1=discord.Embed(title="Rules", description="Here are the rules for the 2021-22 season", color = 0xff008c)
+        em1.add_field(name='Division B Rules',
+                      value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf/ \"Division B\")")
+        em1.add_field(name='Division C Rules',
+                      value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_C_2022_Rules_Manual_Web_1.pdf/ \"Division C\")")
+        await ctx.send(embed=em1)
+
+    elif tag == 'anatomy':
+        em2 = discord.Embed(title="Anatomy & Physiology Rules",
+                            description="Participants will be assessed on their understanding of the anatomy and physiology for the human Nervous, Sense Organs, and Endocrine systems.  \n This Event may be administered as a written test or as series of lab-practical stations which can include but are not limited to experiments, scientific apparatus, models, illustrations, specimens, data collection and analysis, and problems for students to solve.",
+                            color=0xff008c)
+        em2.add_field(name='Full Anatomy Rules',
+                      value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf#page=7/ \"Anatomy\")")
+        await ctx.send(embed=em2)
+
+    elif tag == 'bpl':
+        em3 = discord.Embed(title="Bio Process Lab Rules",
+                            description="This event is a lab-oriented competition involving the  fundamental  science  processes of a middle school life science/biology lab program. \n This event will consist of a series of lab stations. Each station will require the use of process skills to answer questions and/or perform a required task such as formulating and/or evaluating hypotheses and procedures, using scientific instruments to collect data, making observations, presenting and/or interpreting data, or making inferences and conclusions",
+                    color=0xff008c)
+        em3.add_field(name='Full Bio Process Lab',
+                      value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf#page=9/ \"Bio Process Lab\")")
+        await ctx.send(embed=em3)
+
+    else:
+        await ctx.reply("Sorry I couldn't find that tag", mention_author=False)
 
 
 @bot.command()
@@ -2069,9 +2136,6 @@ async def gift(ctx):
         url='https://cdn.discordapp.com/attachments/882408068242092062/883882671028179014/Screenshot_2021-09-04_201357.jpg')
     view=Nitro()
     await ctx.send(embed=em1, view=view)
-
-
-
 
 
 @bot.command()
@@ -2589,12 +2653,7 @@ async def on_command_error(ctx, error):
         return await ctx.send(f"You are not allowed to use this command in {error.channel.mention}.")
 
     if isinstance(error, discord.ext.commands.ConversionError):
-        embed = discord.Embed(title="Command Error",
-                              description="Oops, there was a bot error here, sorry about that.",
-                              color=0xFF0000)
-        embed.add_field(name="Error Message:", value=f"```{error}```")
-        await ctx.send(embed=embed)
-        return await reports_channel.send(embed=embed)
+        return await ctx.send('Oops, there was a bot error here, sorry about that.')
 
     if isinstance(error, discord.ext.commands.UserInputError):
         return await ctx.send("Hmmm... I'm having trouble reading what you're trying to tell me.")
@@ -2605,13 +2664,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, discord.ext.commands.DisabledCommand):
         return await ctx.send("Sorry, but this command is disabled.")
     if isinstance(error, discord.ext.commands.CommandInvokeError):
-        embed = discord.Embed(title="Command Error",
-                              description="Sorry, but an error incurred when the command was invoked.",
-                              color=0xFF0000)
-        embed.add_field(name="Error Message:", value=f"```{error}```")
-        await reports_channel.send(embed=embed)
-        return await ctx.send(embed=embed)
-
+        return await ctx.send('Sorry, but an error incurred when the command was invoked.')
     if isinstance(error, discord.ext.commands.CommandOnCooldown):
         return await ctx.send("Slow down buster! This command's on cooldown.")
     if isinstance(error, discord.ext.commands.MaxConcurrencyReached):
@@ -2629,28 +2682,13 @@ async def on_command_error(ctx, error):
 
     # Overall errors
     if isinstance(error, discord.ext.commands.CommandError):
-        embed = discord.Embed(title="Command Error",
-                              description="Oops, there was a command error. Try again.",
-                              color=0xFF0000)
-        embed.add_field(name="Error Message:", value=f"```{error}```")
-        await reports_channel.send(embed=embed)
-        return await ctx.send(embed=embed)
+        return await ctx.send('Oops, there was a command error. Try again.')
 
     if isinstance(error, discord.errors.NotFound):
-        embed = discord.Embed(title="Channel Error",
-                              description="Oops, there was a channel error",
-                              color=0xFF0000)
-        embed.add_field(name="Error Message:", value=f"```{error}```")
-        await reports_channel.send(embed=embed)
-        return await ctx.send(embed=embed)
+        return await ctx.send('Oops, there was a channel error')
 
     if isinstance(error, RuntimeError):
-        embed = discord.Embed(title="Channel Error",
-                              description="Oops, there was a runtime error",
-                              color=0xFF0000)
-        embed.add_field(name="Error Message:", value=f"```{error}```")
-        await reports_channel.send(embed=embed)
-        return await ctx.send(embed=embed)
+        return await reports_channel.send('Oops, there was a runtime error')
 
     return
 
@@ -2685,7 +2723,6 @@ async def censor(message):
     await wh.delete()
 
 
-
 @bot.event
 async def on_message(message):
     # Log DMs
@@ -2716,14 +2753,15 @@ async def on_message(message):
                 await clarify_message.delete()
                 return await message.delete()
 
-    if message.author.id in TMS_BOT_IDS: return
+    if message.author.id in TMS_BOT_IDS:
+        return
     content = message.content
+
     for word in CENSORED_WORDS:
         if len(re.findall(fr"\b({word})\b", content, re.I)):
             print(f"Censoring message by {message.author} because of the word: `{word}`")
             await message.delete()
             await censor(message)
-
     # SPAM TESTING
     global RECENT_MESSAGES
     caps = False
