@@ -18,7 +18,6 @@ import json
 import asyncio
 import unicodedata
 
-
 intents = discord.Intents.all()
 
 ROLE_SELFMUTE = "Self-Muted"
