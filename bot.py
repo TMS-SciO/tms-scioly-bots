@@ -502,9 +502,9 @@ async def rule(ctx, num):
     return await ctx.send(embed=embed)
 
 
-@bot.command(aliases="embed")
+@bot.command(aliases="em")
 @commands.check(is_staff)
-async def createembed(ctx, title, description):
+async def embed(ctx, title, description):
     await ctx.message.delete()
     ava = ctx.author.avatar
     embed=discord.Embed(title=title,
