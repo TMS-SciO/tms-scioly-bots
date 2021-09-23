@@ -2843,6 +2843,21 @@ async def on_command_error(ctx, error):
     return
 
 
+@bot.command()
+@commands.check(is_staff)
+async def terminate(ctx):
+    view = Confirm(ctx)
+    await ctx.send('Are you sure you want to terminate the bot?', view=view)
+    await view.wait()
+    if view.value is True:
+        await bot.close()
+        await ctx.send("Bot Terminated")
+        print("bot shut down")
+    elif view.value is False:
+        await ctx.send("Canceled...")
+    return view.value
+
+
 @bot.event
 async def on_error(event, *args, **kwargs):
     print("Code Error:")
