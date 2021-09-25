@@ -1299,10 +1299,13 @@ async def getvariable(ctx,
     """Fetches a local variable."""
     await ctx.send("Attempting to find variable.")
     if var == "CRON_LIST":
-        header = CRON_LIST[0].keys()
-        rows = [x.values() for x in CRON_LIST]
-        table = tabulate.tabulate(rows, header, "fancy_grid")
-        await ctx.reply(f"```{table}```", mention_author=False)
+        try:
+            header = CRON_LIST[0].keys()
+            rows = [x.values() for x in CRON_LIST]
+            table = tabulate.tabulate(rows, header, "fancy_grid")
+            await ctx.reply(f"```{table}```", mention_author=False)
+        except IndexError as e:
+            await ctx.send(f'Nothing in the cron list {e}')
     else:
         try:
             variable = globals()[var]
@@ -1314,7 +1317,6 @@ async def getvariable(ctx,
 
         except Exception as e:
             await ctx.send(f"Can't find that variable! `{e}`")
-
 
 @bot.command()
 @commands.check(is_staff)
