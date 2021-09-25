@@ -950,12 +950,11 @@ async def sync(ctx,
 
 
 @bot.command()
-async def latex(ctx,
-                LaTeX):
+async def latex(ctx, latex):
     '''Displays an image of an equation, uses LaTex as input'''
 
-    print(LaTeX)
-    new_args = LaTeX.replace(" ", r"&space;")
+    print(latex)
+    new_args = latex.replace(" ", r"&space;")
     print(new_args)
     await ctx.send(r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + new_args + "}")
 
