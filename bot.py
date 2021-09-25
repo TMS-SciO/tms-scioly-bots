@@ -1079,7 +1079,7 @@ async def trial(ctx,
     member = ctx.message.author
     role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
     await user.add_roles(role)
-    await ctx.send(f"Successfully added Trial [SL]. Congratulations {user.mention}! :partying_face: :partying_face: ")
+    await ctx.send(f"Successfully added {role}. Congratulations {user.mention}! :partying_face: :partying_face: ")
 
 
 @bot.command()
@@ -1090,7 +1090,7 @@ async def untrial(ctx,
     member = ctx.message.author
     role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
     await user.remove_roles(role)
-    await ctx.send(f"Successfully removed Trial [SL] from {user.mention}.")
+    await ctx.send(f"Successfully removed {role} from {user.mention}.")
 
     
 @bot.command()
