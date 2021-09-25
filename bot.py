@@ -416,7 +416,7 @@ async def is_staff(ctx):
     """Checks to see if the user is a staff member."""
     member = ctx.message.author
     staffRole = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-    coachRole = discord.utils.get(member.guild.roles, name="Coach")
+    coachRole = discord.utils.get(member.guild.roles, name=ROLE_COACH)
     return staffRole in member.roles or coachRole in member.roles
 
 
@@ -1070,7 +1070,29 @@ async def unvip(ctx,
     await user.remove_roles(role)
     await ctx.send(f"Successfully removed VIP from {user.mention}.")
 
+    
+@bot.command()
+@commands.check(is_staff)
+async def trial(ctx,
+              user:discord.Member= commands.Option(description="The user you wish promote to trial leader")):
+    """Promotes/Trials a user."""
+    member = ctx.message.author
+    role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
+    await user.add_roles(role)
+    await ctx.send(f"Successfully added Trial [SL]. Congratulations {user.mention}! :partying_face: :partying_face: ")
 
+
+@bot.command()
+@commands.check(is_staff)
+async def untrial(ctx,
+                user:discord.Member=commands.Option(description="The user you wish to demote")):
+    """Demotes/unTrials a user."""
+    member = ctx.message.author
+    role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
+    await user.remove_roles(role)
+    await ctx.send(f"Successfully removed Trial [SL] from {user.mention}.")
+
+    
 @bot.command()
 async def grade(ctx,
                 a: float = commands.Option(description="Your points"),
