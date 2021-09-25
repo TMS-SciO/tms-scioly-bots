@@ -17,6 +17,7 @@ import re
 import json
 import asyncio
 import unicodedata
+import tabulate
 
 intents = discord.Intents.all()
 
@@ -82,7 +83,7 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 SERVER_ID = 816806329925894217
 REPORT_IDS = []
 WARN_IDS = []
-CENSORED_WORDS = ["BAD WORDS LIST"]
+CENSORED_WORDS = ["all the bad words"]\
 
 RECENT_MESSAGES = []
 
@@ -92,7 +93,6 @@ EMOJI_FAST_REVERSE = "\U000023EA"
 EMOJI_LEFT_ARROW = "\U00002B05"
 EMOJI_RIGHT_ARROW = "\U000027A1"
 EMOJI_FAST_FORWARD = "\U000023E9"
-EMOJI_THUMBS_UP = "U+1F44D"
 EMOJI_UNSELFMUTE = "click_to_unmute"
 EMOJI_FULL_UNSELFMUTE = "<:click_to_unmute:799389279385026610>"
 
@@ -108,13 +108,15 @@ RULES = [
 ]
 
 
-
 class PersistentViewBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or(BOT_PREFIX1, BOT_PREFIX),
-                            case_insensitive=True,
-                            help_command=None,
-                            intents=intents)
+                         case_insensitive=True,
+                         help_command=None,
+                         intents=intents,
+                         slash_commands=True,
+                         message_commands=False,
+                         slash_command_guilds=[816806329925894217])
         self.persistent_views_added = False
 
     async def on_ready(self):
@@ -133,17 +135,12 @@ class PersistentViewBot(commands.Bot):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         print('------')
         print(discord.__version__)
-        await bot.change_presence(status=discord.Status.dnd, activity=discord.Game("Minecraft"))
+        await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('Minecraft'))
         cron.start()
 
 
 bot = PersistentViewBot()
-
-Paginationselectlist = ["Welcome Page",
-                      "Fun Commands",
-                      "Server Commands",
-                      "Moderation 1/2",
-                      "Moderation 2/2"]
+bot.remove_command("help")
 
 embedOne = discord.Embed(
     title = "Help Page",
@@ -182,7 +179,7 @@ embedThree.add_field(name="`!info`", value= "Shows info about the server", inlin
 
 embedFour = discord.Embed(
     title = "Moderation Commands 1/2",
-    description = "Only users with Server Leader may use these commands, put arguments `< >` in quotes",
+    description = "Only Coaches or users with Server Leader may use these commands, put arguments `< >` in quotes",
     color=0xff008c
 )
 embedFour.add_field(name="`!ban <@> '<reason>' <time>`", value="Bans a user", inline=False)
@@ -196,6 +193,13 @@ embedFour.add_field(name="`!nuke <amount>`", value="Clears a certain amount of m
 embedFour.add_field(name="`!stopnuke`", value="Stops a clearing of messages", inline=False)
 embedFour.add_field(name="`!embed '<title>' '<description>'`", value="Creates an embed message", inline=False)
 embedFour.add_field(name="`!clrreact <message id>`", value="Clears all reactions on a given message", inline=False)
+embedFour.add_field(name='`!prepembed <mention channel> {see parameters below}`',
+                    value='Sends an embed to a channel \n'
+                    "parameters: `{'title':'<>', 'description':'<>', 'hexColor':'<>', 'webcolor':'<>', 'thumbnailUrl':'<>',"
+                    " 'authorName':'<>', 'authorUrl': '<>', 'authorIcon':'<>', 'fields':'<>', 'footerText':'<>',"
+                          " 'footerUrl':'<>', 'imageUrl':'<>'}`",
+                    inline=False)
+
 
 embedFive = discord.Embed(
     title = "Moderation Commands 2/2",
@@ -211,6 +215,7 @@ embedFive.add_field(name="`!events6`", value="Creates Role buttons for All event
 embedFive.add_field(name="`!button1`", value="Sends Embed instructions for removing roles (only use in <#863054629787664464>)", inline=False)
 embedFive.add_field(name="`!pronouns`", value="Creates Role buttons for Pronouns (only use in <#863054629787664464>)", inline=False)
 embedFive.add_field(name="`!ticket`", value="Creates ticket button (only use in <#848996283288518718>)", inline=False)
+embedFive.add_field(name="`!eventroles`", value="Creates all the button embeds (events 1-6) only use in <#863054629787664464>", inline=False)
 
 
 paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
@@ -218,10 +223,11 @@ paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
 
 class HelpButtons(discord.ui.View):
     def __init__(self, ctx, current):
-        super().__init__()
+        super().__init__(timeout=None)
         self.author = ctx.message.author
         self.current = current
         self.add_item(HelpSelect(ctx, current))
+
 
     @discord.ui.button(emoji='<:first:886264720955437057>', custom_id="first", style=discord.ButtonStyle.blurple, row=2)
     async def first(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -249,14 +255,6 @@ class HelpButtons(discord.ui.View):
         self.current = 4
         await interaction.response.edit_message(embed=paginationList[self.current])
 
-    @discord.ui.button(label='Close', style=discord.ButtonStyle.red, row=2)
-    async def stop_pages(self, button: discord.ui.Button, interaction: discord.Interaction):
-        """stops the pagination session."""
-        await interaction.response.defer()
-        await interaction.delete_original_message()
-
-
-
 
 class HelpSelect(discord.ui.Select):
     def __init__(self, ctx, current):
@@ -277,6 +275,7 @@ class HelpSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         value = self.values[0]
         if value == "page1":
+            self.current = 0
             await interaction.response.edit_message(embed=paginationList[self.current])
         if value == "page2":
             self.current = 1
@@ -294,21 +293,17 @@ class HelpSelect(discord.ui.Select):
 
 
 @bot.command()
-async def help(ctx):
-    await ctx.reply('https://cdn.discordapp.com/emojis/884184777438162964.png', mention_author=False)
-    member=ctx.message.author
-    await ctx.send(f'{ctx.message.author.mention} Check DM')
-    current=0
-    view= HelpButtons(ctx, current)
-    await member.send(embed=paginationList[current], view=view)
-
+async def help(ctx: commands.Context):
+    '''Sends a menu with all the commands'''
+    current = 0
+    view = HelpButtons(ctx, current)
+    await ctx.send(embed=paginationList[current], view=view, ephemeral=True)
 
 
 class Ticket(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.value = None
-
 
     @discord.ui.button(label='\U0001f4e9 Create Ticket', custom_id="ticket", style=discord.ButtonStyle.secondary)
     async def ticket(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -374,7 +369,6 @@ class Ticket(discord.ui.View):
                                                 ticket_channel.mention),
                                             color=0x00a8ff)
 
-
                         await interaction.response.send_message(embed=em3, ephemeral=True)
 
 
@@ -422,20 +416,22 @@ async def is_staff(ctx):
     """Checks to see if the user is a staff member."""
     member = ctx.message.author
     staffRole = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-    return staffRole in member.roles
+    coachRole = discord.utils.get(member.guild.roles, name="Coach")
+    return staffRole in member.roles or coachRole in member.roles
 
 
 @bot.command()
 @commands.check(is_staff)
 async def ticket(ctx):
+    '''Sends the ticket button embed'''
     view = Ticket()
     em1 = discord.Embed(title="TMS Tickets",
                        description="To create a ticket press the button below",color=0xff008c)
-    em1.set_thumbnail(url="https://cdn.discordapp.com/avatars/747126643587416174/ef6094b40ab077ec40f33197571429f3.png?size=2048")
     em1.set_image(
         url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
     em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
     await ctx.send(embed=em1, view=view)
+
 
 def not_blacklisted_channel(blacklist):
     """Given a string array blacklist, check if command was not invoked in specified blacklist channels."""
@@ -489,34 +485,55 @@ async def handle_cron(string):
         await auto_report("Error with a cron task", "red", f"Error: `{e}`\nOriginal task: `{string}`")
 
 
-@bot.command()
-async def rule(ctx, num):
+@bot.command(slash_command=True)
+async def rule(ctx, number = commands.Option(description="Which rule to display")):
     """Gets a specified rule."""
-    if not num.isdigit() or int(num) < 1 or int(num) > 6:
+    if not number.isdigit() or int(number) < 1 or int(number) > 6:
 
         return await ctx.reply("Please use a valid rule number, from 1 through 6. (Ex: `!rule 4`)", mention_author=False)
-    rule = RULES[int(num) - 1]
+    rule = RULES[int(number) - 1]
     embed=discord.Embed(title="",
-                        description=f"**Rule {num}:**\n> {rule}",
+                        description=f"**Rule {number}:**\n> {rule}",
                         color=0xff008c)
     return await ctx.send(embed=embed)
 
 
-@bot.command(aliases="em")
+@bot.command()
 @commands.check(is_staff)
-async def embed(ctx, title, description):
-    await ctx.message.delete()
+async def embed(ctx, title=None, description=None):
+    '''Sends an embed'''
     ava = ctx.author.avatar
-    embed=discord.Embed(title=title,
-                        description=description,
-                        color=0xff008c,
-                        )
-    embed.set_author(name=ctx.author,
-                     icon_url=ava)
-    await ctx.send(embed=embed)
+    if title is None:
+        embed=discord.Embed(title=" ",
+                            description=description,
+                            color=0xff008c,
+                            )
+        embed.set_author(name=ctx.author,
+                         icon_url=ava)
+        await ctx.send(embed=embed)
+    elif description is None:
+        embed = discord.Embed(title=title,
+                              description=' ',
+                              color=0xff008c,
+                              )
+        embed.set_author(name=ctx.author,
+                         icon_url=ava)
+        await ctx.send(embed=embed)
+    else:
+        embed = discord.Embed(title=title,
+                              description=description,
+                              color=0xff008c,
+                              )
+        embed.set_author(name=ctx.author,
+                         icon_url=ava)
+        await ctx.send(embed=embed)
 
-@bot.command(blacklist=WELCOME_CHANNEL)
+
+
+@bot.command()
+@not_blacklisted_channel(blacklist=WELCOME_CHANNEL)
 async def roll(ctx):
+    '''Rolls a dice'''
     msg = await ctx.send("<a:typing:883864406537162793> Rolling a dice...")
     await ctx.channel.trigger_typing()
     await asyncio.sleep(3)
@@ -532,12 +549,13 @@ async def roll(ctx):
     response = sayings[math.floor(random.random() * len(sayings))]
     await ctx.message.reply(f"{response}", mention_author=False)
 
-@bot.command(blacklist=WELCOME_CHANNEL)
-async def magic8ball(ctx):
+
+@bot.command(blacklist=WELCOME_CHANNEL, slash_command=True)
+async def magic8ball(ctx, question):
+    '''Swishes a Magic8ball'''
     msg = await ctx.send("<a:typing:883864406537162793> Swishing the magic 8 ball...")
     await ctx.channel.trigger_typing()
     await asyncio.sleep(3)
-    await msg.delete()
     sayings = [
         "Yes.",
         "Ask again later.",
@@ -560,10 +578,10 @@ async def magic8ball(ctx):
         "Definitely no."
     ]
     response = sayings[math.floor(random.random()*len(sayings))]
-    await ctx.message.reply(f"**{response}**", mention_author=False)
+    await msg.edit(f"**{response}**")
 
 
-@bot.command(aliases=["r"])
+@bot.command(aliases=["r"], slash_command=True)
 async def report(ctx, *args):
     """Creates a report that is sent to staff members."""
     server = bot.get_guild(SERVER_ID)
@@ -602,30 +620,30 @@ async def auto_report(reason, color, message):
     await message.add_reaction("\U0000274C")
 
 
-@bot.command(aliases=["w"])
-async def warn(ctx, member:discord.Member, *args):
+@bot.command()
+async def warn(ctx, member:discord.Member = commands.Option(description="Which user to warn"),
+               reason = commands.Option(description="Why you are warning this user")
+               ):
+    '''Warns a user'''
     server = bot.get_guild(SERVER_ID)
     reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
     mod = ctx.message.author
     avatar = mod.avatar
-    avatar1 = member.avatar
-    message = args[0]
-    if len(args) > 1:
-        message = ' '.join(args)
+    avatar1 = member.avatar.url
 
-    if member == None or member == ctx.message.author:
+    if member is None or member == ctx.message.author:
         return await ctx.reply("You cannot warn yourself :rolling_eyes:",
                                    mention_author=False)
-    if args == None:
-            return await ctx.reply(f"{ctx.message.author.mention} You need to give a reason for why you are warning {member.mention}",
+    if reason is None:
+        return await ctx.reply(f"{ctx.message.author.mention} You need to give a reason for why you are warning {member.mention}",
                                    mention_author=False)
     if member.id in TMS_BOT_IDS:
-            return await ctx.reply(f"Hey {ctx.message.author.mention}! You can't warn {member.mention}",
+        return await ctx.reply(f"Hey {ctx.message.author.mention}! You can't warn {member.mention}",
                                    mention_author=False)
     embed = discord.Embed(title="Warning Given",
                           description=f"Warning issued to {member.mention} \n id: `{member.id}`",
                                 color= 0xFF0000)
-    embed.add_field(name="Reason:", value=f"`{message}`")
+    embed.add_field(name="Reason:", value=f"`{reason}`")
     embed.add_field(name="Responsible Moderator:", value=f"{mod.mention}")
     embed.set_author(name=f"{member}",
                      icon_url=avatar1)
@@ -634,7 +652,7 @@ async def warn(ctx, member:discord.Member, *args):
     embed1=discord.Embed(title=" ", description=f"{member} has been warned", color= 0x2E66B6)
 
     embed2=discord.Embed(title=f"Warning",
-                         description=f"You have been given a warning by {mod.mention} for `{message}`. \n Please follow the rules of the server",
+                         description=f"You have been given a warning by {mod.mention} for `{reason}`. \n Please follow the rules of the server",
                          color= 0xFF0000)
     embed2.set_author(name=f"{mod}",
                      icon_url=avatar)
@@ -687,7 +705,8 @@ async def on_raw_reaction_add(payload):
 
 @bot.event
 async def on_member_update(before, after):
-    if after.nick == None: return
+    if after.nick is None:
+        return
     for word in CENSORED_WORDS:
         if len(re.findall(fr"\b({word})\b", after.nick, re.I)):
             await auto_report("Innapropriate Username Detected", "red", f"A member ({str(after)}) has updated their nickname to **{after.nick}**, which the censor caught as innapropriate.")
@@ -696,7 +715,7 @@ async def on_member_update(before, after):
 @bot.command()
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def candy(ctx):
-
+    '''Feeds panda some candy!'''
     global fish_now
     r = random.random()
     if len(str(fish_now)) > 1500:
@@ -726,6 +745,7 @@ async def candy(ctx):
 @bot.command()
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def stealcandy(ctx):
+    '''Steals some candy from panda'''
     global fish_now
     member = ctx.message.author
     r = random.random()
@@ -753,10 +773,14 @@ async def stealcandy(ctx):
         return await ctx.send("You are banned from using `!stealcandy` until the next version of TMS-Bot is released.")
 
 
-@bot.command(aliases=["slow", "sm"])
+@bot.command()
 @commands.check(is_staff)
-async def slowmode(ctx, arg:int=None):
-    if arg == None:
+async def slowmode(ctx,
+                   time: int = commands.Option(description="The amount of seconds")
+                   ):
+    '''Sets slowmode for the channel.'''
+    arg = time
+    if arg is None:
         if ctx.channel.slowmode_delay == 0:
             await ctx.channel.edit(slowmode_delay=10)
             await ctx.send("Enabled a 10 second slowmode.")
@@ -773,14 +797,17 @@ async def slowmode(ctx, arg:int=None):
 
 @bot.command()
 @commands.check(is_staff)
-async def ban(ctx, member:discord.User=None, reason=None, *args):
+async def ban(ctx,
+              member : discord.User= commands.Option(description='the member to ban'),
+              reason = commands.Option(description='the reason to ban this member'),
+              duration = commands.Option(description='the amount of time banned')):
     """Bans a user."""
-    time = " ".join(args)
-    if member == None or member == ctx.message.author:
+    time = duration
+    if member is None or member == ctx.message.author:
         return await ctx.reply("You cannot ban yourself! >:(", mention_author=False)
-    elif reason == None:
+    elif reason is None:
         return await ctx.reply("You need to give a reason for you banning this user.", mention_author=False)
-    elif time == None:
+    elif time is None:
         return await ctx.reply("You need to specify a length that this used will be banned. Examples are: `1 day`, `2 months or 1 day`",
                                mention_author=False)
     elif member.id in TMS_BOT_IDS:
@@ -789,7 +816,7 @@ async def ban(ctx, member:discord.User=None, reason=None, *args):
     parsed = "indef"
     if time != "indef":
         parsed = dateparser.parse(time, settings={"PREFER_DATES_FROM": "future"})
-        if parsed == None:
+        if parsed is None:
             return await ctx.send(f"Sorry, but I don't understand the length of time: `{time}`.")
         CRON_LIST.append({"date": parsed, "do": f"unban {member.id}"})
     await member.send(message)
@@ -813,7 +840,9 @@ async def ban(ctx, member:discord.User=None, reason=None, *args):
 
 @bot.command()
 @commands.check(is_staff)
-async def unban(ctx, member:discord.User=None):
+async def unban(ctx,
+                member:discord.User= commands.Option(description="The user (id) to unban")
+                ):
     """Unbans a user."""
     if member == None:
         await ctx.channel.send("Please give either a user ID or mention a user.")
@@ -823,6 +852,7 @@ async def unban(ctx, member:discord.User=None):
                         description=f"Inverse ban hammer applied, {member.mention} unbanned. Please remember that I cannot force them to re-join the server, they must join themselves.",
                         color=0x00FF00)
     await ctx.channel.send(embed=embed)
+
 
 @bot.event
 async def on_member_unban(guild,member):
@@ -841,36 +871,42 @@ async def on_member_unban(guild,member):
 
 
 @bot.command()
-async def charinfo(ctx, *, characters: str):
-        """Shows you information about a number of characters.
-        Only up to 25 characters at a time.
-        """
+async def charinfo(ctx,
+                   characters: str = commands.Option(description="Characters you want")
+                   ):
+    """
+    Shows you information about a number of characters.
+    Only up to 25 characters at a time.
+    """
+    def to_string(c):
+        digit = f'{ord(c):x}'
+        name = unicodedata.name(c, 'Name not found.')
+        return f'`\\U{digit:>08}`: {name} - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{digit}>'
 
-        def to_string(c):
-            digit = f'{ord(c):x}'
-            name = unicodedata.name(c, 'Name not found.')
-            return f'`\\U{digit:>08}`: {name} - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{digit}>'
-
-        msg = '\n'.join(map(to_string, characters))
-        if len(msg) > 2000:
-            return await ctx.send('Output too long to display.')
-        await ctx.send(msg)
+    msg = '\n'.join(map(to_string, characters))
+    if len(msg) > 2000:
+        return await ctx.send('Output too long to display.')
+    await ctx.send(msg)
 
 
 @bot.command()
 @commands.check(is_staff)
-async def dm(ctx, member:discord.Member, *args):
-    message = args[0]
-    if len(args) > 1:
-        message = ' '.join(args)
-    em1=discord.Embed(title=f"Message from {ctx.author}", description=f"> {message}", color=0x2F3136)
-    em1.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar)
-    await member.send(embed=em1)
+async def dm(ctx, member: discord.Member,
+             message=commands.Option(description="What to DM the member")
+             ):
+    '''DMs a user.'''
+    em1=discord.Embed(title=f" ",
+                      description=f"> {message}",
+                      color=0x2F3136)
+    em1.set_author(name=f"Message from {ctx.message.author}", icon_url=ctx.message.author.avatar)
     await ctx.reply(f"Message sent to `{member}`", mention_author=False)
+    await member.send(embed=em1)
 
 
 @bot.command()
-async def emoji(ctx, custom_emojis: commands.Greedy[discord.PartialEmoji]):
+async def emoji(ctx,
+                custom_emojis: commands.Greedy[discord.PartialEmoji] = commands.Option(description="Up to 5 custom emojis")
+                ):
     """
     Makes an emoji bigger and shows it's formatting
     """
@@ -893,14 +929,19 @@ async def emoji(ctx, custom_emojis: commands.Greedy[discord.PartialEmoji]):
 @bot.command()
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def count(ctx):
+    '''Counts the number of members in the server'''
     guild = ctx.message.author.guild
     await ctx.send(f"Currently, there are `{len(guild.members)}` members in the server.")
 
 
 @bot.command()
 @commands.check(is_staff)
-async def sync(ctx, channel:discord.TextChannel=None):
-    if channel == None:
+async def sync(ctx,
+               channel: discord.TextChannel= commands.Option(description="The channel to sync permissions with")
+               ):
+    '''Syncs permmissions to channel category'''
+
+    if channel is None:
         await ctx.message.channel.edit(sync_permissions=True)
         await ctx.send(f'Permissions for {ctx.message.channel.mention} synced with {ctx.message.channel.category}')
     else:
@@ -909,13 +950,29 @@ async def sync(ctx, channel:discord.TextChannel=None):
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
-async def latex(ctx, *args):
-    new_args = " ".join(args)
-    print(new_args)
-    new_args = new_args.replace(" ", r"&space;")
+async def latex(ctx,
+                LaTeX):
+    '''Displays an image of an equation, uses LaTex as input'''
+
+    print(LaTeX)
+    new_args = LaTeX.replace(" ", r"&space;")
     print(new_args)
     await ctx.send(r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + new_args + "}")
+
+
+@bot.command()
+async def profile(ctx,
+                  user:discord.User = commands.Option (description="The user you want")
+                  ):
+
+    if user is None:
+        avatar = ctx.author.avatar
+        await ctx.send(f'{avatar}')
+    else:
+        try:
+            await ctx.send(f'{user.avatar}')
+        except Exception as e:
+            await ctx.send(f"Couldn't find profile: {e}")
 
 
 @bot.event
@@ -995,8 +1052,9 @@ async def on_raw_message_edit(payload):
 
 @bot.command()
 @commands.check(is_staff)
-async def vip(ctx, user:discord.Member):
-    """Exalts a user."""
+async def vip(ctx,
+              user:discord.Member= commands.Option(description="The user you wish to VIP")):
+    """Exalts/VIPs a user."""
     member = ctx.message.author
     role = discord.utils.get(member.guild.roles, name=ROLE_VIP)
     await user.add_roles(role)
@@ -1005,12 +1063,43 @@ async def vip(ctx, user:discord.Member):
 
 @bot.command()
 @commands.check(is_staff)
-async def unvip(ctx, user:discord.Member):
-    """Unexalts a user."""
+async def unvip(ctx,
+                user:discord.Member=commands.Option(description="The user you wish to unVIP")):
+    """Unexalts/unVIPs a user."""
     member = ctx.message.author
     role = discord.utils.get(member.guild.roles, name=ROLE_VIP)
     await user.remove_roles(role)
     await ctx.send(f"Successfully removed VIP from {user.mention}.")
+
+
+@bot.command()
+async def grade(ctx,
+                a: float = commands.Option(description="Your points"),
+                b: float = commands.Option(description="Total points")
+                ):
+    '''Returns a percentage/grade'''
+    x = a / b
+    z = x*100
+    if z < 60:
+        await ctx.send(f'{round(z, 2)}% F')
+    elif 60 <= z < 70:
+        await ctx.send(f'{round(z, 2)}% D')
+    elif 70 <= z <80:
+        await ctx.send(f'{round(z, 2)}% C')
+    elif 80 <= z <90:
+        await ctx.send(f'{round(z, 2)}% B')
+    elif 90 <= z < 93:
+        await ctx.send(f'{round(z, 2)}% A-')
+    elif 93 <= z < 97:
+        await ctx.send(f'{round(z, 2)}% A')
+    elif 97 <= z <= 100:
+        await ctx.send(f'{round(z, 2)}% A+')
+    elif z > 100:
+        await ctx.send(f"{round(z, 2)}% A++ must've gotten extra credit")
+
+
+
+
 
 
 @bot.event
@@ -1094,9 +1183,12 @@ async def on_raw_message_delete(payload):
 
 @bot.command()
 @commands.check(is_staff)
-async def kick(ctx, member:discord.Member, *args):
+async def kick(ctx,
+               member:discord.Member = commands.Option(description="Which user to kick"),
+               reason = commands.Option(description="Why you're kicking this user")
+               ):
     view = Confirm(ctx)
-    reason = " ".join(args)
+
     await ctx.reply(f"Are you sure you want to kick {member} for {reason}", view=view)
     await view.wait()
     if view.value is False:
@@ -1117,10 +1209,10 @@ async def kick(ctx, member:discord.Member, *args):
     return view.value
 
 
-
 @bot.command()
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def ping(ctx):
+    '''Get the bot's latency'''
     latency = round(bot.latency * 1000,2)
     em = discord.Embed(title="Pong :ping_pong:",
                      description=f":clock1: My ping is {latency} ms!",
@@ -1130,17 +1222,15 @@ async def ping(ctx):
 
 @bot.command()
 @commands.check(is_staff)
-async def mute(ctx, user: discord.Member, *args):
+async def mute(ctx,
+               user: discord.Member = commands.Option(description= "The user to mute"),
+               time= commands.Option(description="The amount of time to mute the user")
+               ):
     """
     Mutes a user.
-    :param ctx:
-    :param user: User to be muted.
-    :type user: discord.Member
-    :param *args: The time to mute the user for.
-    :type *args: str
     """
     view = Confirm(ctx)
-    time = " ".join(args)
+
     await ctx.reply(f"Are you sure you want to mute {user} for {time}", view=view)
     await view.wait()
     if view.value is False:
@@ -1148,6 +1238,7 @@ async def mute(ctx, user: discord.Member, *args):
     if view.value is True:
         await _mute(ctx, user, time, self=False)
     return view.value
+
 
 async def _mute(ctx, user:discord.Member, time: str, self: bool):
     """
@@ -1181,25 +1272,69 @@ async def _mute(ctx, user:discord.Member, time: str, self: bool):
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
-async def selfmute(ctx, *args):
+@commands.check(is_staff)
+async def getvariable(ctx,
+                      var= commands.Option(description="The global variable to display")):
+    """Fetches a local variable."""
+    await ctx.send("Attempting to find variable.")
+    if var == "CRON_LIST":
+        header = CRON_LIST[0].keys()
+        rows = [x.values() for x in CRON_LIST]
+        table = tabulate.tabulate(rows, header, "fancy_grid")
+        await ctx.reply(f"```{table}```", mention_author=False)
+    else:
+        try:
+            variable = globals()[var]
+            # await ctx.send(f"`{var}`  Variable value: ```ini\n{variable}```")
+            header = variable[0].keys()
+            rows = [x.values() for x in variable]
+            table = tabulate.tabulate(rows, header, "fancy_grid")
+            await ctx.reply(f"```{table}```", mention_author=False)
+
+        except Exception as e:
+            await ctx.send(f"Can't find that variable! `{e}`")
+
+
+@bot.command()
+@commands.check(is_staff)
+async def removevariable(ctx,
+                         user: discord.User = commands.Option(description= "The user to remove from the CRON_LIST")
+                         ):
+    for obj in CRON_LIST[:]:
+        if obj['do'] == f'unmute {user.id}':
+            CRON_LIST.remove(obj)
+            await ctx.send(f'Removed {user} unmute from CRON_LIST')
+        elif obj['do'] == f'unban {user.id}':
+            CRON_LIST.remove(obj)
+            await ctx.send(f'Removed {user} unban from CRON_LIST')
+        else:
+            await ctx.send('Unknown object to remove')
+
+
+
+
+
+@bot.command()
+async def selfmute(ctx, time):
     """
     Self mutes the user that invokes the command.
-    :param *args: The time to mute the user for.
-    :type *args: str
+
     """
     view = Confirm(ctx)
     user = ctx.message.author
-    time = " ".join(args)
-    await ctx.reply(f"Are you sure you want to selfmute for {time}", view=view)
-    await view.wait()
-    if view.value is False:
 
-        await ctx.send('Aborting...')
-    if view.value is True:
+    if time is None:
+        await ctx.send('You need to specify a length that this used will be muted. `exe:` `1 day`, `2 months, 1 day`')
+    else:
+        await ctx.reply(f"Are you sure you want to selfmute for {time}", view=view)
+        await view.wait()
+        if view.value is False:
 
-        await _mute(ctx, user, time, self=True)
-    return view.value
+            await ctx.send('Aborting...')
+        if view.value is True:
+
+            await _mute(ctx, user, time, self=True)
+        return view.value
 
 
 class Confirm(discord.ui.View):
@@ -1241,24 +1376,21 @@ class Confirm(discord.ui.View):
 
 class Counter(discord.ui.View):
 
-    @discord.ui.button(label='0', style=discord.ButtonStyle.red)
+    @discord.ui.button(label='0', style=discord.ButtonStyle.red, custom_id="counter")
     async def count(self, button: discord.ui.Button, interaction: discord.Interaction):
         number = int(button.label) if button.label else 0
-        if number + 1 >= 20:
-            button.style = discord.ButtonStyle.green
-            button.disabled = True
         button.label = str(number + 1)
 
         await interaction.response.edit_message(view=self)
 
 
-@bot.command()
+@bot.command(slash_command=True)
 async def counter(ctx: commands.Context):
     """Starts a counter for pressing."""
     await ctx.send('Press!', view=Counter())
 
 
-@bot.command()
+@bot.command(slash_command=True)
 @commands.check(is_staff)
 async def unmute(ctx, user: discord.Member):
     view = Confirm(ctx)
@@ -1274,12 +1406,17 @@ async def unmute(ctx, user: discord.Member):
                       color=0x16F22C)
 
         await ctx.send(embed=em5)
+        for obj in CRON_LIST[:]:
+            if obj['do'] == f'unmute {user.id}':
+                CRON_LIST.remove(obj)
     return view.value
 
 
 @bot.command()
 @commands.check(is_staff)
-async def nuke(ctx, count):
+async def nuke(ctx, 
+               count: int = commands.Option(description="The amount of messages to delete")
+               ):
     """Nukes (deletes) a specified amount of messages."""
     view = Confirm(ctx)
     await ctx.reply(f"Are you sure you want to clear {count} messages", view=view)
@@ -1310,7 +1447,7 @@ async def nuke(ctx, count):
         await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
         await ctx.send("PREPARE FOR IMPACT.")
         for i in range(10, 0, -1):
-            await ctx.send(f"NUKING {count} MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
+            await ctx.send(f"NUKING {count} MESSAGES IN {i}... TYPE `/stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
             await asyncio.sleep(1)
             if STOPNUKE:
                 return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
@@ -1340,52 +1477,15 @@ async def stopnuke(ctx):
     STOPNUKE = False
 
 
-class Dropdown(discord.ui.Select):
-    def __init__(self):
-        # Set the options that will be presented inside the dropdown
-        options = [
-            discord.SelectOption(label='Red', description='Your favourite colour is red', emoji='🟥'),
-            discord.SelectOption(label='Green', description='Your favourite colour is green', emoji='🟩'),
-            discord.SelectOption(label='Blue', description='Your favourite colour is blue', emoji='🟦')
-        ]
-
-        # The placeholder is what will be shown when no option is chosen
-        # The min and max values indicate we can only pick one of the three options
-        # The options parameter defines the dropdown options. We defined this above
-        super().__init__(placeholder='Choose your favourite colour...', min_values=1, max_values=3, options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        # Use the interaction object to send a response message containing
-        # the user's favourite colour or choice. The self object refers to the
-        # Select object, and the values attribute gets a list of the user's
-        # selected options. We only want the first one.
-        await interaction.response.send_message(f'Your favourite colour is {self.values[0]}')
-
-
-class DropdownView(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-
-        # Adds the dropdown to our view object.
-        self.add_item(Dropdown())
-
-
-
 @bot.command()
-async def color(ctx):
-    """Sends a message with our dropdown containing colours"""
-
-    # Create the view containing our dropdown
-    view = DropdownView()
-
-    # Sending a message containing our view
-    await ctx.send('Pick your favourite colour:', view=view)
-
-@bot.command(aliases=["wp"])
-async def wiki(ctx, request:str=False, *args):
-    term = " ".join(args)
-    if request == False:
-        return await ctx.send("You must specifiy a command and keyword, such as `!wiki search \"Science Olympiad\"`")
+async def wikipedia(ctx,
+                    request = commands.Option(default=None, description= "Action, like summary or search"),
+                    page = commands.Option(description="What page you want!")
+                    ):
+    '''Get a wikipedia page or summary!'''
+    term = page
+    if request is None:
+        return await ctx.send("You must specifiy a command and keyword, such as `/wikipedia search \"Science Olympiad\"`")
     if request == "search":
         return await ctx.send("\n".join([f"`{result}`" for result in aiowikip.search(term, results=5)]))
     elif request == "summary":
@@ -1522,12 +1622,11 @@ class TicTacToe(discord.ui.View):
 
 @bot.command()
 async def tictactoe(ctx: commands.Context):
-    """Starts a tic-tac-toe game with yourself."""
+    """Starts a tic-tac-toe game."""
     await ctx.send('Tic Tac Toe: X goes first', view=TicTacToe())
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def info(ctx):
     """Gets information about the Discord server."""
     server = ctx.message.guild
@@ -1535,17 +1634,17 @@ async def info(ctx):
     owner = server.owner
     creation_date = server.created_at
     emoji_count = len(server.emojis)
-    icon = server.icon_url_as(format=None, static_format='jpeg')
-    animated_icon = server.is_icon_animated()
+    icon = server.icon.replace(format='gif', static_format='jpeg')
+    animated_icon = server.icon.is_animated()
     iden = server.id
-    banner = server.banner_url
+    banner = server.banner
     desc = server.description
     mfa_level = server.mfa_level
     verification_level = server.verification_level
     content_filter = server.explicit_content_filter
     default_notifs = server.default_notifications
     features = server.features
-    splash = server.splash_url
+    splash = server.splash
     premium_level = server.premium_tier
     boosts = server.premium_subscription_count
     channel_count = len(server.channels)
@@ -1570,7 +1669,7 @@ async def info(ctx):
     role_count = len(server.roles)
     member_count = len(server.members)
     max_members = server.max_members
-    discovery_splash_url = server.discovery_splash_url
+    discovery_splash_url = server.discovery_splash
     member_percentage = round(member_count/max_members * 100, 3)
     emoji_percentage = round(emoji_count/emoji_limit * 100, 3)
     channel_percentage = round(channel_count/500 * 100, 3)
@@ -1599,7 +1698,7 @@ async def info(ctx):
                 "inline": False
             }
         ]
-    if staff_member and ctx.channel.name == CHANNEL_BOTSPAM:
+    if staff_member:
         fields.extend(
             [{
                 "name": "Staff Information",
@@ -1647,32 +1746,6 @@ async def info(ctx):
     await ctx.send(embed=embed)
 
 
-
-@bot.command()
-@commands.check(is_staff)
-async def clrreact(ctx, msg: discord.Message, *args: discord.Member):
-    await ctx.message.delete()
-    """
-    Clears all reactions from a given message.
-    :param msg: the message containing the reactions
-    :type msg: discord.Message
-    :param *args: list of users to clear reactions of
-    :type *args: List[discord.Member], optional
-    """
-    users = args
-    if (not users):
-        await msg.clear_reactions()
-        await ctx.send("Cleared all reactions on message.")
-    else:
-        for u in users:
-            for r in msg.reactions:
-                await r.remove(u)
-        await ctx.send(f"Cleared reactions on message from {len(users)} user(s).")
-
-
-async def harvest_id(user):
-    return user.replace("<@!", "").replace(">", "")
-
 async def get_doggo():
     """Gets a random dog pic!"""
     res = requests.get("https://dog.ceo/api/breeds/image/random")
@@ -1704,47 +1777,52 @@ async def get_cotondetulear():
 
 
 @bot.command()
-async def shiba(ctx, member:str=False):
+async def shiba(ctx,
+                member:discord.Member = commands.Option(description="Who are you trying to shiba?")
+                ):
     """Shiba bombs a user!"""
-    if member == False:
+    if member is None:
         return await ctx.send("Tell me who you want to shiba!! :dog:")
     doggo = await get_shiba()
     await ctx.send(doggo)
-    await ctx.send(f"{member}, <@{ctx.message.author.id}> shiba-d you!!")
+    await ctx.send(f"{member.mention}, <@{ctx.message.author.id}> shiba-d you!!")
 
 
 @bot.command()
-async def cottondetulear(ctx, member:str=False):
-    """Shiba bombs a user!"""
-    if member == False:
+async def cottondetulear(ctx,
+                         member:discord.Member = commands.Option(description="Who are you trying to cottondetulear?")
+                         ):
+    """Cottondetulear-s Another Member!"""
+    if member is None:
         return await ctx.send("Tell me who you want to cottondetulear!! :dog:")
     doggo = await get_cotondetulear()
     await ctx.send(doggo)
-    await ctx.send(f"{member}, <@{ctx.message.author.id}> cottondetulear-d you!!")
+    await ctx.send(f"{member.mention}, {ctx.message.author.mention} cottondetulear-d you!!")
 
 
 @bot.command()
-async def akita(ctx, member:str=False):
-    """Shiba bombs a user!"""
-    if member == False:
+async def akita(ctx,
+                member:discord.Member = commands.Option(description="Who are you trying to akita?")
+                ):
+    """Akita-s a user!"""
+    if member is None:
         return await ctx.send("Tell me who you want to akita!! :dog:")
     doggo = await get_akita()
     await ctx.send(doggo)
-    await ctx.send(f"{member}, <@{ctx.message.author.id}> akita-d you!!")
-
-
-
+    await ctx.send(f"{member.metion}, <@{ctx.message.author.id}> akita-d you!!")
 
 
 @bot.command()
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
-async def doge(ctx, member:str=False):
-    """Dog bombs someone!"""
-    if member == False:
+async def doge(ctx,
+               member:discord.Member = commands.Option(description="Who are you trying to doge?")
+               ):
+    """Dogeee-s someone!"""
+    if member is None:
         return await ctx.send("Tell me who you want to dogeeee!! :dog:")
     doggo = await get_doggo()
     await ctx.send(doggo)
-    await ctx.send(f"{member}, <@{ctx.message.author.id}> dogeee-d you!!")
+    await ctx.send(f"{member.metion}, <@{ctx.message.author.id}> dogeee-d you!!")
 
 
 async def send_to_dm_log(message):
@@ -1788,12 +1866,14 @@ async def send_to_dm_log(message):
     await dmChannel.send(embed=embed)
 
 
-@bot.command()
+@bot.command(slash_command=True)
 @commands.check(is_staff)
-async def lock(ctx, channel:discord.TextChannel=None):
+async def lock(ctx, 
+               channel: discord.TextChannel = commands.Option(default=None, description="The channel you want to lock")
+               ):
     """Locks a channel to Member access."""
     member = ctx.message.author
-    if channel == None:
+    if channel is None:
         member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
         await ctx.channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
         SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
@@ -1807,29 +1887,33 @@ async def lock(ctx, channel:discord.TextChannel=None):
         await ctx.send(f"Locked :lock: {channel.mention} to Member access.")
 
 
-
-@bot.command()
+@bot.command(slash_command=True)
 @commands.check(is_staff)
-async def unlock(ctx, channel:discord.TextChannel=None):
+async def unlock(ctx, 
+                 channel:discord.TextChannel = commands.Option(default=None, description="The channel to unlock")
+                 ):
     """Unlocks a channel to Member access."""
     member = ctx.message.author
-    if channel == None:
+    if channel is None:
+        member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
+        await ctx.channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
+        SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
+        await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
+        await ctx.send(f"Unlocked :unlock: {ctx.channel.mention} to Member access. Please check if permissions need to be synced.")
+    else:
         member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
         await channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
         SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
         await channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
         await ctx.send(f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
-    else:
-        member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
-        await ctx.message.channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
-        SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-        await ctx.message.channelchannel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-        await ctx.send(f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
 
 
 @bot.command()
-async def tag(ctx, *args):
-    tag = (" ".join(args)).lower()
+async def tag(ctx, 
+              name=commands.Option(description="Name of the tag")
+              ):
+    '''Retrieves a tag'''
+    tag = name.lower()
     if tag == 'rules':
         em1=discord.Embed(title="Rules", description="Here are the rules for the 2021-22 season", color = 0xff008c)
         em1.add_field(name='Division B Rules',
@@ -1861,6 +1945,7 @@ async def tag(ctx, *args):
 @bot.command()
 @commands.check(is_staff)
 async def rules(ctx):
+    '''Displays all of the servers rules'''
     em4 = discord.Embed(title="TMS SciOly Discord Rules",
                       description="",
                       color=0xff008c)
@@ -1891,6 +1976,7 @@ async def rules(ctx):
 
     em4.set_footer(text="TMS SciOly Website https://sites.google.com/student.sd25.org/tmsscioly/home ")
     await ctx.send(embed=em4)
+
 
 class Role1(discord.ui.View):
     def __init__(self):
@@ -2259,7 +2345,6 @@ class Allevents(discord.ui.View):
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
-
 class Nitro(discord.ui.View):
     def __init__(self):
         super().__init__()
@@ -2280,7 +2365,6 @@ class Nitro(discord.ui.View):
 @bot.command()
 @commands.check(is_staff)
 async def gift(ctx):
-    await ctx.message.delete()
     em1=discord.Embed(title="You've been gifted a subscription!", description=" ", color=0x2F3136)
     em1.set_image(
         url='https://cdn.discordapp.com/attachments/882408068242092062/883882671028179014/Screenshot_2021-09-04_201357.jpg')
@@ -2291,7 +2375,7 @@ async def gift(ctx):
 @bot.command()
 @commands.check(is_staff)
 async def events1(ctx: commands.Context):
-    await ctx.message.delete()
+    '''Buttons for Life Science Events'''
     em1 = discord.Embed(title="What events do you want to do?",
                         description="To choose your event roles press the buttons below",
                         color=0xff008c)
@@ -2303,7 +2387,7 @@ async def events1(ctx: commands.Context):
 @bot.command()
 @commands.check(is_staff)
 async def events2(ctx: commands.Context):
-    await ctx.message.delete()
+    '''Buttons for Earth and Space Science Events'''
     em1 = discord.Embed(title="What events do you want to do?",
                         description="To choose your event roles press the buttons below",
                         color=0xff008c)
@@ -2316,7 +2400,7 @@ async def events2(ctx: commands.Context):
 @bot.command()
 @commands.check(is_staff)
 async def events3(ctx: commands.Context):
-    await ctx.message.delete()
+    '''Buttons for Physical Science & Chemistry Events'''
     em1 = discord.Embed(title="What events do you want to do?",
                         description="To choose your event roles press the buttons below",
                         color=0xff008c)
@@ -2329,7 +2413,7 @@ async def events3(ctx: commands.Context):
 @bot.command()
 @commands.check(is_staff)
 async def events4(ctx: commands.Context):
-    await ctx.message.delete()
+    '''Buttons for Technology & Engineering Design Events'''
     em1 = discord.Embed(title="What events do you want to do?",
                         description="To choose your event roles press the buttons below",
                         color=0xff008c)
@@ -2342,7 +2426,7 @@ async def events4(ctx: commands.Context):
 @bot.command()
 @commands.check(is_staff)
 async def events5(ctx: commands.Context):
-    await ctx.message.delete()
+    '''Buttons for Inquiry & Nature'''
     em1 = discord.Embed(title="What events do you want to do?",
                         description="To choose your event roles press the buttons below",
                         color=0xff008c)
@@ -2354,7 +2438,7 @@ async def events5(ctx: commands.Context):
 @bot.command()
 @commands.check(is_staff)
 async def events6(ctx: commands.Context):
-    await ctx.message.delete()
+    '''Buttons for All Events Role'''
     em1 = discord.Embed(title="What events do you want to do?",
                         description="Press the button below to gain access to all the event channels",
                         color=0xff008c)
@@ -2365,7 +2449,7 @@ async def events6(ctx: commands.Context):
 @bot.command()
 @commands.check(is_staff)
 async def pronouns(ctx: commands.Context):
-    await ctx.message.delete()
+    '''Buttons for Pronoun Roles'''
     em1 = discord.Embed(title="What pronouns do you use?",
                         description="Press the buttons below to choose your pronoun role(s)",
                         color=0xff008c)
@@ -2377,19 +2461,53 @@ async def pronouns(ctx: commands.Context):
 
 @bot.command()
 @commands.check(is_staff)
-async def button1(ctx):
-    await ctx.message.delete()
-    em1 = discord.Embed(title="What if I accidentally added a role?",
-                        description="If you accidentally added a role ping a Server Leader and they will help remove it",
+async def eventroles(ctx: commands.Context):
+    '''Creates all the event role buttons'''
+    em1 = discord.Embed(title="What events do you want to do?",
+                        description="To choose your event roles press the buttons below",
                         color=0xff008c)
-    em1.set_image(
-        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-    await ctx.send(embed=em1)
+    em1.set_footer(text="Life Science Events - Page 1 of 5")
+
+    em2 = discord.Embed(title="What events do you want to do?",
+                        description="To choose your event roles press the buttons below",
+                        color=0xff008c)
+
+    em2.set_footer(text="Earth and Space Science Events - Page 2 of 5")
+
+    em3 = discord.Embed(title="What events do you want to do?",
+                        description="To choose your event roles press the buttons below",
+                        color=0xff008c)
+
+    em3.set_footer(text="Physical Science & Chemistry Events - Page 3 of 5")
+
+    em4 = discord.Embed(title="What events do you want to do?",
+                        description="To choose your event roles press the buttons below",
+                        color=0xff008c)
+
+    em4.set_footer(text="Technology & Engineering Design Events - Page 4 of 5")
+
+    em5 = discord.Embed(title="What events do you want to do?",
+                        description="To choose your event roles press the buttons below",
+                        color=0xff008c)
+    em5.set_footer(text="Inquiry & Nature of Science Events")
+
+    em6 = discord.Embed(title="What pronouns do you use?",
+                        description="Press the buttons below to choose your pronoun role(s)",
+                        color=0xff008c)
+    em6.set_footer(text="Pronoun Roles")
+
+    await ctx.send(embed=em1, view=Role1())
+    await ctx.send(embed=em2, view=Role2())
+    await ctx.send(embed=em3, view=Role3())
+    await ctx.send(embed=em4, view=Role4())
+    await ctx.send(embed=em5, view=Role5())
+    await ctx.send(embed=em6, view=Pronouns())
 
 
 @bot.command()
 @commands.check(is_staff)
 async def close(ctx):
+    '''Manually closes a ticket channel'''
     with open('data.json') as f:
         data = json.load(f)
 
@@ -2440,9 +2558,12 @@ async def google(ctx: commands.Context, *, query: str):
     """Returns a google link for a query"""
     await ctx.send(f'Google Result for: `{query}`', view=Google(query))
 
+
 @bot.command()
 @commands.check(is_staff)
-async def addaccess(ctx, role_id=None):
+async def addaccess(ctx, 
+                    role_id= commands.Option(description="Role id: allow see tickets")
+                    ):
     with open('data.json') as f:
         data = json.load(f)
 
@@ -2495,7 +2616,9 @@ async def addaccess(ctx, role_id=None):
 
 @bot.command()
 @commands.check(is_staff)
-async def delaccess(ctx, role_id=None):
+async def delaccess(ctx, 
+                    role_id= commands.Option(description="Role id: delete access to see tickets")
+                    ):
     with open('data.json') as f:
         data = json.load(f)
 
@@ -2554,7 +2677,9 @@ async def delaccess(ctx, role_id=None):
 
 @bot.command()
 @commands.check(is_staff)
-async def addpingedrole(ctx, role_id=None):
+async def addpingedrole(ctx, 
+                        role_id=commands.Option(description="Role id to be pinged when tickets are opened")
+                        ):
     with open('data.json') as f:
         data = json.load(f)
 
@@ -2608,7 +2733,9 @@ async def addpingedrole(ctx, role_id=None):
 
 @bot.command()
 @commands.check(is_staff)
-async def delpingedrole(ctx, role_id=None):
+async def delpingedrole(ctx, 
+                        role_id=commands.Option(description="Role id: to delete, pinged when tickets are opened")
+                        ):
     with open('data.json') as f:
         data = json.load(f)
 
@@ -2664,10 +2791,11 @@ async def delpingedrole(ctx, role_id=None):
         await ctx.send(embed=em)
 
 
-
-@bot.command()
+@bot.command(slash_command=True)
 @commands.check(is_staff)
-async def addadminrole(ctx, role_id=None):
+async def addadminrole(ctx, 
+                       role_id=commands.Option(description="Role id, to have admin ticket commands")
+                       ):
     try:
         role_id = int(role_id)
         role = ctx.guild.get_role(role_id)
@@ -2693,7 +2821,8 @@ async def addadminrole(ctx, role_id=None):
 
 @bot.command()
 @commands.check(is_staff)
-async def deladminrole(ctx, role_id=None):
+async def deladminrole(ctx, 
+                       role_id =commands.Option(description="Role id, delete access to admin ticket commands")):
     try:
         role_id = int(role_id)
         role = ctx.guild.get_role(role_id)
@@ -2734,7 +2863,7 @@ async def deladminrole(ctx, role_id=None):
 @bot.command()
 @commands.check(is_staff)
 async def update(ctx):
-    await ctx.message.delete()
+    '''Sends the message containing all bot updates'''
     em5=discord.Embed(title="TMS Bot `v2.1.0` Update for 9/5/21",
                       description="", color=0xff008c)
     em5.add_field(name="Temporarily removed webhook commands",
@@ -2757,6 +2886,7 @@ async def update(ctx):
 
 @bot.command()
 async def invite(ctx):
+    '''Gives you a 1 time use invite link'''
     x = await ctx.channel.create_invite(max_uses=1)
     await ctx.send(x)
 
@@ -2814,7 +2944,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, discord.ext.commands.DisabledCommand):
         return await ctx.send("Sorry, but this command is disabled.")
     if isinstance(error, discord.ext.commands.CommandInvokeError):
-        return await ctx.send('Sorry, but an error incurred when the command was invoked.')
+        return await ctx.send(f'Sorry, but an error incurred when the command was invoked. \n error: {error}')
     if isinstance(error, discord.ext.commands.CommandOnCooldown):
         return await ctx.send("Slow down buster! This command's on cooldown.")
     if isinstance(error, discord.ext.commands.MaxConcurrencyReached):
@@ -2822,13 +2952,13 @@ async def on_command_error(ctx, error):
 
     # Extension errors (not doing specifics)
     if isinstance(error, discord.ext.commands.ExtensionError):
-        return await ctx.send("Oh no. There's an extension error. Please ping a developer and Eric about this one.")
+        return await ctx.send("Oh no. There's an extension error. Please ping Eric about this one.")
 
 
 
     # Client exception errors (not doing specifics)
     if isinstance(error, discord.ext.commands.CommandRegistrationError):
-        return await ctx.send("Oh boy. Command registration error. Please ping a developer and Eric about this.")
+        return await ctx.send("Oh boy. Command registration error. Please ping Eric about this.")
 
     # Overall errors
     if isinstance(error, discord.ext.commands.CommandError):
@@ -2841,21 +2971,6 @@ async def on_command_error(ctx, error):
         return await reports_channel.send('Oops, there was a runtime error')
 
     return
-
-
-@bot.command()
-@commands.check(is_staff)
-async def terminate(ctx):
-    view = Confirm(ctx)
-    await ctx.send('Are you sure you want to terminate the bot?', view=view)
-    await view.wait()
-    if view.value is True:
-        await bot.close()
-        await ctx.send("Bot Terminated")
-        print("bot shut down")
-    elif view.value is False:
-        await ctx.send("Canceled...")
-    return view.value
 
 
 @bot.event
