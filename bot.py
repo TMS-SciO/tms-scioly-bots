@@ -96,11 +96,9 @@ CENSORED_WORDS = [
     
     
     
-    #ALL THE NAUGHTY WORDS GO HERE LOL
-    
-    #THERES A LOT OF BLANK LINES WHERE ALL THE WORDS GO SO THAT THE SOURCE COMMAND WORKS :)
     
     
+    #NAUGHTY WORDS IN THIS LIST
     
     
     
@@ -111,7 +109,9 @@ CENSORED_WORDS = [
     
     
     
-
+    
+    
+    
                   ]
 RECENT_MESSAGES = []
 
@@ -123,7 +123,6 @@ EMOJI_RIGHT_ARROW = "\U000027A1"
 EMOJI_FAST_FORWARD = "\U000023E9"
 EMOJI_UNSELFMUTE = "click_to_unmute"
 EMOJI_FULL_UNSELFMUTE = "<:click_to_unmute:799389279385026610>"
-
 
 
 RULES = [
@@ -168,10 +167,11 @@ class PersistentViewBot(commands.Bot):
 
 bot = PersistentViewBot()
 bot.remove_command("help")
+latency = round(bot.latency * 1000,2)
 
 embedOne = discord.Embed(
     title = "Help Page",
-    description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands",
+    description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands \n My latency is {latency} \n My current status is <:online:884200464772661338>",
     color=0xff008c
 )
 
@@ -681,14 +681,13 @@ async def magic8ball(ctx, question):
 
 
 @bot.command()
-async def report(ctx, *args):
+async def report(ctx, reason):
     """Creates a report that is sent to staff members."""
     server = bot.get_guild(SERVER_ID)
     reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
     ava = ctx.message.author.avatar
-    message = args[0]
-    if len(args) > 1:
-        message = ' '.join(args)
+
+    message = reason
     embed = discord.Embed(title="Report received using `!report`", description=" ", color = 0xFF0000)
     embed.add_field(name="User:", value=f"{ctx.message.author.mention} \n id: `{ctx.message.author.id}`")
     embed.add_field(name="Report:", value=f"`{message}`")
@@ -1331,7 +1330,6 @@ async def kick(ctx,
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def ping(ctx):
     '''Get the bot's latency'''
-    latency = round(bot.latency * 1000,2)
     em = discord.Embed(title="Pong :ping_pong:",
                      description=f":clock1: My ping is {latency} ms!",
                      color=0x16F22C)
