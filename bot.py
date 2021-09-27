@@ -87,7 +87,7 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 SERVER_ID = 816806329925894217
 REPORT_IDS = []
 WARN_IDS = []
-CENSORED_WORDS = [
+CENSORED_WORDS = [#BAD WORDS GO HERE
     
     
     
@@ -107,8 +107,8 @@ CENSORED_WORDS = [
     
     
     
-    #BAD WORDS GO HERE
-    #THERES THIS MANY LINES JUST FOR THE SOURCE COMMAND TO WORK :)
+    
+    
     
     
     
@@ -527,7 +527,7 @@ async def source(ctx, *, command = None):
     or by spaces.
     """
     source_url = 'https://github.com/pandabear189/tms-scioly-bots'
-    branch = 'master'
+    branch = 'main'
     if command is None:
         await ctx.send(source_url)
 
@@ -557,7 +557,7 @@ async def rule(ctx, number = commands.Option(description="Which rule to display"
     """Gets a specified rule."""
     if not number.isdigit() or int(number) < 1 or int(number) > 6:
 
-        return await ctx.reply("Please use a valid rule number, from 1 through 6. (Ex: `!rule 4`)", mention_author=False)
+        return await ctx.reply("Please use a valid rule number, from 1 through 6. (Ex: `!rule 4`)")
     rule = RULES[int(number) - 1]
     embed=discord.Embed(title="",
                         description=f"**Rule {number}:**\n> {rule}",
@@ -1868,9 +1868,10 @@ async def shiba(ctx,
     """Shiba bombs a user!"""
     if member is None:
         return await ctx.send("Tell me who you want to shiba!! :dog:")
-    doggo = await get_shiba()
-    await ctx.send(doggo)
-    await ctx.send(f"{member.mention}, <@{ctx.message.author.id}> shiba-d you!!")
+    else:
+        doggo = await get_shiba()
+        await ctx.send(doggo)
+        await ctx.send(f"{member.mention}, <@{ctx.message.author.id}> shiba-d you!!")
 
 
 @bot.command()
@@ -1880,21 +1881,23 @@ async def cottondetulear(ctx,
     """Cottondetulear-s Another Member!"""
     if member is None:
         return await ctx.send("Tell me who you want to cottondetulear!! :dog:")
-    doggo = await get_cotondetulear()
-    await ctx.send(doggo)
-    await ctx.send(f"{member.mention}, {ctx.message.author.mention} cottondetulear-d you!!")
+    else:
+        doggo = await get_cotondetulear()
+        await ctx.send(doggo)
+        await ctx.send(f"{member.mention}, {ctx.message.author.mention} cottondetulear-d you!!")
 
 
 @bot.command()
 async def akita(ctx,
-                member:discord.Member = commands.Option(description="Who are you trying to akita?")
+                member:discord.User = commands.Option(description="Who are you trying to akita?")
                 ):
     """Akita-s a user!"""
     if member is None:
         return await ctx.send("Tell me who you want to akita!! :dog:")
-    doggo = await get_akita()
-    await ctx.send(doggo)
-    await ctx.send(f"{member.metion}, <@{ctx.message.author.id}> akita-d you!!")
+    else:
+        doggo = await get_akita()
+        await ctx.send(doggo)
+        await ctx.send(f"{member.mention}, <@{ctx.message.author.id}> akita-d you!!")
 
 
 @bot.command()
@@ -1905,9 +1908,10 @@ async def doge(ctx,
     """Dogeee-s someone!"""
     if member is None:
         return await ctx.send("Tell me who you want to dogeeee!! :dog:")
-    doggo = await get_doggo()
-    await ctx.send(doggo)
-    await ctx.send(f"{member.metion}, <@{ctx.message.author.id}> dogeee-d you!!")
+    else:
+        doggo = await get_doggo()
+        await ctx.send(doggo)
+        await ctx.send(f"{member.mention}, <@{ctx.message.author.id}> dogeee-d you!!")
 
 
 async def send_to_dm_log(message):
