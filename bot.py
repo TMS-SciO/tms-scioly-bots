@@ -98,7 +98,6 @@ CENSORED_WORDS = [
     
     
     
-    #NAUGHTY WORDS IN THIS LIST
     
     
     
@@ -108,7 +107,8 @@ CENSORED_WORDS = [
     
     
     
-    
+    #BAD WORDS GO HERE
+    #THERES THIS MANY LINES JUST FOR THE SOURCE COMMAND TO WORK :)
     
     
     
@@ -167,11 +167,11 @@ class PersistentViewBot(commands.Bot):
 
 bot = PersistentViewBot()
 bot.remove_command("help")
-latency = round(bot.latency * 1000,2)
+
 
 embedOne = discord.Embed(
     title = "Help Page",
-    description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands \n My latency is {latency} \n My current status is <:online:884200464772661338>",
+    description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands \n \n My current status is <:online:884200464772661338>",
     color=0xff008c
 )
 
@@ -262,28 +262,33 @@ class HelpButtons(discord.ui.View):
         discord.SelectOption(label='Moderation Commands 2/2', value="page5")
     ]
 
-    @discord.ui.select(placeholder='Select a category...',
-            min_values=1,
-            max_values=1, options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        value = self.values[0]
+    @discord.ui.select(placeholder='Select a category...', min_values=1, max_values=1, options=options)
+    async def selecthelpmenu(self, select:discord.ui.Select, interaction: discord.Interaction):
+        value = select.values[0]
         if value == "page1":
             self.current = 0
-            await interaction.response.edit_message(embed=paginationList[self.current])
+            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
+
         if value == "page2":
             self.current = 1
-            await interaction.response.edit_message(embed=paginationList[self.current])
+            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
+
         if value == "page3":
             self.current = 2
+            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
 
-            await interaction.response.edit_message(embed=paginationList[self.current])
         if value == "page4":
             self.current = 3
-            await interaction.response.edit_message(embed=paginationList[self.current])
+            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
+
         if value == "page5":
             self.current = 4
-            await interaction.response.edit_message(embed=paginationList[self.current])
+            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
 
     @discord.ui.button(emoji='<:first:886264720955437057>', custom_id="first", style=discord.ButtonStyle.blurple, row=2)
     async def first(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -319,43 +324,6 @@ class HelpButtons(discord.ui.View):
         self.current = 4
         self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
         await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-
-
-class HelpSelect(discord.ui.Select):
-    def __init__(self, ctx, current):
-        options = [
-            discord.SelectOption(label='Welcome Page', value="page1"),
-            discord.SelectOption(label='Fun Commands', value="page2"),
-            discord.SelectOption(label='Server Commands', value="page3"),
-            discord.SelectOption(label='Moderation Commands 1/2', value="page4"),
-            discord.SelectOption(label='Moderation Commands 2/2', value="page5")
-        ]
-        super().__init__(placeholder='Select a category...',
-            min_values=1,
-            max_values=1,
-            row=1, options=options)
-        self.author = ctx.message.author
-        self.current = current
-
-    async def callback(self, interaction: discord.Interaction):
-        value = self.values[0]
-        if value == "page1":
-            self.current = 0
-            await interaction.response.edit_message(embed=paginationList[self.current])
-        if value == "page2":
-            self.current = 1
-            await interaction.response.edit_message(embed=paginationList[self.current])
-        if value == "page3":
-            self.current = 2
-
-            await interaction.response.edit_message(embed=paginationList[self.current])
-        if value == "page4":
-            self.current = 3
-            await interaction.response.edit_message(embed=paginationList[self.current])
-        if value == "page5":
-            self.current = 4
-            await interaction.response.edit_message(embed=paginationList[self.current])
 
 
 @bot.command()
@@ -1330,6 +1298,7 @@ async def kick(ctx,
 @not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def ping(ctx):
     '''Get the bot's latency'''
+    latency = round(bot.latency * 1000, 2)
     em = discord.Embed(title="Pong :ping_pong:",
                      description=f":clock1: My ping is {latency} ms!",
                      color=0x16F22C)
