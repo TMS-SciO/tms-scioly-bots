@@ -4,6 +4,7 @@ import discord
 import requests
 from typing import List
 import random
+import os
 import math
 import datetime
 from urllib.parse import quote_plus
@@ -14,6 +15,7 @@ import wikipedia as wikip
 from aioify import aioify
 import traceback
 import re
+import inspect
 import json
 import asyncio
 import unicodedata
@@ -53,6 +55,8 @@ ROLE_SHE = "She/Her"
 ROLE_THEY = "They/Them"
 ROLE_ASK = "Ask"
 ROLE_AE = "All Events"
+ROLE_COACH = "Coach"
+ROLE_TRIAL = "Trial [SL]"
 
 ROLE_VIP = "VIP"
 
@@ -83,8 +87,32 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 SERVER_ID = 816806329925894217
 REPORT_IDS = []
 WARN_IDS = []
-CENSORED_WORDS = ["all the bad words"]\
+CENSORED_WORDS = [
+    
+    
+    
+    
+    
+    
+    
+    
+    #ALL THE NAUGHTY WORDS GO HERE LOL
+    
+    #THERES A LOT OF BLANK LINES WHERE ALL THE WORDS GO SO THAT THE SOURCE COMMAND WORKS :)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
+                  ]
 RECENT_MESSAGES = []
 
 STOPNUKE = False
@@ -114,9 +142,8 @@ class PersistentViewBot(commands.Bot):
                          case_insensitive=True,
                          help_command=None,
                          intents=intents,
-                         slash_commands=True,
-                         message_commands=False,
-                         slash_command_guilds=[816806329925894217])
+                         slash_commands=True
+)
         self.persistent_views_added = False
 
     async def on_ready(self):
@@ -223,17 +250,47 @@ paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
 
 class HelpButtons(discord.ui.View):
     def __init__(self, ctx, current):
-        super().__init__(timeout=None)
+        super().__init__(timeout=30.0)
         self.author = ctx.message.author
         self.current = current
-        self.add_item(HelpSelect(ctx, current))
 
+    options = [
+        discord.SelectOption(label='Welcome Page', value="page1"),
+        discord.SelectOption(label='Fun Commands', value="page2"),
+        discord.SelectOption(label='Server Commands', value="page3"),
+        discord.SelectOption(label='Moderation Commands 1/2', value="page4"),
+        discord.SelectOption(label='Moderation Commands 2/2', value="page5")
+    ]
+
+    @discord.ui.select(placeholder='Select a category...',
+            min_values=1,
+            max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        value = self.values[0]
+        if value == "page1":
+            self.current = 0
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page2":
+            self.current = 1
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page3":
+            self.current = 2
+
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page4":
+            self.current = 3
+            await interaction.response.edit_message(embed=paginationList[self.current])
+        if value == "page5":
+            self.current = 4
+            await interaction.response.edit_message(embed=paginationList[self.current])
 
     @discord.ui.button(emoji='<:first:886264720955437057>', custom_id="first", style=discord.ButtonStyle.blurple, row=2)
     async def first(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.current = 0
         print(self.current)
-        await interaction.response.edit_message(embed=paginationList[self.current])
+        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
 
     @discord.ui.button(emoji='<:left:886264769466732574>', custom_id="left", style=discord.ButtonStyle.blurple, row=2)
     async def left(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -241,19 +298,28 @@ class HelpButtons(discord.ui.View):
         print(self.current)
         if self.current < 0:
             self.current = len(paginationList) - 1
-        await interaction.response.edit_message(embed=paginationList[self.current])
+
+        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
+
+    @discord.ui.button(label="Page 1/5", disabled=True, row=2)
+    async def pagebutton(self, button:discord.ui.button, interaction:discord.Interaction):
+        await interaction.response.defer()
 
     @discord.ui.button(emoji='<:right:886264833320820747>', custom_id="right", style=discord.ButtonStyle.blurple, row=2)
     async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.current += 1
         if self.current == len(paginationList):
             self.current = 0
-        await interaction.response.edit_message(embed=paginationList[self.current])
+        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
 
     @discord.ui.button(emoji='<:last:886264854523043860>', custom_id="last", style=discord.ButtonStyle.blurple, row=2)
     async def last(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.current = 4
-        await interaction.response.edit_message(embed=paginationList[self.current])
+        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
+        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
+
 
 
 class HelpSelect(discord.ui.Select):
@@ -297,7 +363,7 @@ async def help(ctx: commands.Context):
     '''Sends a menu with all the commands'''
     current = 0
     view = HelpButtons(ctx, current)
-    await ctx.send(embed=paginationList[current], view=view, ephemeral=True)
+    await ctx.send(embed=paginationList[current], view=view)
 
 
 class Ticket(discord.ui.View):
@@ -485,7 +551,40 @@ async def handle_cron(string):
         await auto_report("Error with a cron task", "red", f"Error: `{e}`\nOriginal task: `{string}`")
 
 
-@bot.command(slash_command=True)
+@bot.command()
+async def source(ctx, *, command = None):
+    """Displays my full source code or for a specific command.
+    To display the source code of a subcommand you can separate it by
+    periods, e.g. tag.create for the create subcommand of the tag command
+    or by spaces.
+    """
+    source_url = 'https://github.com/pandabear189/tms-scioly-bots'
+    branch = 'master'
+    if command is None:
+        await ctx.send(source_url)
+
+    else:
+        obj = bot.get_command(command.replace('.', ' '))
+        if obj is None:
+            return await ctx.send('Could not find command.')
+
+        src = obj.callback.__code__
+        module = obj.callback.__module__
+        filename = src.co_filename
+
+    lines, firstlineno = inspect.getsourcelines(src)
+    if not module.startswith('discord'):
+        location = os.path.relpath(filename).replace('\\', '/')
+    else:
+        location = module.replace('.', '/') + '.py'
+        source_url = 'https://github.com/Rapptz/discord.py'
+        branch = 'master'
+
+    final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
+    await ctx.send(final_url)
+
+
+@bot.command()
 async def rule(ctx, number = commands.Option(description="Which rule to display")):
     """Gets a specified rule."""
     if not number.isdigit() or int(number) < 1 or int(number) > 6:
@@ -550,7 +649,7 @@ async def roll(ctx):
     await ctx.message.reply(f"{response}", mention_author=False)
 
 
-@bot.command(blacklist=WELCOME_CHANNEL, slash_command=True)
+@bot.command()
 async def magic8ball(ctx, question):
     '''Swishes a Magic8ball'''
     msg = await ctx.send("<a:typing:883864406537162793> Swishing the magic 8 ball...")
@@ -581,7 +680,7 @@ async def magic8ball(ctx, question):
     await msg.edit(f"**{response}**")
 
 
-@bot.command(aliases=["r"], slash_command=True)
+@bot.command()
 async def report(ctx, *args):
     """Creates a report that is sent to staff members."""
     server = bot.get_guild(SERVER_ID)
@@ -621,7 +720,8 @@ async def auto_report(reason, color, message):
 
 
 @bot.command()
-async def warn(ctx, member:discord.Member = commands.Option(description="Which user to warn"),
+async def warn(ctx,
+               member:discord.Member = commands.Option(description="Which user to warn"),
                reason = commands.Option(description="Why you are warning this user")
                ):
     '''Warns a user'''
@@ -950,7 +1050,8 @@ async def sync(ctx,
 
 
 @bot.command()
-async def latex(ctx, latex):
+async def latex(ctx,
+                latex):
     '''Displays an image of an equation, uses LaTex as input'''
 
     print(latex)
@@ -1070,7 +1171,7 @@ async def unvip(ctx,
     await user.remove_roles(role)
     await ctx.send(f"Successfully removed VIP from {user.mention}.")
 
-    
+
 @bot.command()
 @commands.check(is_staff)
 async def trial(ctx,
@@ -1092,7 +1193,7 @@ async def untrial(ctx,
     await user.remove_roles(role)
     await ctx.send(f"Successfully removed {role} from {user.mention}.")
 
-    
+
 @bot.command()
 async def grade(ctx,
                 a: float = commands.Option(description="Your points"),
@@ -1117,10 +1218,6 @@ async def grade(ctx,
         await ctx.send(f'{round(z, 2)}% A+')
     elif z > 100:
         await ctx.send(f"{round(z, 2)}% A++ must've gotten extra credit")
-
-
-
-
 
 
 @bot.event
@@ -1305,7 +1402,7 @@ async def getvariable(ctx,
             table = tabulate.tabulate(rows, header, "fancy_grid")
             await ctx.reply(f"```{table}```", mention_author=False)
         except IndexError as e:
-            await ctx.send(f'Nothing in the cron list {e}')
+            await ctx.send(f'Nothing in the cron list, {e}')
     else:
         try:
             variable = globals()[var]
@@ -1317,6 +1414,7 @@ async def getvariable(ctx,
 
         except Exception as e:
             await ctx.send(f"Can't find that variable! `{e}`")
+
 
 @bot.command()
 @commands.check(is_staff)
@@ -1332,9 +1430,6 @@ async def removevariable(ctx,
             await ctx.send(f'Removed {user} unban from CRON_LIST')
         else:
             await ctx.send('Unknown object to remove')
-
-
-
 
 
 @bot.command()
@@ -1407,13 +1502,13 @@ class Counter(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
 
-@bot.command(slash_command=True)
+@bot.command()
 async def counter(ctx: commands.Context):
     """Starts a counter for pressing."""
     await ctx.send('Press!', view=Counter())
 
 
-@bot.command(slash_command=True)
+@bot.command()
 @commands.check(is_staff)
 async def unmute(ctx, user: discord.Member):
     view = Confirm(ctx)
@@ -1437,7 +1532,7 @@ async def unmute(ctx, user: discord.Member):
 
 @bot.command()
 @commands.check(is_staff)
-async def nuke(ctx, 
+async def nuke(ctx,
                count: int = commands.Option(description="The amount of messages to delete")
                ):
     """Nukes (deletes) a specified amount of messages."""
@@ -1889,9 +1984,9 @@ async def send_to_dm_log(message):
     await dmChannel.send(embed=embed)
 
 
-@bot.command(slash_command=True)
+@bot.command()
 @commands.check(is_staff)
-async def lock(ctx, 
+async def lock(ctx,
                channel: discord.TextChannel = commands.Option(default=None, description="The channel you want to lock")
                ):
     """Locks a channel to Member access."""
@@ -1910,9 +2005,9 @@ async def lock(ctx,
         await ctx.send(f"Locked :lock: {channel.mention} to Member access.")
 
 
-@bot.command(slash_command=True)
+@bot.command()
 @commands.check(is_staff)
-async def unlock(ctx, 
+async def unlock(ctx,
                  channel:discord.TextChannel = commands.Option(default=None, description="The channel to unlock")
                  ):
     """Unlocks a channel to Member access."""
@@ -1932,7 +2027,7 @@ async def unlock(ctx,
 
 
 @bot.command()
-async def tag(ctx, 
+async def tag(ctx,
               name=commands.Option(description="Name of the tag")
               ):
     '''Retrieves a tag'''
@@ -2584,7 +2679,7 @@ async def google(ctx: commands.Context, *, query: str):
 
 @bot.command()
 @commands.check(is_staff)
-async def addaccess(ctx, 
+async def addaccess(ctx,
                     role_id= commands.Option(description="Role id: allow see tickets")
                     ):
     with open('data.json') as f:
@@ -2639,7 +2734,7 @@ async def addaccess(ctx,
 
 @bot.command()
 @commands.check(is_staff)
-async def delaccess(ctx, 
+async def delaccess(ctx,
                     role_id= commands.Option(description="Role id: delete access to see tickets")
                     ):
     with open('data.json') as f:
@@ -2700,7 +2795,7 @@ async def delaccess(ctx,
 
 @bot.command()
 @commands.check(is_staff)
-async def addpingedrole(ctx, 
+async def addpingedrole(ctx,
                         role_id=commands.Option(description="Role id to be pinged when tickets are opened")
                         ):
     with open('data.json') as f:
@@ -2756,7 +2851,7 @@ async def addpingedrole(ctx,
 
 @bot.command()
 @commands.check(is_staff)
-async def delpingedrole(ctx, 
+async def delpingedrole(ctx,
                         role_id=commands.Option(description="Role id: to delete, pinged when tickets are opened")
                         ):
     with open('data.json') as f:
@@ -2814,9 +2909,9 @@ async def delpingedrole(ctx,
         await ctx.send(embed=em)
 
 
-@bot.command(slash_command=True)
+@bot.command()
 @commands.check(is_staff)
-async def addadminrole(ctx, 
+async def addadminrole(ctx,
                        role_id=commands.Option(description="Role id, to have admin ticket commands")
                        ):
     try:
@@ -2844,7 +2939,7 @@ async def addadminrole(ctx,
 
 @bot.command()
 @commands.check(is_staff)
-async def deladminrole(ctx, 
+async def deladminrole(ctx,
                        role_id =commands.Option(description="Role id, delete access to admin ticket commands")):
     try:
         role_id = int(role_id)
