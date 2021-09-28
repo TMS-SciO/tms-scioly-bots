@@ -1,5 +1,5 @@
 # tms-scioly-bots
-[![](https://user-images.githubusercontent.com/88685021/135161619-ddd85a73-3b32-4e91-9746-f62b751f57f9.png))](https://github.com/user/repository/subscription)
+
 
 
 
