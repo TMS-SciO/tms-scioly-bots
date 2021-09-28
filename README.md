@@ -1,5 +1,6 @@
 # tms-scioly-bots
-[(https://user-images.githubusercontent.com/88685021/135161297-63fc886b-ddae-46fb-9b7f-17fc1e8d2cbc.png)](https://discord.gg/8UGNu4AghE)
+[![](![app-icons-discord](https://user-images.githubusercontent.com/88685021/135161619-ddd85a73-3b32-4e91-9746-f62b751f57f9.png))](https://github.com/user/repository/subscription)
+
 
 
 A bot for the TMS SciOly Discord, a lot of code is modified from Pi-Bot (SciOly Discord Server Resident Bot)
