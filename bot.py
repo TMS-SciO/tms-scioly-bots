@@ -27,12 +27,8 @@ import tabulate
 
 intents = discord.Intents.all()
 
-BOT_PREFIX = "!"
-BOT_PREFIX1 = "?"
-
 aiowikip = aioify(obj=wikip)
 
-PING_INFO = []
 STEALFISH_BAN = []
 CRON_LIST = []
 fish_now = 0
@@ -42,18 +38,6 @@ RECENT_MESSAGES = []
 
 STOPNUKE = datetime.datetime.utcnow()
 
-
-def not_blacklisted_channel(blacklist):
-    """Given a string array blacklist, check if command was not invoked in specified blacklist channels."""
-    async def predicate(ctx):
-        channel = ctx.message.channel
-        server = bot.get_guild(SERVER_ID)
-        for c in blacklist:
-            if channel == discord.utils.get(server.text_channels, name=c):
-                raise CommandNotAllowedInChannel(channel, "Command was invoked in a blacklisted channel.")
-        return True
-
-    return commands.check(predicate)
 
 class PersistentViewBot(commands.Bot):
     def __init__(self):
@@ -85,27 +69,6 @@ class PersistentViewBot(commands.Bot):
 
 
 bot = PersistentViewBot()
-
-
-@bot.command()
-async def help(ctx: commands.Context):
-    '''Sends a menu with all the commands'''
-    current = 0
-    view = HelpButtons(ctx, current)
-    await ctx.send(embed=paginationList[current], view=view)
-
-
-@bot.command()
-@commands.check(is_staff)
-async def ticket(ctx):
-    '''Sends the ticket button embed'''
-    view = Ticket()
-    em1 = discord.Embed(title="TMS Tickets",
-                       description="To create a ticket press the button below",color=0xff008c)
-    em1.set_image(
-        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-    em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
-    await ctx.send(embed=em1, view=view)
 
 
 @tasks.loop(seconds=60)
@@ -145,8 +108,42 @@ async def handle_cron(string):
             await auto_report("Error with a cron task", "red", f"Error: `{string}`")
     except Exception as e:
         await auto_report("Error with a cron task", "red", f"Error: `{e}`\nOriginal task: `{string}`")
+        
+        
+def not_blacklisted_channel(blacklist):
+    """Given a string array blacklist, check if command was not invoked in specified blacklist channels."""
+    async def predicate(ctx):
+        channel = ctx.message.channel
+        server = bot.get_guild(SERVER_ID)
+        for c in blacklist:
+            if channel == discord.utils.get(server.text_channels, name=c):
+                raise CommandNotAllowedInChannel(channel, "Command was invoked in a blacklisted channel.")
+        return True
+
+    return commands.check(predicate)
 
 
+@bot.command()
+async def help(ctx: commands.Context):
+    '''Sends a menu with all the commands'''
+    current = 0
+    view = HelpButtons(ctx, current)
+    await ctx.send(embed=paginationList[current], view=view)
+
+
+@bot.command()
+@commands.check(is_staff)
+async def ticket(ctx):
+    '''Sends the ticket button embed'''
+    view = Ticket()
+    em1 = discord.Embed(title="TMS Tickets",
+                       description="To create a ticket press the button below",color=0xff008c)
+    em1.set_image(
+        url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+    em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
+    await ctx.send(embed=em1, view=view)
+    
+    
 @bot.command()
 async def source(ctx, command = None):
     """Displays my full source code or for a specific command.
@@ -178,6 +175,7 @@ async def source(ctx, command = None):
 
         final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
         await ctx.send(final_url)
+
 
 @bot.command()
 async def rule(ctx, number = commands.Option(description="Which rule to display")):
@@ -224,7 +222,6 @@ async def embed(ctx, title=None, description=None):
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=WELCOME_CHANNEL)
 async def roll(ctx):
     '''Rolls a dice'''
     msg = await ctx.send("<a:typing:883864406537162793> Rolling a dice...")
