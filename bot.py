@@ -3,12 +3,12 @@ from discord.ext import commands, tasks
 from embed import assemble_embed
 from commanderr import CommandNotAllowedInChannel
 from views import Confirm, Counter, HelpButtons, paginationList, Ticket, TicTacToe, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Nitro, Allevents, Google
+from doggo import get_doggo, get_akita, get_shiba, get_cotondetulear
 from censor import CENSORED_WORDS
-from checks import is_staff, not_blacklisted_channel
+from checks import is_staff
 from rules import RULES
-from token import TOKEN
+from secret import TOKEN
 from variables import *
-import requests
 import random
 import os
 import math
@@ -30,9 +30,7 @@ intents = discord.Intents.all()
 BOT_PREFIX = "!"
 BOT_PREFIX1 = "?"
 
-
 aiowikip = aioify(obj=wikip)
-
 
 PING_INFO = []
 STEALFISH_BAN = []
@@ -42,8 +40,20 @@ REPORT_IDS = []
 WARN_IDS = []
 RECENT_MESSAGES = []
 
-STOPNUKE = False
+STOPNUKE = datetime.datetime.utcnow()
 
+
+def not_blacklisted_channel(blacklist):
+    """Given a string array blacklist, check if command was not invoked in specified blacklist channels."""
+    async def predicate(ctx):
+        channel = ctx.message.channel
+        server = bot.get_guild(SERVER_ID)
+        for c in blacklist:
+            if channel == discord.utils.get(server.text_channels, name=c):
+                raise CommandNotAllowedInChannel(channel, "Command was invoked in a blacklisted channel.")
+        return True
+
+    return commands.check(predicate)
 
 class PersistentViewBot(commands.Bot):
     def __init__(self):
@@ -169,8 +179,6 @@ async def source(ctx, command = None):
         final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
         await ctx.send(final_url)
 
-
-
 @bot.command()
 async def rule(ctx, number = commands.Option(description="Which rule to display")):
     """Gets a specified rule."""
@@ -215,15 +223,13 @@ async def embed(ctx, title=None, description=None):
         await ctx.send(embed=embed)
 
 
-
 @bot.command()
 @not_blacklisted_channel(blacklist=WELCOME_CHANNEL)
 async def roll(ctx):
     '''Rolls a dice'''
     msg = await ctx.send("<a:typing:883864406537162793> Rolling a dice...")
     await ctx.channel.trigger_typing()
-    await asyncio.sleep(3)
-    await msg.delete()
+    await asyncio.sleep(5)
     sayings = ['<:dice1:884113954383728730>',
                '<:dice2:884113968493391932>',
                '<:dice3:884113979033665556>',
@@ -231,9 +237,8 @@ async def roll(ctx):
                '<:dice5:884114002156867635>',
                '<:dice6:884114012281901056>'
                 ]
-
     response = sayings[math.floor(random.random() * len(sayings))]
-    await ctx.message.reply(f"{response}", mention_author=False)
+    await msg.edit(f"{response}")
 
 
 @bot.command()
@@ -241,7 +246,7 @@ async def magic8ball(ctx, question):
     '''Swishes a Magic8ball'''
     msg = await ctx.send("<a:typing:883864406537162793> Swishing the magic 8 ball...")
     await ctx.channel.trigger_typing()
-    await asyncio.sleep(3)
+    await asyncio.sleep(4)
     sayings = [
         "Yes.",
         "Ask again later.",
@@ -1056,69 +1061,96 @@ async def unmute(ctx, user: discord.Member):
     return view.value
 
 
+def is_nuke_allowed(ctx):
+    import datetime
+    global STOPNUKE
+    time_delta = STOPNUKE - datetime.datetime.utcnow()
+    if time_delta > datetime.timedelta():
+        raise discord.ext.commands.CommandOnCooldown(None, time_delta.total_seconds())
+    return True
+
+
+async def _nuke_countdown(ctx, count=-1):
+    import datetime
+    global STOPNUKE
+    await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
+    await ctx.send("PREPARE FOR IMPACT.")
+    for i in range(10, 0, -1):
+        if count < 0:
+            await ctx.send(f"NUKING MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
+        else:
+            await ctx.send(f"NUKING {count} MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
+        await asyncio.sleep(1)
+        if STOPNUKE > datetime.datetime.utcnow():
+            return await ctx.send(
+                "A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")  # magic number MonkaS
+
+
 @bot.command()
 @commands.check(is_staff)
-async def nuke(ctx,
-               count: int = commands.Option(description="The amount of messages to delete")
-               ):
+async def nuke(ctx, count:int):
     """Nukes (deletes) a specified amount of messages."""
-    view = Confirm(ctx)
-    await ctx.reply(f"Are you sure you want to clear {count} messages", view=view)
-    await view.wait()
-    if view.value is False:
-        await ctx.send('Aborting...')
-        await asyncio.sleep(3)
-        await ctx.send('Nuke Aborted')
-    if view.value is True:
-        global STOPNUKE
-        if ctx.message.channel.name == "rules":
-            return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR NUKE.")
-        if STOPNUKE:
-            return await ctx.send("TRANSMISSION FAILED. ALL NUKES ARE CURRENTLY PAUSED. TRY AGAIN LATER.")
-        if int(count) > 100:
-            return await ctx.send("Chill. No more than deleting 100 messages at a time.")
-        channel = ctx.message.channel
-        if int(count) < 0:
-            history = await channel.history(limit=105).flatten()
-            message_count = len(history)
-            print(message_count)
-            if message_count > 100:
-                count = 100
-            else:
-                count = message_count + int(count) - 1
-            if count <= 0:
-                return await ctx.send("Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
-        await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
-        await ctx.send("PREPARE FOR IMPACT.")
-        for i in range(10, 0, -1):
-            await ctx.send(f"NUKING {count} MESSAGES IN {i}... TYPE `/stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
-            await asyncio.sleep(1)
-            if STOPNUKE:
-                return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
-        if not STOPNUKE:
-            async for m in channel.history(limit=(int(count) + 13)):
-                if not m.pinned and not STOPNUKE:
-                    await m.delete()
+    import datetime
+    global STOPNUKE
+    MAX_DELETE = 100
+    if int(count) > MAX_DELETE:
+        return await ctx.send("Chill. No more than deleting 100 messages at a time.")
+    channel = ctx.message.channel
+    if int(count) < 0: count = MAX_DELETE
+    await _nuke_countdown(ctx, count)
+    if STOPNUKE <= datetime.datetime.utcnow():
+        await channel.purge(limit=int(count) + 13, check=lambda m: not m.pinned)
+
+        msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
+        await msg.delete(delay=5)
+
+
+@bot.command()
+@commands.check(is_staff)
+async def nukeuntil(ctx, message_id):  # prob can use converters to convert the msgid to a Message object
+
+    import datetime
+    global STOPNUKE
+    channel = ctx.message.channel
+    message = await ctx.fetch_message(message_id)
+    if channel == message.channel:
+        await _nuke_countdown(ctx)
+        if STOPNUKE <= datetime.datetime.utcnow():
+            await channel.purge(limit=1000, after=message)
             msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
-            await asyncio.sleep(5)
-            await msg.delete()
-            return view.value
+            await msg.delete(delay=5)
+    else:
+        return await ctx.send("MESSAGE ID DOES NOT COME FROM THIS TEXT CHANNEL. ABORTING NUKE.")
+
+
+@nuke.error
+@nukeuntil.error
+async def nuke_error(ctx, error):
+    ctx.__slots__ = True
+    print(f"{BOT_PREFIX}nuke error handler: {error}")
+    if isinstance(error, discord.ext.commands.MissingAnyRole):
+        return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR NUKE.")
+    if isinstance(error, discord.ext.commands.CommandOnCooldown):
+        return await ctx.send(
+            f"TRANSMISSION FAILED. ALL NUKES ARE CURRENTLY PAUSED FOR ANOTHER {'%.3f' % error.retry_after} SECONDS. TRY AGAIN LATER.")
+    ctx.__slots__ = False
 
 
 @bot.command()
 @commands.check(is_staff)
 async def stopnuke(ctx):
     global STOPNUKE
+    NUKE_COOLDOWN = 20
+    STOPNUKE = datetime.datetime.utcnow() + datetime.timedelta(seconds=NUKE_COOLDOWN)  # True
+    await ctx.send(f"TRANSMISSION RECEIVED. STOPPED ALL CURRENT NUKES FOR {NUKE_COOLDOWN} SECONDS.")
 
-    if ctx.message.channel.name == CHANNEL_RULES:
+
+@stopnuke.error
+async def stopnuke_error(ctx, error):
+    ctx.__slots__ = True
+    print(f"{BOT_PREFIX}nuke error handler: {error}")
+    if isinstance(error, discord.ext.commands.MissingAnyRole):
         return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR STOPPING NUKE.")
-    STOPNUKE = True
-    await ctx.send("TRANSMISSION RECEIVED. STOPPED ALL CURRENT NUKES.")
-    await asyncio.sleep(15)
-    for i in range(5, 0, -1):
-        await ctx.send(f"NUKING WILL BE ALLOWED IN {i}. BE WARNED COMMANDER.")
-        await asyncio.sleep(1)
-    STOPNUKE = False
 
 
 @bot.command()
@@ -1277,36 +1309,6 @@ async def info(ctx):
         fields=fields
     )
     await ctx.send(embed=embed)
-
-
-async def get_doggo():
-    """Gets a random dog pic!"""
-    res = requests.get("https://dog.ceo/api/breeds/image/random")
-    res = res.content.decode("UTF-8")
-    jso = json.loads(res)
-    return jso['message']
-
-async def get_shiba():
-    """Gets a random shiba pic!"""
-    res = requests.get("https://dog.ceo/api/breed/shiba/images/random")
-    res = res.content.decode("UTF-8")
-    jso = json.loads(res)
-    return jso['message']
-
-async def get_akita():
-    """Gets a random shiba pic!"""
-    res = requests.get("https://dog.ceo/api/breed/akita/images/random")
-    res = res.content.decode("UTF-8")
-    jso = json.loads(res)
-    return jso['message']
-
-
-async def get_cotondetulear():
-    """Gets a random shiba pic!"""
-    res = requests.get("https://dog.ceo/api/breed/cotondetulear/images/random")
-    res = res.content.decode("UTF-8")
-    jso = json.loads(res)
-    return jso['message']
 
 
 @bot.command()
@@ -2213,5 +2215,6 @@ async def on_message(message):
 
     if message.content.count(BOT_PREFIX) != len(message.content):
         await bot.process_commands(message)
+
 
 bot.run(TOKEN)
