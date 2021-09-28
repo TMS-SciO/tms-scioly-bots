@@ -108,19 +108,6 @@ async def handle_cron(string):
             await auto_report("Error with a cron task", "red", f"Error: `{string}`")
     except Exception as e:
         await auto_report("Error with a cron task", "red", f"Error: `{e}`\nOriginal task: `{string}`")
-        
-        
-def not_blacklisted_channel(blacklist):
-    """Given a string array blacklist, check if command was not invoked in specified blacklist channels."""
-    async def predicate(ctx):
-        channel = ctx.message.channel
-        server = bot.get_guild(SERVER_ID)
-        for c in blacklist:
-            if channel == discord.utils.get(server.text_channels, name=c):
-                raise CommandNotAllowedInChannel(channel, "Command was invoked in a blacklisted channel.")
-        return True
-
-    return commands.check(predicate)
 
 
 @bot.command()
@@ -142,8 +129,8 @@ async def ticket(ctx):
         url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
     em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
     await ctx.send(embed=em1, view=view)
-    
-    
+
+
 @bot.command()
 async def source(ctx, command = None):
     """Displays my full source code or for a specific command.
@@ -388,7 +375,6 @@ async def on_member_update(before, after):
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def candy(ctx):
     '''Feeds panda some candy!'''
     global fish_now
@@ -418,7 +404,6 @@ async def candy(ctx):
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def stealcandy(ctx):
     '''Steals some candy from panda'''
     global fish_now
@@ -602,7 +587,6 @@ async def emoji(ctx,
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def count(ctx):
     '''Counts the number of members in the server'''
     guild = ctx.message.author.guild
@@ -903,7 +887,6 @@ async def kick(ctx,
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def ping(ctx):
     '''Get the bot's latency'''
     latency = round(bot.latency * 1000, 2)
@@ -1348,7 +1331,6 @@ async def akita(ctx,
 
 
 @bot.command()
-@not_blacklisted_channel(blacklist=[WELCOME_CHANNEL])
 async def doge(ctx,
                member:discord.Member = commands.Option(description="Who are you trying to doge?")
                ):
