@@ -56,7 +56,7 @@ async def _mute(ctx, user: discord.Member, time: str, self: bool):
                         description=f"Successfully muted {user.mention} until `{str(central.localize(parsed))} CT`.",
                         color=0xFF0000)
     await ctx.send(embed=em4)
-    
+
 async def censor(message):
     """Constructs Pi-Bot's censor."""
     channel = message.channel
@@ -72,8 +72,8 @@ async def censor(message):
     mention_perms = discord.AllowedMentions(everyone=False, users=True, roles=False)
     await wh.send(content, username=(author + " (Auto-Censor)"), avatar_url=ava, allowed_mentions=mention_perms)
     await wh.delete()
-    
-    
+
+
 async def send_to_dm_log(bot, message):
     server = bot.get_guild(SERVER_ID)
     dmChannel = discord.utils.get(server.text_channels, name=CHANNEL_DMLOG)
