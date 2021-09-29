@@ -1,44 +1,56 @@
 import discord
-from variables import ROLE_COACH, ROLE_SERVERLEADER
-import asyncio
-import datetime
+from variables import *
+from embed import assemble_embed
+import dateparser
+import pytz
 
 
-STOPNUKE = datetime.datetime.utcnow()
+async def auto_report(bot, reason, color, message):
+    """Allows Pi-Bot to generate a report by himself."""
+    server = bot.get_guild(SERVER_ID)
+    reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
+    embed = assemble_embed(
+        title=f"{reason} (message from TMS-Bot)",
+        webcolor=color,
+        fields = [{
+            "name": "Message",
+            "value": message,
+            "inline": False
+        }]
+    )
+    message = await reports_channel.send(embed=embed)
+    REPORT_IDS.append(message.id)
+    await message.add_reaction("\U00002705")
+    await message.add_reaction("\U0000274C")
 
 
-async def is_staff(bot, ctx):
-    """Checks to see if the user is a staff member."""
-    member = ctx.message.author
-    staffRole = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-    coachRole = discord.utils.get(member.guild.roles, name=ROLE_COACH)
-    return staffRole in member.roles or coachRole in member.roles
-
-
-async def _nuke_countdown(ctx, count=-1):
-    import datetime
-    global STOPNUKE
-    await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
-    await ctx.send("PREPARE FOR IMPACT.")
-    for i in range(10, 0, -1):
-        if count < 0:
-            await ctx.send(f"NUKING MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
-        else:
-            await ctx.send(
-                f"NUKING {count} MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
-        await asyncio.sleep(1)
-        if STOPNUKE > datetime.datetime.utcnow():
-            return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
-
-
-# def not_blacklisted_channel(blacklist):
-#     """Given a string array blacklist, check if command was not invoked in specified blacklist channels."""
-#     async def predicate(ctx):
-#         channel = ctx.message.channel
-#         server = bot.get_guild(SERVER_ID)
-#         for c in blacklist:
-#             if channel == discord.utils.get(server.text_channels, name=c):
-#                 raise CommandNotAllowedInChannel(channel, "Command was invoked in a blacklisted channel.")
-#         return True
-#
-#     return commands.check(predicate)
+async def _mute(ctx, user: discord.Member, time: str, self: bool):
+    """
+    Helper function for muting commands.
+    :param user: User to be muted.
+    :type user: discord.Member
+    :param time: The time to mute the user for.
+    :type time: str
+    """
+    if user.id in TMS_BOT_IDS:
+        return await ctx.send("Hey! You can't mute me!!")
+    if time == None:
+        return await ctx.send(
+            "You need to specify a length that this used will be muted. Examples are: `1 day`, `2 months, 1 day`, or `indef` (aka, forever).")
+    role = None
+    if self:
+        role = discord.utils.get(user.guild.roles, name=ROLE_SELFMUTE)
+    else:
+        role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
+    parsed = "indef"
+    if time != "indef":
+        parsed = dateparser.parse(time, settings={"PREFER_DATES_FROM": "future"})
+        if parsed is None:
+            return await ctx.send("Sorry, but I don't understand that length of time.")
+        CRON_LIST.append({"date": parsed, "do": f"unmute {user.id}"})
+    await user.add_roles(role)
+    central = pytz.timezone("US/Central")
+    em4 = discord.Embed(title="",
+                        description=f"Successfully muted {user.mention} until `{str(central.localize(parsed))} CT`.",
+                        color=0xFF0000)
+    await ctx.send(embed=em4)
