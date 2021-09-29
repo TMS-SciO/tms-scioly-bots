@@ -21,7 +21,7 @@ class Mod(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def rules(self, ctx):
         '''Displays all of the servers rules'''
         em4 = discord.Embed(title="TMS SciOly Discord Rules",
@@ -56,7 +56,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em4)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def gift(self, ctx):
         em1 = discord.Embed(title="You've been gifted a subscription!", description=" ", color=0x2F3136)
         em1.set_image(
@@ -65,7 +65,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=view)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def events1(self, ctx: commands.Context):
         '''Buttons for Life Science Events'''
         em1 = discord.Embed(title="What events do you want to do?",
@@ -77,7 +77,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=Role1())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def events2(self, ctx: commands.Context):
         '''Buttons for Earth and Space Science Events'''
         em1 = discord.Embed(title="What events do you want to do?",
@@ -89,7 +89,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=Role2())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def events3(self, ctx: commands.Context):
         '''Buttons for Physical Science & Chemistry Events'''
         em1 = discord.Embed(title="What events do you want to do?",
@@ -101,7 +101,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=Role3())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def events4(self, ctx: commands.Context):
         '''Buttons for Technology & Engineering Design Events'''
         em1 = discord.Embed(title="What events do you want to do?",
@@ -113,7 +113,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=Role4())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def events5(self, ctx: commands.Context):
         '''Buttons for Inquiry & Nature'''
         em1 = discord.Embed(title="What events do you want to do?",
@@ -125,7 +125,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=Role5())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def events6(self, ctx: commands.Context):
         '''Buttons for All Events Role'''
         em1 = discord.Embed(title="What events do you want to do?",
@@ -136,7 +136,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=Allevents())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def pronouns(self, ctx: commands.Context):
         '''Buttons for Pronoun Roles'''
         em1 = discord.Embed(title="What pronouns do you use?",
@@ -148,7 +148,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=Pronouns())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def eventroles(self, ctx: commands.Context):
         '''Creates all the event role buttons'''
         em1 = discord.Embed(title="What events do you want to do?",
@@ -192,10 +192,10 @@ class Mod(commands.Cog):
         await ctx.send(embed=em6, view=Pronouns())
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def ticket(self, ctx):
         '''Sends the ticket button embed'''
-        view = Ticket()
+        view = Ticket(self.bot)
         em1 = discord.Embed(title="TMS Tickets",
                            description="To create a ticket press the button below",color=0xff008c)
         em1.set_image(
@@ -204,7 +204,7 @@ class Mod(commands.Cog):
         await ctx.send(embed=em1, view=view)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def embed(self, ctx, title=None, description=None):
         '''Sends an embed'''
         ava = ctx.author.avatar
@@ -234,7 +234,7 @@ class Mod(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def slowmode(self,
                        ctx,
                        time: int = commands.Option(description="The amount of seconds")
@@ -256,7 +256,7 @@ class Mod(commands.Cog):
                 await ctx.send(f"Removed slowmode.")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def ban(self,
                   ctx,
                   member : discord.User= commands.Option(description='the member to ban'),
@@ -299,7 +299,7 @@ class Mod(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def unban(self,
                     ctx,
                     member:discord.User= commands.Option(description="The user (id) to unban")
@@ -315,7 +315,7 @@ class Mod(commands.Cog):
         await ctx.channel.send(embed=embed)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def dm(self, ctx, member: discord.Member,
                  message=commands.Option(description="What to DM the member")
                  ):
@@ -328,7 +328,7 @@ class Mod(commands.Cog):
         await member.send(embed=em1)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def sync(self,
                    ctx,
                    channel: discord.TextChannel = commands.Option(description="The channel to sync permissions with")
@@ -343,7 +343,7 @@ class Mod(commands.Cog):
             await ctx.send(f'Permissions for {channel.mention} synced with {channel.category}')
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def vip(self,
                   ctx,
                   user: discord.Member = commands.Option(description="The user you wish to VIP")):
@@ -354,7 +354,7 @@ class Mod(commands.Cog):
         await ctx.send(f"Successfully added VIP. Congratulations {user.mention}! :partying_face: :partying_face: ")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def unvip(self,
                     ctx,
                     user: discord.Member = commands.Option(description="The user you wish to unVIP")):
@@ -365,7 +365,7 @@ class Mod(commands.Cog):
         await ctx.send(f"Successfully removed VIP from {user.mention}.")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def trial(self,
                     ctx,
                     user: discord.Member = commands.Option(description="The user you wish promote to trial leader")):
@@ -376,7 +376,7 @@ class Mod(commands.Cog):
         await ctx.send(f"Successfully added {role}. Congratulations {user.mention}! :partying_face: :partying_face: ")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def untrial(self,
                       ctx,
                       user: discord.Member = commands.Option(description="The user you wish to demote")):
@@ -387,7 +387,7 @@ class Mod(commands.Cog):
         await ctx.send(f"Successfully removed {role} from {user.mention}.")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def kick(self,
                    ctx,
                    member: discord.Member = commands.Option(description="Which user to kick"),
@@ -415,7 +415,7 @@ class Mod(commands.Cog):
         return view.value
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def mute(self,
                    ctx,
                    user: discord.Member = commands.Option(description="The user to mute"),
@@ -436,7 +436,7 @@ class Mod(commands.Cog):
 
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def getvariable(self,
                           ctx,
                           var=commands.Option(description="The global variable to display")):
@@ -463,7 +463,7 @@ class Mod(commands.Cog):
                 await ctx.send(f"Can't find that variable! `{e}`")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def removevariable(self,
                              ctx,
                              user: discord.User = commands.Option(description="The user to remove from the CRON_LIST")
@@ -500,7 +500,7 @@ class Mod(commands.Cog):
             return view.value
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def unmute(self, ctx, user: discord.Member):
         view = Confirm(ctx)
         await ctx.reply(f"Are you sure you want to unmute `{user}`?", view=view)
@@ -522,7 +522,7 @@ class Mod(commands.Cog):
 
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def nuke(self, ctx, count: int):
         """Nukes (deletes) a specified amount of messages."""
         import datetime
@@ -540,7 +540,7 @@ class Mod(commands.Cog):
             await msg.delete(delay=5)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def nukeuntil(self, ctx, message_id):  # prob can use converters to convert the msgid to a Message object
 
         import datetime
@@ -569,7 +569,7 @@ class Mod(commands.Cog):
         ctx.__slots__ = False
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def stopnuke(self, ctx):
         global STOPNUKE
         NUKE_COOLDOWN = 20
@@ -584,7 +584,7 @@ class Mod(commands.Cog):
             return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR STOPPING NUKE.")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def lock(self,
                    ctx,
                    channel: discord.TextChannel = commands.Option(default=None,
@@ -606,7 +606,7 @@ class Mod(commands.Cog):
             await ctx.send(f"Locked :lock: {channel.mention} to Member access.")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def unlock(self,
                      ctx,
                      channel: discord.TextChannel = commands.Option(default=None, description="The channel to unlock")
@@ -629,7 +629,7 @@ class Mod(commands.Cog):
                 f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def close(self, ctx):
         '''Manually closes a ticket channel'''
         with open('data.json') as f:
@@ -665,7 +665,7 @@ class Mod(commands.Cog):
                 await ctx.send(embed=em)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def addaccess(self,
                         ctx,
                         role_id=commands.Option(description="Role id: allow see tickets")
@@ -720,7 +720,7 @@ class Mod(commands.Cog):
             await ctx.send(embed=em)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def delaccess(self,
                         ctx,
                         role_id=commands.Option(description="Role id: delete access to see tickets")
@@ -781,7 +781,7 @@ class Mod(commands.Cog):
             await ctx.send(embed=em)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def addpingedrole(self,
                             ctx,
                             role_id=commands.Option(description="Role id to be pinged when tickets are opened")
@@ -838,7 +838,7 @@ class Mod(commands.Cog):
             await ctx.send(embed=em)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def delpingedrole(self,
                             ctx,
                             role_id=commands.Option(description="Role id: to delete, pinged when tickets are opened")
@@ -898,7 +898,7 @@ class Mod(commands.Cog):
             await ctx.send(embed=em)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def addadminrole(self,
                            ctx,
                            role_id=commands.Option(description="Role id, to have admin ticket commands")
@@ -926,7 +926,7 @@ class Mod(commands.Cog):
             await ctx.send(embed=em)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
     async def deladminrole(self,
                            ctx,
                            role_id=commands.Option(description="Role id, delete access to admin ticket commands")):
@@ -967,7 +967,54 @@ class Mod(commands.Cog):
             await ctx.send(embed=em)
 
     @commands.command()
-    @commands.check(is_staff)
+    @commands.check(is_staff())
+    async def warn(self,
+                   ctx,
+                   member: discord.Member = commands.Option(description="Which user to warn"),
+                   reason=commands.Option(description="Why you are warning this user")
+                   ):
+        '''Warns a user'''
+        server = self.bot.get_guild(SERVER_ID)
+        reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
+        mod = ctx.message.author
+        avatar = mod.avatar
+        avatar1 = member.avatar.url
+
+        if member is None or member == ctx.message.author:
+            return await ctx.reply("You cannot warn yourself :rolling_eyes:",
+                                   mention_author=False)
+        if reason is None:
+            return await ctx.reply(
+                f"{ctx.message.author.mention} You need to give a reason for why you are warning {member.mention}",
+                mention_author=False)
+        if member.id in TMS_BOT_IDS:
+            return await ctx.reply(f"Hey {ctx.message.author.mention}! You can't warn {member.mention}",
+                                   mention_author=False)
+        embed = discord.Embed(title="Warning Given",
+                              description=f"Warning issued to {member.mention} \n id: `{member.id}`",
+                              color=0xFF0000)
+        embed.add_field(name="Reason:", value=f"`{reason}`")
+        embed.add_field(name="Responsible Moderator:", value=f"{mod.mention}")
+        embed.set_author(name=f"{member}",
+                         icon_url=avatar1)
+
+        embed1 = discord.Embed(title=" ", description=f"{member} has been warned", color=0x2E66B6)
+
+        embed2 = discord.Embed(title=f"Warning",
+                               description=f"You have been given a warning by {mod.mention} for `{reason}`. \n Please follow the rules of the server",
+                               color=0xFF0000)
+        embed2.set_author(name=f"{mod}",
+                          icon_url=avatar)
+
+        message = await reports_channel.send(embed=embed)
+        WARN_IDS.append(message.id)
+        await message.add_reaction("\U00002705")
+        await message.add_reaction("\U0000274C")
+        await ctx.reply(embed=embed1, mention_author=False)
+        await member.send(embed=embed2)
+
+    @commands.command()
+    @commands.check(is_staff())
     async def update(self, ctx):
         '''Sends the message containing all bot updates'''
         em5 = discord.Embed(title="TMS Bot `v2.1.0` Update for 9/5/21",
