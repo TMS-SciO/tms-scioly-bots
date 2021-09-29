@@ -1,8 +1,10 @@
 import discord
 from variables import *
 from embed import assemble_embed
+from censor import CENSORED_WORDS
 import dateparser
 import pytz
+import re
 
 
 async def auto_report(bot, reason, color, message):
@@ -54,3 +56,60 @@ async def _mute(ctx, user: discord.Member, time: str, self: bool):
                         description=f"Successfully muted {user.mention} until `{str(central.localize(parsed))} CT`.",
                         color=0xFF0000)
     await ctx.send(embed=em4)
+    
+async def censor(message):
+    """Constructs Pi-Bot's censor."""
+    channel = message.channel
+    ava = message.author.avatar
+    wh = await channel.create_webhook(name="Censor (Automated)")
+    content = message.content
+    for word in CENSORED_WORDS:
+        content = re.sub(fr'\b({word})\b', "<censored>", content, flags=re.IGNORECASE)
+    author = message.author.nick
+    if author is None:
+        author = message.author.name
+    # Make sure pinging through @everyone, @here, or any role can not happen
+    mention_perms = discord.AllowedMentions(everyone=False, users=True, roles=False)
+    await wh.send(content, username=(author + " (Auto-Censor)"), avatar_url=ava, allowed_mentions=mention_perms)
+    await wh.delete()
+    
+    
+async def send_to_dm_log(bot, message):
+    server = bot.get_guild(SERVER_ID)
+    dmChannel = discord.utils.get(server.text_channels, name=CHANNEL_DMLOG)
+    embed = assemble_embed(
+        title=":speech_balloon: New DM",
+        fields=[
+            {
+                    "name": "Author",
+                    "value": message.author,
+                    "inline": "True"
+                },
+                {
+                    "name": "Message ID",
+                    "value": message.id,
+                    "inline": "True"
+                },
+                {
+                    "name": "Created At (UTC)",
+                    "value": message.created_at,
+                    "inline": "True"
+                },
+                {
+                    "name": "Attachments",
+                    "value": " | ".join([f"**{a.filename}**: [Link]({a.url})" for a in message.attachments]) if len(message.attachments) > 0 else "None",
+                    "inline": "False"
+                },
+                {
+                    "name": "Content",
+                    "value": message.content if len(message.content) > 0 else "None",
+                    "inline": "False"
+                },
+                {
+                    "name": "Embed",
+                    "value": "\n".join([str(e.to_dict()) for e in message.embeds]) if len(message.embeds) > 0 else "None",
+                    "inline": "False"
+                }
+            ]
+    )
+    await dmChannel.send(embed=embed)
