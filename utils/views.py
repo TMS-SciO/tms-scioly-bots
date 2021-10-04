@@ -1,12 +1,9 @@
 import discord
 import json
-from discord.ext import commands
 import asyncio
 from typing import List
 from urllib.parse import quote_plus
 from variables import *
-
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 
 class Confirm(discord.ui.View):
@@ -212,9 +209,10 @@ class HelpButtons(discord.ui.View):
 
 
 class Ticket(discord.ui.View):
-    def __init__(self):
+    def __init__(self, bot):
         super().__init__(timeout=None)
         self.value = None
+        self.bot = bot
 
     @discord.ui.button(label='\U0001f4e9 Create Ticket', custom_id="ticket", style=discord.ButtonStyle.secondary)
     async def ticket(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -264,8 +262,8 @@ class Ticket(discord.ui.View):
                     em = discord.Embed(
                         title="New ticket from {}#{}".format(interaction.user.name, interaction.user.discriminator),
                         description=f"{message_content} {pinged_msg_content}", color=0x00a8ff)
-                    view = Close()
-                    await ticket_channel.send(embed=em, view=view)
+                    view1 = Close(self.bot)
+
 
 
                     data["ticket-channel-ids"].append(ticket_channel.id)
@@ -278,12 +276,14 @@ class Ticket(discord.ui.View):
                                                 ticket_channel.mention),
                                             color=0x00a8ff)
                         await interaction.response.send_message(embed=em3, ephemeral=True)
+                    await ticket_channel.send(embed=em, view=view1)
 
 
 class Close(discord.ui.View):
-    def __init__(self):
+    def __init__(self, bot):
         super().__init__(timeout=None)
         self.value = None
+        self.bot = bot
 
     @discord.ui.button(label='Close', custom_id="close", style=discord.ButtonStyle.danger)
     async def close(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -293,6 +293,7 @@ class Close(discord.ui.View):
             if interaction.channel.id in data["ticket-channel-ids"]:
 
                 channel_id = interaction.channel.id
+                channel = interaction.channel
 
                 def check(message):
                     return message.author == interaction.user and message.channel == interaction.channel and message.content.lower() == "close"
@@ -304,8 +305,8 @@ class Close(discord.ui.View):
                                        color=0x00a8ff)
 
                     await interaction.response.send_message(embed=em)
-                    await bot.wait_for('message',check=check, timeout=60)
-                    await interaction.channel.delete()
+                    await self.bot.wait_for('message', check=check, timeout=60)
+                    await channel.delete()
 
                     index = data["ticket-channel-ids"].index(channel_id)
                     del data["ticket-channel-ids"][index]
@@ -317,7 +318,7 @@ class Close(discord.ui.View):
                     em = discord.Embed(title="TMS Tickets",
                                        description="You have run out of time to close this ticket. Please press the red `Close` button again.",
                                        color=0x00a8ff)
-                    await interaction.response.send_message(embed=em)
+                    await channel.send(embed=em)
 
 
 class TicTacToeButton(discord.ui.Button['TicTacToe']):
@@ -799,10 +800,10 @@ class Allevents(discord.ui.View):
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
+
 class Nitro(discord.ui.View):
     def __init__(self):
-        super().__init__()
-        self.value = None
+        super().__init__(timeout=None)
 
     @discord.ui.button(label="Claim")
     async def nitroclaim(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -812,8 +813,11 @@ class Nitro(discord.ui.View):
             button.style = discord.ButtonStyle.secondary
             button.disabled = True
             button.label = "Claimed"
-        self.value = True
-        await interaction.response.send_message('https://tenor.com/view/rick-astley-rick-roll-dancing-dance-moves-gif-14097983', ephemeral=True)
+        em1 = discord.Embed(title= "You received a gift, but...",
+                            description="The gift link has either expired or has been revoked. The sender can still create a new link to send again.")
+        em1.set_thumbnail(url = "https://i.imgur.com/w9aiD6F.png")
+        await interaction.response.edit_message(embed= em1, view=self)
+        await interaction.followup.send('https://tenor.com/view/rick-astley-rick-roll-dancing-dance-moves-gif-14097983', ephemeral=True)
 
 
 class Google(discord.ui.View):
