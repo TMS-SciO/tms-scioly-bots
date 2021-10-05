@@ -191,7 +191,7 @@ class HelpButtons(discord.ui.View):
 
     @discord.ui.button(label="Page 1/5", disabled=True, row=2)
     async def pagebutton(self, button:discord.ui.button, interaction:discord.Interaction):
-        await interaction.response.defer()
+        pass
 
     @discord.ui.button(emoji='<:right:886264833320820747>', custom_id="right", style=discord.ButtonStyle.blurple, row=2)
     async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
