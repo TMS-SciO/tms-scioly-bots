@@ -5,6 +5,7 @@ from variables import *
 from rules import RULES
 from checks import is_staff
 from embed import assemble_embed
+from typing import Literal
 import os
 import inspect
 
@@ -56,10 +57,8 @@ class GeneralCommands(commands.Cog):
             await ctx.send(final_url)
 
     @commands.command()
-    async def rule(self, ctx, number=commands.Option(description="Which rule to display")):
+    async def rule(self, ctx, number:Literal["1", "2", "3", "4", "5", "6"] = commands.Option(description="Which rule to display")):
         """Gets a specified rule."""
-        if not number.isdigit() or int(number) < 1 or int(number) > 6:
-            return await ctx.reply("Please use a valid rule number, from 1 through 6. (Ex: `!rule 4`)")
         rule = RULES[int(number) - 1]
         embed = discord.Embed(title="",
                               description=f"**Rule {number}:**\n> {rule}",
@@ -70,7 +69,7 @@ class GeneralCommands(commands.Cog):
     async def report(self, ctx, reason):
         """Creates a report that is sent to staff members."""
         server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
+        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
         ava = ctx.message.author.avatar
 
         message = reason
