@@ -1,11 +1,18 @@
 import discord
-from discord.ext import commands, tasks
-from views import Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Allevents
-from globalfunctions import auto_report
-from secret import TOKEN
-from variables import *
-import datetime
+from discord.ext import commands
+from utils.views import Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Allevents
+from utils.secret import TOKEN
+from utils.variables import *
+import sys
+import traceback
+
 intents = discord.Intents.all()
+
+INITIAL_EXTENSIONS = ["cogs.mod",
+                      "cogs.fun",
+                      "cogs.general",
+                      "cogs.tasks",
+                      "cogs.listeners"]
 
 
 class PersistentViewBot(commands.Bot):
@@ -15,7 +22,15 @@ class PersistentViewBot(commands.Bot):
                          help_command=None,
                          intents=intents,
                          slash_commands=True)
+
         self.persistent_views_added = False
+
+        for extension in INITIAL_EXTENSIONS:
+            try:
+                self.load_extension(extension)
+            except all:
+                print(f'Failed to load extension {extension}.', file=sys.stderr)
+                traceback.print_exc()
 
     async def on_ready(self):
         if not self.persistent_views_added:
@@ -34,53 +49,9 @@ class PersistentViewBot(commands.Bot):
         print('------')
         print(discord.__version__)
         await bot.change_presence(status=discord.Status.dnd, activity=discord.Game("Minecraft"))
-        cron.start()
 
 
 bot = PersistentViewBot()
 
 
-@tasks.loop(seconds=60)
-async def cron():
-    print(f"Executed cron.")
-
-    global CRON_LIST
-    for c in CRON_LIST:
-        date = c['date']
-        if datetime.datetime.now() > date:
-            CRON_LIST.remove(c)
-            await handle_cron(c['do'])
-
-
-async def handle_cron(string):
-    try:
-        if string.find("unban") != -1:
-            iden = int(string.split(" ")[1])
-            server = bot.get_guild(SERVER_ID)
-            member = await bot.fetch_user(int(iden))
-            await server.unban(member)
-            print(f"Unbanned user ID: {iden}")
-        elif string.find("unmute") != -1:
-            iden = int(string.split(" ")[1])
-            server = bot.get_guild(SERVER_ID)
-            member = server.get_member(int(iden))
-            role = discord.utils.get(server.roles, name=ROLE_MUTED)
-            self_role = discord.utils.get(server.roles, name=ROLE_SELFMUTE)
-            await member.remove_roles(role, self_role)
-            print(f"Unmuted user ID: {iden}")
-        elif string.find("unstealfishban") != -1:
-            iden = int(string.split(" ")[1])
-            STEALFISH_BAN.remove(iden)
-            print(f"Un-stealfished user ID: {iden}")
-        else:
-            print("ERROR:")
-            await auto_report(bot ,"Error with a cron task", "red", f"Error: `{string}`")
-    except Exception as e:
-        await auto_report(bot, "Error with a cron task", "red", f"Error: `{e}`\nOriginal task: `{string}`")
-
-
-bot.load_extension('mod')
-bot.load_extension('FunCommands')
-bot.load_extension('GeneralCommands')
-bot.load_extension('events')
 bot.run(TOKEN)
