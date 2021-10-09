@@ -3,14 +3,12 @@
 
 
 
-A bot for the TMS SciOly Discord, a lot of code is modified from Pi-Bot (SciOly Discord Server Resident Bot)
+A bot for the TMS SciOly Discord
 
-A full list of commands can be found by typing `!help` and the bot will dm you a paginated help page
 
-v2.3.2 (current version) has integrated views and button, select menu user interface
 
-#### Updated-v2.3.9 slash commands with descriptions (2.4.0) will be when all descriptions are complete 
-#### Little development will happen and today marks the last major updates
+
+## Current Version 2.5.1 has slash commands, buttons and select interface as well as auto moderation features
 
 
 
