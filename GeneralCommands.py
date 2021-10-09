@@ -5,8 +5,13 @@ from variables import *
 from rules import RULES
 from checks import is_staff
 from embed import assemble_embed
+import datetime
+import psutil
+import pygit2
 from typing import Literal
 import os
+import itertools
+import pkg_resources
 import inspect
 
 
@@ -16,6 +21,34 @@ class GeneralCommands(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.process = psutil.Process()
+
+    def get_last_commits(self, count=5):
+        repo = pygit2.Repository("tms-scioly-bots")
+        commits = list(itertools.islice(repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL), count))
+        return '\n'.join(self.format_commit(c) for c in commits)
+
+    def format_relative(self, dt):
+        return self.format_dt(dt, 'R')
+
+    def format_commit(self, commit):
+        short, _, _ = commit.message.partition('\n')
+        short_sha2 = commit.hex[0:6]
+        commit_tz = datetime.timezone(datetime.timedelta(minutes=commit.commit_time_offset))
+        commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(commit_tz)
+
+        # [`hash`](url) message (offset)
+        offset = self.format_relative(commit_time.astimezone(datetime.timezone.utc))
+        return f'[`{short_sha2}`](https://github.com/pandabear189/tms-scioly-bots/commit/{commit.hex}) {short} ({offset})'
+
+    def format_dt(self, dt, style=None):
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+
+        if style is None:
+            return f'<t:{int(dt.timestamp())}>'
+        return f'<t:{int(dt.timestamp())}:{style}>'
+
 
     @commands.command()
     async def help(self, ctx: commands.Context):
@@ -241,6 +274,53 @@ class GeneralCommands(commands.Cog):
         '''Gives you a 1 time use invite link'''
         x = await ctx.channel.create_invite(max_uses=1)
         await ctx.send(x)
+
+    @commands.command()
+    async def about(self, ctx):
+        """Tells you information about the bot itself."""
+
+        revision = self.get_last_commits()
+        embed = discord.Embed(description='Latest Changes:\n' + revision)
+        # embed = discord.Embed(description='Latest Changes:\n')
+        embed.colour = discord.Colour.blurple()
+
+        # To properly cache myself, I need to use the bot support server.
+        support_guild = self.bot.get_guild(816806329925894217)
+        owner = await support_guild.fetch_member(747126643587416174)
+        embed.set_author(name=str(owner), icon_url=owner.display_avatar.url)
+
+        # statistics
+        total_members = 0
+        total_unique = len(self.bot.users)
+
+        text = 0
+        voice = 0
+        guilds = 0
+        for guild in self.bot.guilds:
+            guilds += 1
+            if guild.unavailable:
+                continue
+
+            total_members += guild.member_count
+            for channel in guild.channels:
+                if isinstance(channel, discord.TextChannel):
+                    text += 1
+                elif isinstance(channel, discord.VoiceChannel):
+                    voice += 1
+
+        embed.add_field(name='Members', value=f'{total_members} total\n{total_unique} unique')
+        embed.add_field(name='Channels', value=f'{text + voice} total\n{text} text\n{voice} voice')
+
+        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
+        cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
+        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU')
+
+        version = pkg_resources.get_distribution('discord.py').version
+        embed.add_field(name='Guilds', value=guilds)
+        embed.add_field(name='# Of Commands', value=len(self.bot.commands))
+        embed.set_footer(text=f'Made with discord.py v{version}', icon_url='http://i.imgur.com/5BFecvA.png')
+        embed.timestamp = discord.utils.utcnow()
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
