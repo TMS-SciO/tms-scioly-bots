@@ -1,10 +1,10 @@
 from discord.ext import commands
 import discord
-from views import HelpButtons, paginationList
-from variables import *
-from rules import RULES
-from checks import is_staff
-from embed import assemble_embed
+from utils.views import HelpButtons, paginationList
+from utils.variables import *
+from utils.rules import RULES
+from utils.checks import is_staff
+from utils.embed import assemble_embed
 import datetime
 import psutil
 import pygit2
@@ -317,8 +317,8 @@ class GeneralCommands(commands.Cog):
 
         version = pkg_resources.get_distribution('discord.py').version
         embed.add_field(name='Guilds', value=guilds)
-        embed.add_field(name='# Of Commands', value=len(self.bot.commands))
-        embed.set_footer(text=f'Made with discord.py v{version}', icon_url='http://i.imgur.com/5BFecvA.png')
+        embed.add_field(name='Number of Commands', value=len(self.bot.commands))
+        embed.set_footer(text=f'Made with discord.py v{version}', icon_url='https://i.imgur.com/RPrw70n.png')
         embed.timestamp = discord.utils.utcnow()
         await ctx.send(embed=embed)
 
