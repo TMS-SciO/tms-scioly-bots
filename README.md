@@ -8,7 +8,7 @@ A bot for the TMS SciOly Discord
 
 
 
-## Current Version 2.5.1 has slash commands, buttons and select interface as well as auto moderation features
+The  Current Version <2.5.1> has slash commands, buttons and select interface as well as auto moderation features
 
 
 
