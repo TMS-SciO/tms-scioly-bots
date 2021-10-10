@@ -1,8 +1,8 @@
 from discord.ext import commands
 import discord
-from variables import *
-from views import TicTacToe, Counter, Google
-from doggo import get_doggo, get_shiba, get_akita, get_cotondetulear
+from utils.variables import *
+from utils.views import TicTacToe, Counter, Google
+from utils.doggo import get_doggo, get_shiba, get_akita, get_cotondetulear
 import asyncio
 import random
 import math
@@ -316,7 +316,7 @@ class FunCommands(commands.Cog):
     @commands.command()
     async def emoji(self, ctx,
                     custom_emojis: commands.Greedy[discord.PartialEmoji] = commands.Option(
-                        description="Up to 5 custom emojis")
+                        description="Your Custom Emoji")
                     ):
         """
         Makes an emoji bigger and shows it's formatting
