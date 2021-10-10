@@ -3,7 +3,7 @@ import json
 import asyncio
 from typing import List
 from urllib.parse import quote_plus
-from variables import *
+from utils.variables import *
 
 
 class Confirm(discord.ui.View):
