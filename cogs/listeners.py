@@ -1,10 +1,9 @@
 from discord.ext import commands
 import discord
-from variables import *
-from censor import CENSORED_WORDS
-from embed import assemble_embed
-from globalfunctions import auto_report, send_to_dm_log, censor
-from commanderr import CommandNotAllowedInChannel
+from utils.variables import *
+from utils.censor import CENSORED_WORDS
+from utils.globalfunctions import auto_report, send_to_dm_log, censor, assemble_embed
+from utils.commanderr import CommandNotAllowedInChannel
 import re
 import traceback
 import dateparser
@@ -22,7 +21,7 @@ class discordEvents(commands.Cog):
     async def on_raw_reaction_add(self, payload):
         if payload.user_id not in TMS_BOT_IDS:
             guild = self.bot.get_guild(payload.guild_id)
-            reports_channel = discord.utils.get(guild.text_channels, name=CHANNEL_REPORTS)
+            reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
             if payload.message_id in WARN_IDS:
                 messageObj = await reports_channel.fetch_message(payload.message_id)
                 if payload.emoji.name == "\U0000274C":  # :x:
@@ -54,14 +53,13 @@ class discordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_message_delete(self, payload):
         channel = self.bot.get_channel(payload.channel_id)
-
         guild = self.bot.get_guild(SERVER_ID) if channel.type == discord.ChannelType.private else channel.guild
-        if channel.type != discord.ChannelType.private and channel.name in [CHANNEL_REPORTS, CHANNEL_DELETEDM,
+        if channel.type != discord.ChannelType.private and channel.id in [CHANNEL_REPORTS, CHANNEL_DELETEDM,
                                                                             CHANNEL_DMLOG]:
             print("Ignoring deletion event because of the channel it's from.")
             return
 
-        deleted_channel = discord.utils.get(guild.text_channels, name=CHANNEL_DELETEDM)
+        deleted_channel = discord.utils.get(guild.text_channels, id=CHANNEL_DELETEDM)
         try:
             message = payload.cached_message
             channel_name = f"{message.author.mention}'s DM" if channel.type == discord.ChannelType.private else message.channel.mention
@@ -135,7 +133,7 @@ class discordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_DEV)
+        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_DEV)
         print("Command Error:")
         print(error)
         # Argument parsing errors
@@ -225,7 +223,7 @@ class discordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member):
         role = discord.utils.get(member.guild.roles, name=ROLE_MR)
-        join_channel = discord.utils.get(member.guild.text_channels, name=WELCOME_CHANNEL)
+        join_channel = discord.utils.get(member.guild.text_channels, id=WELCOME_CHANNEL)
         await member.add_roles(role)
         await join_channel.send(
             f"Everyone Welcome {member.mention} to the TMS SciOly Discord, If you need any help please open a ticket or type !`help`")
@@ -254,9 +252,9 @@ class discordEvents(commands.Cog):
                 for c in allowedCommands:
                     if message.content.find(BOT_PREFIX + c) != -1: allowed = True
                 if not allowed:
-                    botspam_channel = discord.utils.get(message.guild.text_channels, name=CHANNEL_BOTSPAM)
+                    botspam_channel = discord.utils.get(message.guild.text_channels, id=CHANNEL_BOTSPAM)
                     clarify_message = await message.channel.send(
-                        f"{author.mention}, please use self.bot commands only in {botspam_channel.mention}. If you have more questions, you can ping a moderator.")
+                        f"{author.mention}, please use bot commands only in {botspam_channel.mention}. If you have more questions, you can ping a moderator.")
                     await asyncio.sleep(10)
                     await clarify_message.delete()
                     return await message.delete()
@@ -302,19 +300,20 @@ class discordEvents(commands.Cog):
             await message.channel.send(
                 f"{message.author.mention}, please watch the caps, or else I will lay down the mute hammer!")
 
-        # Do not treat messages with only exclamations as command
-        if message.content.count(BOT_PREFIX) != len(message.content):
-            await self.bot.process_commands(message)
+        # # Do not treat messages with only exclamations as command
+        # if message.content.count(BOT_PREFIX, BOT_PREFIX1) > 1:
+        #     return
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-
         print('Message from {0.author} edited to: {0.content}, from: {1.content}'.format(after, before))
         for word in CENSORED_WORDS:
             if len(re.findall(fr"\b({word})\b", after.content, re.I)):
                 print(f"Censoring message by {after.author} because of the word: `{word}`")
                 await after.delete()
                 await censor(after)
+        if after.content.startswith(BOT_PREFIX):
+            await self.bot.process_commands(after)
 
 
 def setup(bot):
