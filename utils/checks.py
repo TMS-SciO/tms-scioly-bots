@@ -1,5 +1,5 @@
 import discord
-from variables import *
+from utils.variables import *
 import asyncio
 import datetime
 from discord.ext import commands
@@ -9,6 +9,7 @@ STOPNUKE = datetime.datetime.utcnow()
 
 def is_staff():
     """Checks to see if the author of ctx message is a staff member."""
+    #TODO make all variables id based
     def predicate(ctx):
         guild = ctx.bot.get_guild(SERVER_ID)
         member = guild.get_member(ctx.message.author.id)
@@ -34,8 +35,6 @@ async def _nuke_countdown(ctx, count=-1):
         await asyncio.sleep(1)
         if STOPNUKE > datetime.datetime.utcnow():
             return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
-
-
 
 
 # async def is_staff(bot):
