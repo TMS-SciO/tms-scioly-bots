@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
-from variables import *
-from views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Nitro, Pronouns, Ticket
-from checks import is_staff, _nuke_countdown
-from globalfunctions import _mute
+from utils.variables import *
+from utils.views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Nitro, Pronouns, Ticket
+from utils.checks import is_staff, _nuke_countdown
+from utils.globalfunctions import _mute
 import dateparser
 import pytz
 import asyncio
@@ -17,6 +17,8 @@ STOPNUKE = datetime.datetime.utcnow()
 
 class Mod(commands.Cog):
     """Moderation related commands."""
+    print('Moderation Cog Loaded')
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -59,8 +61,8 @@ class Mod(commands.Cog):
     @commands.check(is_staff())
     async def gift(self, ctx):
         em1 = discord.Embed(title="You've been gifted a subscription!", description=" ", color=0x2F3136)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/882408068242092062/883882671028179014/Screenshot_2021-09-04_201357.jpg')
+        em1.set_thumbnail(
+            url='https://i.imgur.com/w9aiD6F.png')
         view = Nitro()
         await ctx.send(embed=em1, view=view)
 
@@ -287,7 +289,7 @@ class Mod(commands.Cog):
                               description=f"`{member}` is banned until `{str(central.localize(parsed))} CT` for `{reason}`.",
                               color=0xFF0000)
         server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
+        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
         embed1 = discord.Embed(title=f"New Banned Member",
                                description=f"{member.mention} has been banned from {server}",
                                color=0xFF0000)
@@ -395,14 +397,14 @@ class Mod(commands.Cog):
                    ):
         view = Confirm(ctx)
 
-        await ctx.reply(f"Are you sure you want to kick {member} for {reason}", view=view)
+        await ctx.reply(f"Are you sure you want to kick `{member}` for `{reason}`", view=view)
         await view.wait()
         if view.value is False:
             await ctx.send('Aborting...')
         if view.value is True:
 
-            if reason == None:
-                return await ctx.send("Please specify a reason why you want to kick this user!")
+            if reason is None:
+                await ctx.send("Please specify a reason why you want to kick this user!")
             if member.id in TMS_BOT_IDS:
                 return await ctx.send("Hey! You can't kick me!!")
             await member.kick(reason=reason)
@@ -426,14 +428,13 @@ class Mod(commands.Cog):
         """
         view = Confirm(ctx)
 
-        await ctx.reply(f"Are you sure you want to mute {user} for {time}", view=view)
+        await ctx.reply(f"Are you sure you want to mute `{user}` for `{time}`", view=view)
         await view.wait()
         if view.value is False:
             await ctx.send('Aborting...')
         if view.value is True:
             await _mute(ctx, user, time, self=False)
         return view.value
-
 
     @commands.command()
     @commands.check(is_staff())
@@ -491,7 +492,7 @@ class Mod(commands.Cog):
             await ctx.send(
                 'You need to specify a length that this used will be muted. `exe:` `1 day`, `2 months, 1 day`')
         else:
-            await ctx.reply(f"Are you sure you want to selfmute for {time}", view=view)
+            await ctx.reply(f"Are you sure you want to selfmute for `{time}`", view=view)
             await view.wait()
             if view.value is False:
                 await ctx.send('Aborting...')
@@ -519,7 +520,6 @@ class Mod(commands.Cog):
                 if obj['do'] == f'unmute {user.id}':
                     CRON_LIST.remove(obj)
         return view.value
-
 
     @commands.command()
     @commands.check(is_staff())
@@ -975,7 +975,7 @@ class Mod(commands.Cog):
                    ):
         '''Warns a user'''
         server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
+        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
         mod = ctx.message.author
         avatar = mod.avatar
         avatar1 = member.avatar.url
