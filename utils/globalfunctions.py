@@ -1,7 +1,7 @@
 import discord
-from variables import *
-from embed import assemble_embed
-from censor import CENSORED_WORDS
+from utils.variables import *
+from utils.embed import assemble_embed
+from utils.censor import CENSORED_WORDS
 import dateparser
 import pytz
 import re
@@ -10,7 +10,7 @@ import re
 async def auto_report(bot, reason, color, message):
     """Allows Pi-Bot to generate a report by himself."""
     server = bot.get_guild(SERVER_ID)
-    reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
+    reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
     embed = assemble_embed(
         title=f"{reason} (message from TMS-Bot)",
         webcolor=color,
@@ -36,7 +36,7 @@ async def _mute(ctx, user: discord.Member, time: str, self: bool):
     """
     if user.id in TMS_BOT_IDS:
         return await ctx.send("Hey! You can't mute me!!")
-    if time == None:
+    if time is None:
         return await ctx.send(
             "You need to specify a length that this used will be muted. Examples are: `1 day`, `2 months, 1 day`, or `indef` (aka, forever).")
     role = None
@@ -57,6 +57,7 @@ async def _mute(ctx, user: discord.Member, time: str, self: bool):
                         color=0xFF0000)
     await ctx.send(embed=em4)
 
+
 async def censor(message):
     """Constructs Pi-Bot's censor."""
     channel = message.channel
@@ -76,7 +77,7 @@ async def censor(message):
 
 async def send_to_dm_log(bot, message):
     server = bot.get_guild(SERVER_ID)
-    dmChannel = discord.utils.get(server.text_channels, name=CHANNEL_DMLOG)
+    dmChannel = discord.utils.get(server.text_channels, id=CHANNEL_DMLOG)
     embed = assemble_embed(
         title=":speech_balloon: New DM",
         fields=[
@@ -113,3 +114,6 @@ async def send_to_dm_log(bot, message):
             ]
     )
     await dmChannel.send(embed=embed)
+
+
+
