@@ -6,7 +6,7 @@ import datetime
 
 
 class Tasks(commands.Cog):
-    """Fun related commands."""
+    """Async Tasks"""
     print('Tasks Cog Loaded')
 
     def __init__(self, bot):
@@ -22,7 +22,6 @@ class Tasks(commands.Cog):
             if datetime.datetime.now() > date:
                 CRON_LIST.remove(c)
                 await self.handle_cron(c['do'])
-
 
     async def handle_cron(self, string):
         try:
@@ -49,8 +48,6 @@ class Tasks(commands.Cog):
                 await auto_report(self.bot ,"Error with a cron task", "red", f"Error: `{string}`")
         except Exception as e:
             await auto_report(self.bot, "Error with a cron task", "red", f"Error: `{e}`\nOriginal task: `{string}")
-
-
 
 
 def setup(bot):
