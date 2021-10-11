@@ -63,3 +63,18 @@ fish_now = 0
 REPORT_IDS = []
 WARN_IDS = []
 RECENT_MESSAGES = []
+
+INITIAL_EXTENSIONS = ["cogs.mod",
+                      "cogs.fun",
+                      "cogs.general",
+                      "cogs.tasks",
+                      "cogs.listeners",
+                      "cogs.base"]
+
+BASE_EXTENSIONS = [
+                    "cogs.mod",
+                    "cogs.fun",
+                    "cogs.general",
+                    "cogs.tasks",
+                    "cogs.listeners"
+                    ]
