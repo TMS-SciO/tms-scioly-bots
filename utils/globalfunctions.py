@@ -5,6 +5,7 @@ from utils.censor import CENSORED_WORDS
 import dateparser
 import pytz
 import re
+import asyncio
 
 
 async def auto_report(bot, reason, color, message):
@@ -115,5 +116,19 @@ async def send_to_dm_log(bot, message):
     )
     await dmChannel.send(embed=embed)
 
+async def _nuke_countdown(ctx, count=-1):
+    import datetime
+    global STOPNUKE
+    await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
+    await ctx.send("PREPARE FOR IMPACT.")
+    for i in range(10, 0, -1):
+        if count < 0:
+            await ctx.send(f"NUKING MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
+        else:
+            await ctx.send(
+                f"NUKING {count} MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
+        await asyncio.sleep(1)
+        if STOPNUKE > datetime.datetime.utcnow():
+            return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
 
 
