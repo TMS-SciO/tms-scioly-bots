@@ -1013,29 +1013,6 @@ class Mod(commands.Cog):
         await ctx.reply(embed=embed1, mention_author=False)
         await member.send(embed=embed2)
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def update(self, ctx):
-        '''Sends the message containing all bot updates'''
-        em5 = discord.Embed(title="TMS Bot `v2.1.0` Update for 9/5/21",
-                            description="", color=0xff008c)
-        em5.add_field(name="Temporarily removed webhook commands",
-                      value="The webhook commands have been removed as the discord.py library beta does not use the old converter",
-                      inline=False)
-        em5.add_field(name="Removed `/` Prefix",
-                      value="The slash prefix was interacting with the discord API thinking it was a slash command",
-                      inline=False)
-        em5.add_field(name="New commands",
-                      value="`emoji`, `charinfo`, `tictactoe`, `roll`",
-                      inline=False)
-        em5.add_field(name="New confirmation screen",
-                      value=f"The new confirmaton screen when invoking certain commands like `selfmute` has been added",
-                      inline=False)
-        em5.set_thumbnail(
-            url="https://cdn.discordapp.com/avatars/870741665294467082/0da0cbe08327c1081e6a055d957b3229.png?size=1024")
-        em5.set_footer(text="TMS SciOly Bot Development Updates")
-        await ctx.send(embed=em5)
-
 
 def setup(bot):
     bot.add_cog(Mod(bot))
