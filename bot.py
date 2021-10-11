@@ -12,10 +12,11 @@ INITIAL_EXTENSIONS = ["cogs.mod",
                       "cogs.fun",
                       "cogs.general",
                       "cogs.tasks",
-                      "cogs.listeners"]
+                      "cogs.listeners",
+                      "cogs.base"]
 
 
-class PersistentViewBot(commands.Bot):
+class TMS(commands.AutoShardedBot):
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or(BOT_PREFIX1, BOT_PREFIX),
                          case_insensitive=True,
@@ -51,7 +52,7 @@ class PersistentViewBot(commands.Bot):
         await bot.change_presence(status=discord.Status.dnd, activity=discord.Game("Minecraft"))
 
 
-bot = PersistentViewBot()
+bot = TMS()
 
 
 bot.run(TOKEN)
