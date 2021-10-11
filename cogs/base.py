@@ -146,12 +146,6 @@ class BaseCogs(commands.Cog):
             await ctx.send("**GLOBAL SLASH COMMANDS UPSERT COMPLETE**")
 
 
-
 def setup(bot):
     bot.add_cog(BaseCogs(bot))
-
-
-
-
-
 
