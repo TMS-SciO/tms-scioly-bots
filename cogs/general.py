@@ -286,6 +286,7 @@ class GeneralCommands(commands.Cog):
 
     @commands.command()
     async def uptime(self, ctx):
+        '''Sends how long the bot has been online'''
         uptime = self.get_bot_uptime()
         await ctx.send(f"**{uptime}**")
 
@@ -392,6 +393,7 @@ class GeneralCommands(commands.Cog):
 
     @commands.command()
     async def update(self, ctx):
+        '''Shows all the recent bot updates'''
         count = 20
         revisions = self.get_last_commits(count)
         embed = discord.Embed(title="Recent Changes", description = f"Displaying {count} changes \n" + revisions)
