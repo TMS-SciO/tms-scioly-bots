@@ -438,8 +438,7 @@ class Mod(commands.Cog):
 
     @commands.command()
     @commands.check(is_staff())
-    async def getvariable(self,
-                          ctx,
+    async def getvariable(self, ctx,
                           var=commands.Option(description="The global variable to display")):
         """Fetches a local variable."""
         await ctx.send("Attempting to find variable.")
@@ -454,21 +453,15 @@ class Mod(commands.Cog):
         else:
             try:
                 variable = globals()[var]
-                # await ctx.send(f"`{var}`  Variable value: ```ini\n{variable}```")
-                header = variable[0].keys()
-                rows = [x.values() for x in variable]
-                table = tabulate.tabulate(rows, header, "fancy_grid")
-                await ctx.reply(f"```{table}```", mention_author=False)
-
+                await ctx.reply(f"`{variable}`")
             except Exception as e:
                 await ctx.send(f"Can't find that variable! `{e}`")
 
     @commands.command()
     @commands.check(is_staff())
-    async def removevariable(self,
-                             ctx,
-                             user: discord.User = commands.Option(description="The user to remove from the CRON_LIST")
-                             ):
+    async def removevariable(self, ctx,
+                             user: discord.User = commands.Option(description="The user to remove from the CRON_LIST")):
+        '''Removes a variable in the CRON_LIST'''
         for obj in CRON_LIST[:]:
             if obj['do'] == f'unmute {user.id}':
                 CRON_LIST.remove(obj)
@@ -1016,3 +1009,4 @@ class Mod(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Mod(bot))
+    
