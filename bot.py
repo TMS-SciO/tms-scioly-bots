@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
-from utils.views import Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Allevents
-from utils.secret import TOKEN
-from utils.variables import *
+from cogs.utils.views import Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Allevents
+from cogs.utils.secret import TOKEN
+from cogs.utils.variables import *
 import sys
 import traceback
 
