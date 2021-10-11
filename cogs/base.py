@@ -1,6 +1,7 @@
 from discord.ext import commands
 from typing import Literal
 from utils.checks import is_staff
+from utils.variables import BASE_EXTENSIONS, INITIAL_EXTENSIONS
 
 
 class BaseCogs(commands.Cog):
@@ -13,8 +14,7 @@ class BaseCogs(commands.Cog):
     @commands.group()
     @commands.check(is_staff())
     async def cogs(self, ctx):
-        x = self.bot.cogs
-        await ctx.send(f"```{x}```")
+        pass
 
     @cogs.command()
     @commands.check(is_staff())
@@ -53,7 +53,8 @@ class BaseCogs(commands.Cog):
             await ctx.send("Error with unloading " + f"`{cog}`" + f"\n Error {e}")
 
     @cogs.command()
-    async def removecog(self, ctx,
+    @commands.check(is_staff())
+    async def remove_cog(self, ctx,
                         cog: Literal["cogs.mod", "cogs.listeners", "cogs.fun", "cogs.general", "cogs.tasks", "cogs.base"]):
         '''Removes a module'''
         try:
@@ -64,7 +65,8 @@ class BaseCogs(commands.Cog):
             await ctx.send("Error with removing " + f"`{cog}`" + f"\n Error {e}")
 
     @cogs.command()
-    async def removelistener(self, ctx,
+    @commands.check(is_staff())
+    async def remove_listener(self, ctx,
                              listener: Literal[
                              "on_member_join",
                              "on_message",
@@ -83,7 +85,8 @@ class BaseCogs(commands.Cog):
             await ctx.send("Error with removing " + f"`{listener}`" + f"\n Error {e}")
 
     @cogs.command()
-    async def loadlistener(self, ctx,
+    @commands.check(is_staff())
+    async def load_listener(self, ctx,
                              listener: Literal[
                                  "on_member_join",
                                  "on_message",
@@ -102,7 +105,8 @@ class BaseCogs(commands.Cog):
             await ctx.send("Error with adding " + f"`{listener}`" + f"\n Error {e}")
 
     @cogs.command()
-    async def removecommand(self, ctx,
+    @commands.check(is_staff())
+    async def remove_command(self, ctx,
                              command):
         '''Removes a command'''
         try:
@@ -111,6 +115,39 @@ class BaseCogs(commands.Cog):
             print("removed command: " + command)
         except Exception as e:
             await ctx.send("Error with removing " + f"`{command}`" + f"\n Error {e}")
+
+    @cogs.command()
+    @commands.check(is_staff())
+    async def reload_all(self, ctx):
+        '''Reloads All extensions'''
+        for extension in INITIAL_EXTENSIONS:
+            try:
+                self.bot.reload_extension(extension)
+                await ctx.send('Reloaded all extensions')
+            except Exception as e:
+                await ctx.send(f'Failed to reload all extensions \n Error: {e}')
+
+    @cogs.command()
+    @commands.check(is_staff())
+    async def unload_all(self, ctx):
+        '''Unloads all Cogs except cogs/base.py'''
+        for extension in BASE_EXTENSIONS:
+            try:
+                self.bot.unload_extension(extension)
+                await ctx.send('Unloaded all extensions')
+            except Exception as e:
+                await ctx.send(f'Failed to unload all extensions \n Error: {e}')
+
+    @cogs.command()
+    @commands.check(is_staff())
+    async def load_all(self, ctx):
+        '''Loads all Cogs'''
+        for extension in BASE_EXTENSIONS:
+            try:
+                self.bot.load_extension(extension)
+                await ctx.send('Loaded all extensions')
+            except Exception as e:
+                await ctx.send(f'Failed to load all extensions \n Error: {e}')
 
 
 def setup(bot):
