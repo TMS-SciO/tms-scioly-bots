@@ -67,23 +67,23 @@ class BaseCogs(commands.Cog):
 
     @cogs.command()
     @commands.check(is_staff())
-    async def load_listener(self, ctx,
-                             listener: Literal[
-                                 "on_member_join",
-                                 "on_message",
-                                 "on_message_edit",
-                                 "on_command_error",
-                                 "on_error",
-                                 "on_raw_message_delete",
-                                 "on_member_update",
-                                 "on_raw_reaction_add"]):
-        '''adds a listener'''
+    async def remove_listener(self, ctx,
+                              listener: Literal[
+                                  "on_member_join",
+                                  "on_message",
+                                  "on_message_edit",
+                                  "on_command_error",
+                                  "on_error",
+                                  "on_raw_message_delete",
+                                  "on_member_update",
+                                  "on_raw_reaction_add"]):
+        '''Removes a listener'''
         try:
-            self.bot.add_listener(func=listener, name=listener)
-            await ctx.send("Successfully added listener " + f"`{listener}`" + " module")
-            print("added listener: " + listener)
+            self.bot.remove_listener(func=listener, name=listener)
+            await ctx.send("Successfully removed listener " + f"`{listener}`" + " module")
+            print("removed listener: " + listener)
         except Exception as e:
-            await ctx.send("Error with adding " + f"`{listener}`" + f"\n Error {e}")
+            await ctx.send("Error with removing " + f"`{listener}`" + f"\n Error {e}")
 
     @cogs.command()
     @commands.check(is_staff())
