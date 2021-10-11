@@ -399,6 +399,23 @@ class GeneralCommands(commands.Cog):
         embed = discord.Embed(title="Recent Changes", description = f"Displaying {count} changes \n" + revisions)
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def suggest(self, ctx, suggestion):
+        '''Make a suggestion for the server, team or bot'''
+        server = self.bot.get_guild(SERVER_ID)
+        suggest_channel = discord.utils.get(server.text_channels, id=CHANNEL_SUGGESTIONS)
+        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
+        embed = discord.Embed(title = "New Suggestion" , description = f"{suggestion}", color = 0x967DCB)
+        embed.timestamp = discord.utils.utcnow()
+        embed.set_author(name = ctx.author.nick, icon_url=ctx.author.avatar)
+        suggest_message = await suggest_channel.send(embed=embed)
+        await suggest_message.add_reaction("\U0001f44d")
+        await suggest_message.add_reaction("\U0001f44e")
+        await reports_channel.send(embed=embed)
+        suggest_url = suggest_message.jump_url
+        embed2 = discord.Embed(title = " ", description= f"Posted! [Your Suggestion!]({suggest_url})")
+        await ctx.send(embed= embed2)
+
 
 def setup(bot):
     bot.add_cog(GeneralCommands(bot))

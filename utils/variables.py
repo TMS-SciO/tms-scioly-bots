@@ -49,6 +49,7 @@ CHANNEL_EDITEDM = 819363833390825482
 CHANNEL_DMLOG = 874827004069957654
 WELCOME_CHANNEL = 816806329925894220
 CHANNEL_UNSELFMUTE = 872949802495787058
+CHANNEL_SUGGESTIONS = 897233313784266752
 
 # OTHER
 SERVER_ID = 816806329925894217
@@ -70,6 +71,7 @@ INITIAL_EXTENSIONS = ["cogs.mod",
                       "cogs.tasks",
                       "cogs.listeners",
                       "cogs.base"]
+
 
 BASE_EXTENSIONS = [
                     "cogs.mod",

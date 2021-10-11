@@ -2,7 +2,8 @@ from discord.ext import commands
 import discord
 from utils.variables import *
 from utils.censor import CENSORED_WORDS
-from utils.globalfunctions import auto_report, send_to_dm_log, censor, assemble_embed
+from utils.globalfunctions import auto_report, send_to_dm_log, censor
+from utils.embed import assemble_embed
 from utils.commanderr import CommandNotAllowedInChannel
 import re
 import traceback
@@ -266,6 +267,9 @@ class discordEvents(commands.Cog):
                 print(f"Censoring message by {message.author} because of the word: `{word}`")
                 await message.delete()
                 await censor(message)
+
+        if message.author.id == 588924782221983764 and message.content.lower() == "i win":
+            await message.channel.send("Gum wins again!")
 
         # SPAM TESTING
         global RECENT_MESSAGES

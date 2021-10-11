@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 from utils.variables import *
 from utils.views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Nitro, Pronouns, Ticket
-from utils.checks import is_staff
-from utils.globalfunctions import _mute, _nuke_countdown
+from utils.checks import is_staff, _nuke_countdown
+from utils.globalfunctions import _mute
 import dateparser
 import pytz
 import asyncio

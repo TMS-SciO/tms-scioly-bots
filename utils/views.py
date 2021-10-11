@@ -3,7 +3,7 @@ import json
 import asyncio
 from typing import List
 from urllib.parse import quote_plus
-from variables import *
+from utils.variables import *
 
 
 class Confirm(discord.ui.View):
@@ -21,10 +21,8 @@ class Confirm(discord.ui.View):
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
     async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
-        number = 0
-        if number + 1 >= 1:
-            button.style = discord.ButtonStyle.secondary
-            button.disabled = True
+        for child in self.children:
+            child.disabled = True
             button.label = "Confirmed"
         self.value = True
         await interaction.response.edit_message(view=self)
@@ -33,10 +31,8 @@ class Confirm(discord.ui.View):
     # This one is similar to the confirmation button except sets the inner value to `False`
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-        number = 0
-        if number + 1 >= 1:
-            button.style = discord.ButtonStyle.secondary
-            button.disabled = True
+        for child in self.children:
+            child.disabled = True
             button.label = "Canceled"
         self.value = False
         await interaction.response.edit_message(view=self)
@@ -276,7 +272,7 @@ class Ticket(discord.ui.View):
                                                 ticket_channel.mention),
                                             color=0x00a8ff)
                         await interaction.response.send_message(embed=em3, ephemeral=True)
-                    await ticket_channel.send(embed=em, view=view1)
+                    return await ticket_channel.send(embed=em, view=view1)
 
 
 class Close(discord.ui.View):

@@ -2,6 +2,7 @@ from discord.ext import commands
 from typing import Literal
 from utils.checks import is_staff
 from utils.variables import BASE_EXTENSIONS, INITIAL_EXTENSIONS
+from utils.views import Confirm
 
 
 class BaseCogs(commands.Cog):
@@ -63,26 +64,6 @@ class BaseCogs(commands.Cog):
             print("removed module: " + cog)
         except Exception as e:
             await ctx.send("Error with removing " + f"`{cog}`" + f"\n Error {e}")
-
-    @cogs.command()
-    @commands.check(is_staff())
-    async def remove_listener(self, ctx,
-                             listener: Literal[
-                             "on_member_join",
-                             "on_message",
-                             "on_message_edit",
-                             "on_command_error",
-                             "on_error",
-                             "on_raw_message_delete",
-                             "on_member_update",
-                             "on_raw_reaction_add"]):
-        '''Removes a listener'''
-        try:
-            self.bot.remove_listener(func = listener, name = listener)
-            await ctx.send("Successfully removed listener " + f"`{listener}`" + " module")
-            print("removed listener: " + listener)
-        except Exception as e:
-            await ctx.send("Error with removing " + f"`{listener}`" + f"\n Error {e}")
 
     @cogs.command()
     @commands.check(is_staff())
@@ -149,6 +130,28 @@ class BaseCogs(commands.Cog):
             except Exception as e:
                 await ctx.send(f'Failed to load all extensions \n Error: {e}')
 
+    @commands.command()
+    @commands.is_owner()
+    async def remove_all_slash_commands(self, ctx):
+        view = Confirm(ctx)
+        await ctx.send("Are you sure you want to remove **ALL** slash commands?", view=view)
+        await view.wait()
+        if view.value is False:
+            await ctx.send("Upserting of slash-commands has been aborted")
+        if view.value is True:
+            application_id = self.bot.application_id or (await self.bot.application_info()).id
+            await self.bot.http.bulk_upsert_guild_commands(application_id, 816806329925894217, [])
+            await ctx.send("**GUILD SLASH COMMANDS UPSERT COMPLETE**")
+            await self.bot.http.bulk_upsert_global_commands(self.bot.application_id, [])
+            await ctx.send("**GLOBAL SLASH COMMANDS UPSERT COMPLETE**")
+
+
 
 def setup(bot):
     bot.add_cog(BaseCogs(bot))
+
+
+
+
+
+
