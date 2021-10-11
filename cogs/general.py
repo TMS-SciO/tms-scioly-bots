@@ -7,6 +7,7 @@ from utils.checks import is_staff
 from utils.embed import assemble_embed
 import datetime
 import psutil
+import asyncio
 import pygit2
 from typing import Literal
 import os
@@ -22,8 +23,17 @@ class GeneralCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.process = psutil.Process()
+        self.bot.launch_time = datetime.datetime.utcnow()
 
-    def get_last_commits(self, count=5):
+    def get_bot_uptime(self):
+        delta_uptime = datetime.datetime.utcnow() - self.bot.launch_time
+        hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        days, hours = divmod(hours, 24)
+        uptime = f"{days} Days, {hours} Hours, {minutes} Minutes, {seconds} Seconds"
+        return uptime
+
+    def get_last_commits(self, count:int):
         repo = pygit2.Repository("tms-scioly-bots")
         commits = list(itertools.islice(repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL), count))
         return '\n'.join(self.format_commit(c) for c in commits)
@@ -48,7 +58,6 @@ class GeneralCommands(commands.Cog):
         if style is None:
             return f'<t:{int(dt.timestamp())}>'
         return f'<t:{int(dt.timestamp())}:{style}>'
-
 
     @commands.command()
     async def help(self, ctx: commands.Context):
@@ -276,10 +285,15 @@ class GeneralCommands(commands.Cog):
         await ctx.send(x)
 
     @commands.command()
+    async def uptime(self, ctx):
+        uptime = self.get_bot_uptime()
+        await ctx.send(f"**{uptime}**")
+
+    @commands.command()
     async def about(self, ctx):
         """Tells you information about the bot itself."""
 
-        revision = self.get_last_commits()
+        revision = self.get_last_commits(count=5)
         embed = discord.Embed(description='Latest Changes:\n' + revision)
         # embed = discord.Embed(description='Latest Changes:\n')
         embed.colour = discord.Colour.blurple()
@@ -287,7 +301,8 @@ class GeneralCommands(commands.Cog):
         # To properly cache myself, I need to use the bot support server.
         support_guild = self.bot.get_guild(816806329925894217)
         owner = await support_guild.fetch_member(747126643587416174)
-        embed.set_author(name=str(owner), icon_url=owner.display_avatar.url)
+        name = str(owner)
+        embed.set_author(name=name, icon_url=owner.display_avatar.url, url = 'https://github.com/pandabear189')
 
         # statistics
         total_members = 0
@@ -315,11 +330,71 @@ class GeneralCommands(commands.Cog):
         cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
         embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU')
 
-        version = pkg_resources.get_distribution('discord.py').version
+        dpyversion = pkg_resources.get_distribution('discord.py').version
         embed.add_field(name='Guilds', value=guilds)
         embed.add_field(name='Number of Commands', value=len(self.bot.commands))
-        embed.set_footer(text=f'Made with discord.py v{version}', icon_url='https://i.imgur.com/RPrw70n.png')
+        uptime = self.get_bot_uptime()
+        embed.add_field(name="Uptime", value= uptime)
+        embed.set_footer(text=f'Made with discord.py v{dpyversion}', icon_url='https://i.imgur.com/RPrw70n.png')
         embed.timestamp = discord.utils.utcnow()
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def bothealth(self, ctx):
+        """Various bot health monitoring tools."""
+
+        # This uses a lot of private methods because there is no
+        # clean way of doing this otherwise.
+
+        HEALTHY = discord.Colour(value=0x43B581)
+        UNHEALTHY = discord.Colour(value=0xF04947)
+
+        total_warnings = 0
+
+        embed = discord.Embed(title='Bot Health Report', colour=HEALTHY)
+
+        description = [
+        ]
+
+        task_retriever = asyncio.all_tasks
+        all_tasks = task_retriever(loop=self.bot.loop)
+
+        event_tasks = [
+            t for t in all_tasks
+            if 'Client._run_event' in repr(t) and not t.done()
+        ]
+
+        cogs_directory = os.path.dirname(__file__)
+        tasks_directory = os.path.join('discord', 'ext', 'tasks', '__init__.py')
+        inner_tasks = [
+            t for t in all_tasks
+            if cogs_directory in repr(t) or tasks_directory in repr(t)
+        ]
+
+        bad_inner_tasks = ", ".join(hex(id(t)) for t in inner_tasks if t.done() and t._exception is not None)
+        total_warnings += bool(bad_inner_tasks)
+        embed.add_field(name='Inner Tasks', value=f'Total: {len(inner_tasks)}\nFailed: {bad_inner_tasks or "None"}')
+        embed.add_field(name='Events Waiting', value=f'Total: {len(event_tasks)}', inline=False)
+
+        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
+        cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
+        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', inline=False)
+
+        global_rate_limit = not self.bot.http._global_over.is_set()
+        description.append(f'Global Rate Limit: {global_rate_limit}')
+
+        if global_rate_limit or total_warnings >= 9:
+            embed.colour = UNHEALTHY
+
+        embed.set_footer(text=f'{total_warnings} warning(s)')
+        embed.description = '\n'.join(description)
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def update(self, ctx):
+        count = 20
+        revisions = self.get_last_commits(count)
+        embed = discord.Embed(title="Recent Changes", description = f"Displaying {count} changes \n" + revisions)
         await ctx.send(embed=embed)
 
 
