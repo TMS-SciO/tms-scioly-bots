@@ -827,3 +827,30 @@ class Google(discord.ui.View):
         # Therefore we have to manually create one.
         # We add the quoted url to the button, and add the button to the view.
         self.add_item(discord.ui.Button(label='Click Here', url=url))
+
+
+class NukeStopButton(discord.ui.Button["Nuke"]):
+
+    def __init__(self, nuke):
+        super().__init__(label = "ABORT", style = discord.ButtonStyle.danger)
+        self.nuke = nuke
+
+    async def callback(self, interaction: discord.Interaction):
+        self.nuke.stopped = True
+        self.style = discord.ButtonStyle.green
+        self.label = "ABORTED"
+        self.disabled = True
+        await interaction.response.send_message(content = "NUKE ABORTED, COMMANDER.")
+        await interaction.edit_original_message(view = self.nuke)
+        self.nuke.stop()
+
+
+class Nuke(discord.ui.View):
+
+    stopped = False
+
+    def __init__(self):
+        super().__init__()
+        button = NukeStopButton(self)
+        self.add_item(button)
+        
