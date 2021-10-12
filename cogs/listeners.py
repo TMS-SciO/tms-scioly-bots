@@ -40,7 +40,10 @@ class discordEvents(commands.Cog):
                 if payload.emoji.name == "\U00002705":  # :white_check_mark:
                     print("Report handled.")
                     await messageObj.delete()
-                return
+
+
+
+
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
