@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.variables import *
-from utils.views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Nitro, Pronouns, Ticket
+from utils.views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Nitro, Pronouns, Ticket, Nuke
 from utils.checks import is_staff, _nuke_countdown
 from utils.globalfunctions import _mute
 import dateparser
@@ -518,36 +518,83 @@ class Mod(commands.Cog):
     @commands.check(is_staff())
     async def nuke(self, ctx, count: int):
         """Nukes (deletes) a specified amount of messages."""
-        import datetime
         global STOPNUKE
         MAX_DELETE = 100
         if int(count) > MAX_DELETE:
-            return await ctx.send("Chill. No more than deleting 100 messages at a time.")
-        channel = ctx.message.channel
-        if int(count) < 0: count = MAX_DELETE
-        await _nuke_countdown(ctx, count)
-        if STOPNUKE <= datetime.datetime.utcnow():
-            await channel.purge(limit=int(count) + 13, check=lambda m: not m.pinned)
+            return await ctx.reply("Chill. No more than deleting 100 messages at a time.")
+        channel = ctx.channel
+        if int(count) < 0:
+            history = await channel.history(limit=105).flatten()
+            message_count = len(history)
+            if message_count > 100:
+                count = 100
+            else:
+                count = message_count + int(count) - 1
+            if count <= 0:
+                return await ctx.reply("Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
 
-            msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
-            await msg.delete(delay=5)
+        original_shown_embed = discord.Embed(
+            title = "NUKE COMMAND PANEL",
+            color = discord.Color.brand_red(),
+            description = f"""
+            {count} messages will be deleted from {channel.mention} in `10` seconds...
+            To stop this nuke, press the red button below!
+            """
+        )
+        view = Nuke()
+        msg = await ctx.reply(embed = original_shown_embed, view = view)
+        await asyncio.sleep(1)
+
+        for i in range(9, 0, -1):
+            original_shown_embed.description = f"""
+            {count} messages will be deleted from {channel.mention} in `{i}` seconds...
+            To stop this nuke, press the red button below!
+            """
+            await msg.edit(embed = original_shown_embed, view = view)
+            if view.stopped:
+                return
+            await asyncio.sleep(1)
+
+        original_shown_embed.description = f"""
+        Now nuking {count} messages from the channel...
+        """
+        await msg.edit(embed = original_shown_embed, view = None)
+
+        # Nuke has not been stopped, proceed with deleting messages
+        def nuke_check(msg: discord.Message):
+            return not len(msg.components) and not msg.pinned
+
+        new_embed = discord.Embed(
+            title="NUKE COMMAND PANEL",
+            color=discord.Color.brand_green(),
+            description=f"""
+                    {count} messages have been deleted from {channel.mention} 
+                    """
+        )
+
+        await channel.purge(limit=count + 1, check=nuke_check)
+        await ctx.send(embed=new_embed)
 
     @commands.command()
     @commands.check(is_staff())
     async def nukeuntil(self, ctx, message_id):  # prob can use converters to convert the msgid to a Message object
-
-        import datetime
         global STOPNUKE
-        channel = ctx.message.channel
-        message = await ctx.fetch_message(message_id)
-        if channel == message.channel:
-            await _nuke_countdown(ctx)
-            if STOPNUKE <= datetime.datetime.utcnow():
-                await channel.purge(limit=1000, after=message)
-                msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
-                await msg.delete(delay=5)
-        else:
-            return await ctx.send("MESSAGE ID DOES NOT COME FROM THIS TEXT CHANNEL. ABORTING NUKE.")
+        view = Confirm(ctx)
+        await ctx.send(f"Are you sure you want to nuke until {message_id}?", view=view)
+        await view.wait()
+        if view.value is False:
+            await ctx.send("Nuke Canceled")
+        if view.value is True:
+            channel = ctx.message.channel
+            message = await ctx.fetch_message(message_id)
+            if channel == message.channel:
+                await _nuke_countdown(ctx)
+                if STOPNUKE <= datetime.datetime.utcnow():
+                    await channel.purge(limit=1000, after=message)
+                    msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
+                    await msg.delete(delay=5)
+            else:
+                return await ctx.send("MESSAGE ID DOES NOT COME FROM THIS TEXT CHANNEL. ABORTING NUKE.")
 
     @nuke.error
     @nukeuntil.error
