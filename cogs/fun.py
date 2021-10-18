@@ -1,17 +1,19 @@
 from discord.ext import commands
 import discord
+from discord.ext.commands import Option
+from utils.checks import is_not_blacklisted
 from utils.variables import *
 from utils.views import TicTacToe, Counter, Google
 from utils.doggo import get_doggo, get_shiba, get_akita, get_cotondetulear
+from utils.views import Nitro
 import asyncio
 import random
 import math
 import dateparser
 import wikipedia as wikip
 from aioify import aioify
+from typing import Literal
 import unicodedata
-
-aiowikip = aioify(obj=wikip)
 
 
 class FunCommands(commands.Cog):
@@ -20,6 +22,10 @@ class FunCommands(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.aiowikip = aioify(obj=wikip)
+
+    async def cog_check(self, ctx):
+        return await is_not_blacklisted(ctx)
 
     @commands.command()
     async def roll(self, ctx):
@@ -38,7 +44,7 @@ class FunCommands(commands.Cog):
         await msg.edit(f"{response}")
 
     @commands.command()
-    async def magic8ball(self, ctx, question):
+    async def magic8ball(self, ctx, question: str):
         '''Swishes a Magic8ball'''
         msg = await ctx.send("<a:typing:883864406537162793> Swishing the magic 8 ball...")
         await ctx.channel.trigger_typing()
@@ -140,11 +146,8 @@ class FunCommands(commands.Cog):
         await ctx.send(f"Currently, there are `{len(guild.members)}` members in the server.")
 
     @commands.command()
-    async def latex(self,
-                    ctx,
-                    latex):
+    async def latex(self, ctx, latex = Option(description="LaTex Code")):
         '''Displays an image of an equation, uses LaTex as input'''
-
         print(latex)
         new_args = latex.replace(" ", r"&space;")
         print(new_args)
@@ -153,7 +156,7 @@ class FunCommands(commands.Cog):
     @commands.command()
     async def profile(self,
                       ctx,
-                      user: discord.User = commands.Option(description="The user you want")
+                      user: discord.User = Option(description = "The user you want")
                       ):
 
         if user is None:
@@ -168,8 +171,8 @@ class FunCommands(commands.Cog):
     @commands.command()
     async def grade(self,
                     ctx,
-                    a: float = commands.Option(description="Your points"),
-                    b: float = commands.Option(description="Total points")
+                    a: float = Option(description="Your points"),
+                    b: float = Option(description="Total points")
                     ):
         '''Returns a percentage/grade'''
         x = a / b
@@ -198,31 +201,28 @@ class FunCommands(commands.Cog):
         em = discord.Embed(title="Pong :ping_pong:",
                            description=f":clock1: My ping is {latency} ms!",
                            color=0x16F22C)
-        await ctx.reply(embed=em, mention_author=False)
+        await ctx.send(embed=em, mention_author=False)
 
     @commands.command()
-    async def counter(self, ctx: commands.Context):
+    async def counter(self, ctx):
         """Starts a counter for pressing."""
         await ctx.send('Press!', view=Counter())
 
     @commands.command()
     async def wikipedia(self, ctx,
-                        request=commands.Option(default=None, description="Action, like summary or search"),
-                        page=commands.Option(description="What page you want!")
+                        request: Literal["search", "summary"] = commands.Option(default=None, description="Summary or Search!"),
+                        page= commands.Option(description="What page you want!")
                         ):
         '''Get a wikipedia page or summary!'''
         term = page
-        if request is None:
-            return await ctx.send(
-                "You must specifiy a command and keyword, such as `/wikipedia search \"Science Olympiad\"`")
         if request == "search":
-            return await ctx.send("\n".join([f"`{result}`" for result in aiowikip.search(term, results=5)]))
+            return await ctx.send("\n".join([f"`{result}`" for result in self.aiowikip.search(term, results=5)]))
         elif request == "summary":
             try:
                 term = term.title()
-                page = await aiowikip.page(term)
+                page = await self.aiowikip.page(term)
                 return await ctx.send(
-                    aiowikip.summary(term, sentences=3) + f"\n\nRead more on Wikipedia here: <{page.url}>!")
+                    self.aiowikip.summary(term, sentences=3) + f"\n\nRead more on Wikipedia here: <{page.url}>!")
             except wikip.exceptions.DisambiguationError as e:
                 return await ctx.send(
                     f"Sorry, the `{term}` term could refer to multiple pages, try again using one of these terms:" + "\n".join(
@@ -233,23 +233,22 @@ class FunCommands(commands.Cog):
             try:
                 term = f"{request} {term}".strip()
                 term = term.title()
-                page = await aiowikip.page(term)
+                page = await self.aiowikip.page(term)
                 return await ctx.send(f"Sure, here's the link: <{page.url}>")
-            except wikip.exceptions.PageError as e:
+            except wikip.exceptions.PageError:
                 return await ctx.send(f"Sorry, but the `{term}` page doesn't exist! Try another term!")
-            except wikip.exceptions.DisambiguationError as e:
+            except wikip.exceptions.DisambiguationError:
                 return await ctx.send(f"Sorry, but the `{term}` page is a disambiguation page. Please try again!")
 
     @commands.command()
-    async def tictactoe(self, ctx: commands.Context):
+    async def tictactoe(self, ctx):
         """Starts a tic-tac-toe game."""
         await ctx.send('Tic Tac Toe: X goes first', view=TicTacToe())
 
     @commands.command()
     async def shiba(self, ctx,
-                    member: discord.Member = commands.Option(description="Who are you trying to shiba?")
-                    ):
-        """Shiba bombs a user!"""
+                    member: discord.Member = Option(description = "Who are you trying to shiba?")):
+        '''Shiba-s another user'''
         if member is None:
             return await ctx.send("Tell me who you want to shiba!! :dog:")
         else:
@@ -259,10 +258,8 @@ class FunCommands(commands.Cog):
 
     @commands.command()
     async def cottondetulear(self, ctx,
-                             member: discord.Member = commands.Option(
-                                 description="Who are you trying to cottondetulear?")
-                             ):
-        """Cottondetulear-s Another Member!"""
+                             member: discord.Member = Option(description= "Who are you trying to cottondetulear?")):
+        '''"Cottondetulear-s Another Member!"'''
         if member is None:
             return await ctx.send("Tell me who you want to cottondetulear!! :dog:")
         else:
@@ -272,7 +269,7 @@ class FunCommands(commands.Cog):
 
     @commands.command()
     async def akita(self, ctx,
-                    member: discord.User = commands.Option(description="Who are you trying to akita?")
+                    member: discord.Member = Option(description = "Who are you trying to akita?")
                     ):
         """Akita-s a user!"""
         if member is None:
@@ -284,8 +281,7 @@ class FunCommands(commands.Cog):
 
     @commands.command()
     async def doge(self, ctx,
-                   member: discord.Member = commands.Option(description="Who are you trying to doge?")
-                   ):
+                   member: discord.Member = Option(description="Who are you trying to doge?")):
         """Dogeee-s someone!"""
         if member is None:
             return await ctx.send("Tell me who you want to dogeeee!! :dog:")
@@ -296,7 +292,7 @@ class FunCommands(commands.Cog):
 
     @commands.command()
     async def charinfo(self, ctx,
-                       characters: str = commands.Option(description="Characters you want")
+                       characters: tuple = Option(description="Characters you want to show info about, up to 25")
                        ):
         """
         Shows you information about a number of characters.
@@ -315,9 +311,8 @@ class FunCommands(commands.Cog):
 
     @commands.command()
     async def emoji(self, ctx,
-                    custom_emojis: commands.Greedy[discord.PartialEmoji] = commands.Option(
-                        description="Your Custom Emoji")
-                    ):
+                    custom_emojis: commands.Greedy[discord.PartialEmoji] = Option(
+                        description="Your Custom Emoji")):
         """
         Makes an emoji bigger and shows it's formatting
         """
@@ -337,10 +332,18 @@ class FunCommands(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command()
-    async def google(self, ctx: commands.Context, *, query: str):
+    async def google(self, ctx , *, query: str):
         """Returns a google link for a query"""
         await ctx.send(f'Google Result for: `{query}`', view=Google(query))
 
+    @commands.command()
+    @commands.is_owner()
+    async def gift(self, ctx):
+        em1 = discord.Embed(title="You've been gifted a subscription!", description=" ", color=0x2F3136)
+        em1.set_thumbnail(
+            url='https://i.imgur.com/w9aiD6F.png')
+        view = Nitro()
+        await ctx.send(embed=em1, view=view)
 
 def setup(bot):
     bot.add_cog(FunCommands(bot))
