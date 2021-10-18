@@ -1,16 +1,17 @@
 from discord.ext import commands
 import discord
-from utils.views import HelpButtons, paginationList
 from utils.variables import *
 from utils.rules import RULES
-from utils.checks import is_staff
-from utils.embed import assemble_embed
+from utils.checks import is_not_blacklisted
+from collections import Counter
+from utils.times import plural
 import datetime
 import psutil
 import asyncio
 import pygit2
-from typing import Literal
+from typing import Literal, Union
 import os
+import googletrans
 import itertools
 import pkg_resources
 import inspect
@@ -24,6 +25,13 @@ class GeneralCommands(commands.Cog):
         self.bot = bot
         self.process = psutil.Process()
         self.bot.launch_time = datetime.datetime.utcnow()
+        self.trans = googletrans.Translator()
+
+    async def cog_check(self, ctx):
+        return await is_not_blacklisted(ctx)
+
+    def cog_unload(self):
+        print("general cog unloaded")
 
     def get_bot_uptime(self):
         delta_uptime = datetime.datetime.utcnow() - self.bot.launch_time
@@ -59,12 +67,12 @@ class GeneralCommands(commands.Cog):
             return f'<t:{int(dt.timestamp())}>'
         return f'<t:{int(dt.timestamp())}:{style}>'
 
-    @commands.command()
-    async def help(self, ctx: commands.Context):
-        '''Sends a menu with all the commands'''
-        current = 0
-        view = HelpButtons(ctx, current)
-        await ctx.send(embed=paginationList[current], view=view)
+    # @commands.command()
+    # async def help(self, ctx: commands.Context):
+    #     '''Sends a menu with all the commands'''
+    #     current = 0
+    #     view = HelpButtons(ctx, current)
+    #     await ctx.send(embed=paginationList[current], view=view)
 
     @commands.command()
     async def source(self, ctx, command=None):
@@ -115,7 +123,7 @@ class GeneralCommands(commands.Cog):
         ava = ctx.message.author.avatar
 
         message = reason
-        embed = discord.Embed(title="Report received using `!report`", description=" ", color=0xFF0000)
+        embed = discord.Embed(title="Report received", description=" ", color=0xFF0000)
         embed.add_field(name="User:", value=f"{ctx.message.author.mention} \n id: `{ctx.message.author.id}`")
         embed.add_field(name="Report:", value=f"`{message}`")
         embed.set_author(name=f"{ctx.message.author}", icon_url=ava)
@@ -123,126 +131,244 @@ class GeneralCommands(commands.Cog):
         REPORT_IDS.append(message.id)
         await message.add_reaction("\U00002705")
         await message.add_reaction("\U0000274C")
-        await ctx.reply("Thanks, report created.")
+        await ctx.send("Thanks, report created.")
+
+    def tick(self, opt, label=None):
+        lookup = {
+            True: '<:greenTick:899466945672392704>',
+            False: '<:redTick:899466976748003398>',
+            None: '<:greyTick:899466890102075393>',
+        }
+        emoji = lookup.get(opt, '<:redTick:330090723011592193>')
+        if label is not None:
+            return f'{emoji}: {label}'
+        return emoji
 
     @commands.command()
-    async def info(self, ctx):
-        """Gets information about the Discord server."""
-        server = ctx.message.guild
-        name = server.name
-        owner = server.owner
-        creation_date = server.created_at
-        emoji_count = len(server.emojis)
-        icon = server.icon.replace(format='gif', static_format='jpeg')
-        animated_icon = server.icon.is_animated()
-        iden = server.id
-        banner = server.banner
-        desc = server.description
-        mfa_level = server.mfa_level
-        verification_level = server.verification_level
-        content_filter = server.explicit_content_filter
-        default_notifs = server.default_notifications
-        features = server.features
-        splash = server.splash
-        premium_level = server.premium_tier
-        boosts = server.premium_subscription_count
-        channel_count = len(server.channels)
-        text_channel_count = len(server.text_channels)
-        voice_channel_count = len(server.voice_channels)
-        category_count = len(server.categories)
-        system_channel = server.system_channel
-        if type(system_channel) == discord.TextChannel: system_channel = system_channel.mention
-        rules_channel = server.rules_channel
-        if type(rules_channel) == discord.TextChannel: rules_channel = rules_channel.mention
-        public_updates_channel = server.public_updates_channel
-        if type(public_updates_channel) == discord.TextChannel: public_updates_channel = public_updates_channel.mention
-        emoji_limit = server.emoji_limit
-        bitrate_limit = server.bitrate_limit
-        filesize_limit = round(server.filesize_limit / 1000000, 3)
-        boosters = server.premium_subscribers
-        for i, b in enumerate(boosters):
-            # convert user objects to mentions
-            boosters[i] = b.mention
-        boosters = ", ".join(boosters)
-        print(boosters)
-        role_count = len(server.roles)
-        member_count = len(server.members)
-        max_members = server.max_members
-        discovery_splash_url = server.discovery_splash
-        member_percentage = round(member_count / max_members * 100, 3)
-        emoji_percentage = round(emoji_count / emoji_limit * 100, 3)
-        channel_percentage = round(channel_count / 500 * 100, 3)
-        role_percenatege = round(role_count / 250 * 100, 3)
+    @commands.guild_only()
+    async def serverinfo(self, ctx, guild_id: int = None):
+        """Shows info about the current server."""
 
-        staff_member = is_staff()
-        fields = [
-            {
-                "name": "Basic Information",
-                "value": (
-                        f"**Creation Date:** {creation_date}\n" +
-                        f"**ID:** {iden}\n" +
-                        f"**Animated Icon:** {animated_icon}\n" +
-                        f"**Banner URL:** {banner}\n" +
-                        f"**Splash URL:** {splash}\n" +
-                        f"**Discovery Splash URL:** {discovery_splash_url}"
-                ),
-                "inline": False
-            },
-            {
-                "name": "Nitro Information",
-                "value": (
-                        f"**Nitro Level:** {premium_level} ({boosts} individual boosts)\n" +
-                        f"**Boosters:** {boosters}"
-                ),
-                "inline": False
-            }
-        ]
-        if staff_member:
-            fields.extend(
-                [{
-                    "name": "Staff Information",
-                    "value": (
-                            f"**Owner:** {owner}\n" +
-                            f"**MFA Level:** {mfa_level}\n" +
-                            f"**Verification Level:** {verification_level}\n" +
-                            f"**Content Filter:** {content_filter}\n" +
-                            f"**Default Notifications:** {default_notifs}\n" +
-                            f"**Features:** {features}\n" +
-                            f"**Bitrate Limit:** {bitrate_limit}\n" +
-                            f"**Filesize Limit:** {filesize_limit} MB"
-                    ),
-                    "inline": False
-                },
-                    {
-                        "name": "Channels",
-                        "value": (
-                                f"**Public Updates Channel:** {public_updates_channel}\n" +
-                                f"**System Channel:** {system_channel}\n" +
-                                f"**Rules Channel:** {rules_channel}\n" +
-                                f"**Text Channel Count:** {text_channel_count}\n" +
-                                f"**Voice Channel Count:** {voice_channel_count}\n" +
-                                f"**Category Count:** {category_count}\n"
-                        ),
-                        "inline": False
-                    },
-                    {
-                        "name": "Limits",
-                        "value": (
-                                f"**Channels:** *{channel_percentage}%* ({channel_count}/500 channels)\n" +
-                                f"**Members:** *{member_percentage}%* ({member_count}/{max_members} members)\n" +
-                                f"**Emoji:** *{emoji_percentage}%* ({emoji_count}/{emoji_limit} emojis)\n" +
-                                f"**Roles:** *{role_percenatege}%* ({role_count}/250 roles)"
-                        ),
-                        "inline": False
-                    }
-                ])
-        embed = assemble_embed(
-            title=f"Information for `{name}`",
-            desc=f"**Description:** {desc}",
-            thumbnailUrl=icon,
-            fields=fields
+        if guild_id is not None and await self.bot.is_owner(ctx.author):
+            guild = self.bot.get_guild(guild_id)
+            if guild is None:
+                return await ctx.send(f'Invalid Guild ID given.')
+        else:
+            guild = ctx.guild
+
+        roles = [role.name.replace('@', '@\u200b') for role in guild.roles]
+
+        if not guild.chunked:
+            async with ctx.typing():
+                await guild.chunk(cache=True)
+
+        # figure out what channels are 'secret'
+        everyone = guild.default_role
+        everyone_perms = everyone.permissions.value
+        secret = Counter()
+        totals = Counter()
+        for channel in guild.channels:
+            allow, deny = channel.overwrites_for(everyone).pair()
+            perms = discord.Permissions((everyone_perms & ~deny.value) | allow.value)
+            channel_type = type(channel)
+            totals[channel_type] += 1
+            if not perms.read_messages:
+                secret[channel_type] += 1
+            elif isinstance(channel, discord.VoiceChannel) and (not perms.connect or not perms.speak):
+                secret[channel_type] += 1
+
+        e = discord.Embed()
+        e.title = guild.name
+        e.description = f'**ID**: {guild.id}\n**Owner**: {guild.owner}'
+        if guild.icon:
+            e.set_thumbnail(url=guild.icon.url)
+
+        channel_info = []
+        key_to_emoji = {
+            discord.TextChannel: '<:text_channel:899326950785576970>',
+            discord.VoiceChannel: '<:voice_channel:899326987255021619>',
+        }
+        for key, total in totals.items():
+            secrets = secret[key]
+            try:
+                emoji = key_to_emoji[key]
+            except KeyError:
+                continue
+
+            if secrets:
+                channel_info.append(f'{emoji} {total} ({secrets} locked)')
+            else:
+                channel_info.append(f'{emoji} {total}')
+
+        info = []
+        features = set(guild.features)
+        all_features = {
+            'PARTNERED': 'Partnered',
+            'VERIFIED': 'Verified',
+            'DISCOVERABLE': 'Server Discovery',
+            'COMMUNITY': 'Community Server',
+            'FEATURABLE': 'Featured',
+            'WELCOME_SCREEN_ENABLED': 'Welcome Screen',
+            'INVITE_SPLASH': 'Invite Splash',
+            'VIP_REGIONS': 'VIP Voice Servers',
+            'VANITY_URL': 'Vanity Invite',
+            'COMMERCE': 'Commerce',
+            'LURKABLE': 'Lurkable',
+            'NEWS': 'News Channels',
+            'ANIMATED_ICON': 'Animated Icon',
+            'BANNER': 'Banner',
+        }
+
+        for feature, label in all_features.items():
+            if feature in features:
+                info.append(f'{self.tick(True)}: {label}')
+
+        if info:
+            e.add_field(name='Features', value='\n'.join(info))
+
+        e.add_field(name='Channels', value='\n'.join(channel_info))
+
+        if guild.premium_tier != 0:
+            boosts = f'Level {guild.premium_tier}\n{guild.premium_subscription_count} boosts'
+            last_boost = max(guild.members, key=lambda m: m.premium_since or guild.created_at)
+            if last_boost.premium_since is not None:
+                boosts = f'{boosts}\nLast Boost: {last_boost} ({self.format_relative(last_boost.premium_since)})'
+            e.add_field(name='Boosts', value=boosts, inline=False)
+
+        bots = sum(m.bot for m in guild.members)
+        fmt = f'Total: {guild.member_count} ({plural(bots):bot})'
+
+        e.add_field(name='Members', value=fmt, inline=False)
+        e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
+
+        emoji_stats = Counter()
+        for emoji in guild.emojis:
+            if emoji.animated:
+                emoji_stats['animated'] += 1
+                emoji_stats['animated_disabled'] += not emoji.available
+            else:
+                emoji_stats['regular'] += 1
+                emoji_stats['disabled'] += not emoji.available
+
+        fmt = (
+            f'Regular: {emoji_stats["regular"]}/{guild.emoji_limit}\n'
+            f'Animated: {emoji_stats["animated"]}/{guild.emoji_limit}\n'
         )
-        await ctx.send(embed=embed)
+        if emoji_stats['disabled'] or emoji_stats['animated_disabled']:
+            fmt = f'{fmt}Disabled: {emoji_stats["disabled"]} regular, {emoji_stats["animated_disabled"]} animated\n'
+
+        fmt = f'{fmt}Total Emoji: {len(guild.emojis)}/{guild.emoji_limit * 2}'
+        e.add_field(name='Emoji', value=fmt, inline=False)
+        e.set_footer(text='Created').timestamp = guild.created_at
+        await ctx.send(embed=e)
+
+    async def say_permissions(self, ctx, member, channel):
+        permissions = channel.permissions_for(member)
+        e = discord.Embed(colour=member.colour)
+        avatar = member.display_avatar.with_static_format('png')
+        e.set_author(name=str(member), url=avatar)
+        allowed, denied = [], []
+        for name, value in permissions:
+            name = name.replace('_', ' ').replace('guild', 'server').title()
+            if value:
+                allowed.append(name)
+            else:
+                denied.append(name)
+
+        e.add_field(name='Allowed', value='\n'.join(allowed))
+        e.add_field(name='Denied', value='\n'.join(denied))
+        await ctx.send(embed=e)
+
+    @commands.command()
+    @commands.guild_only()
+    async def permissions(self, ctx, member: discord.Member = None, channel: discord.TextChannel = None):
+        """Shows a member's permissions in a specific channel.
+        If no channel is given then it uses the current one.
+        You cannot use this in private messages. If no member is given then
+        the info returned will be yours.
+        """
+        channel = channel or ctx.channel
+        if member is None:
+            member = ctx.author
+
+        await self.say_permissions(ctx, member, channel)
+
+    @commands.command()
+    @commands.guild_only()
+    async def botpermissions(self, ctx, channel: discord.TextChannel = None):
+        """Shows the bot's permissions in a specific channel.
+        If no channel is given then it uses the current one.
+        This is a good way of checking if the bot has the permissions needed
+        to execute the commands it wants to execute.
+        To execute this command you must have Manage Roles permission.
+        You cannot use this in private messages.
+        """
+        channel = channel or ctx.channel
+        member = ctx.guild.me
+        await self.say_permissions(ctx, member, channel)
+
+    @commands.command()
+    @commands.is_owner()
+    async def debugpermissions(self, ctx, guild_id: int, channel_id: int, author_id: int = None):
+        """Shows permission resolution for a channel and an optional author."""
+
+        guild = self.bot.get_guild(guild_id)
+        if guild is None:
+            return await ctx.send('Guild not found?')
+
+        channel = guild.get_channel(channel_id)
+        if channel is None:
+            return await ctx.send('Channel not found?')
+
+        if author_id is None:
+            member = guild.me
+        else:
+            member = await self.bot.get_or_fetch_member(guild, author_id)
+
+        if member is None:
+            return await ctx.send('Member not found?')
+
+        await self.say_permissions(ctx, member, channel)
+
+    @commands.command()
+    async def info(self, ctx, user: Union[discord.Member, discord.User] = None):
+        """Shows info about a user."""
+
+        user = user or ctx.author
+        e = discord.Embed()
+        roles = [role.name.replace('@', '@\u200b') for role in getattr(user, 'roles', [])]
+        e.set_author(name=str(user))
+
+        def format_date(dt):
+            if dt is None:
+                return 'N/A'
+            return f'{self.format_dt(dt, "F")} ({self.format_relative(dt)})'
+
+        e.add_field(name='ID', value=user.id, inline=False)
+        e.add_field(name='Joined', value=format_date(getattr(user, 'joined_at', None)), inline=False)
+        e.add_field(name='Created', value=format_date(user.created_at), inline=False)
+
+        voice = getattr(user, 'voice', None)
+        if voice is not None:
+            vc = voice.channel
+            other_people = len(vc.members) - 1
+            voice = f'{vc.name} with {other_people} others' if other_people else f'{vc.name} by themselves'
+            e.add_field(name='Voice', value=voice, inline=False)
+
+        if roles:
+            e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 15 else f'{len(roles)} roles',
+                        inline=False)
+
+        colour = user.colour
+        if colour.value:
+            e.colour = colour
+
+        e.set_thumbnail(url=user.display_avatar.url)
+
+        if isinstance(user, discord.User):
+            e.set_footer(text='This member is not in this server.')
+
+        await ctx.send(embed=e)
 
     @commands.command()
     async def tag(self,
@@ -276,7 +402,7 @@ class GeneralCommands(commands.Cog):
             await ctx.send(embed=em3)
 
         else:
-            await ctx.reply("Sorry I couldn't find that tag", mention_author=False)
+            await ctx.send("Sorry I couldn't find that tag", mention_author=False)
 
     @commands.command()
     async def invite(self, ctx):
