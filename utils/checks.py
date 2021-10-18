@@ -1,23 +1,48 @@
 import discord
-from variables import *
-import datetime
+from utils.variables import *
 from discord.ext import commands
+from utils.commanderr import CommandBlacklistedUserInvoke
+import json
+#
+# def is_staff():
+#     def predicate(ctx):
+#         guild = ctx.bot.get_guild(SERVER_ID)
+#         member = guild.get_member(ctx.message.author.id)
+#         staffRole = discord.utils.get(guild.roles, name=ROLE_SERVERLEADER)
+#         coachRole = discord.utils.get(guild.roles, name=ROLE_COACH)
+#         if any(r in [staffRole, coachRole] for r in member.roles):
+#             return True
+#         raise discord.ext.commands.MissingAnyRole([staffRole, coachRole])
+#     return commands.check(predicate)
 
-STOPNUKE = datetime.datetime.utcnow()
+
+async def is_staff(ctx):
+    """Checks to see if the user is a launch helper."""
+    guild = ctx.bot.get_guild(SERVER_ID)
+    member = guild.get_member(ctx.message.author.id)
+    staffRole = discord.utils.get(guild.roles, name=ROLE_SERVERLEADER)
+    vipRole = discord.utils.get(guild.roles, name=ROLE_COACH)
+    print(any(r in [staffRole, vipRole] for r in member.roles))
+    if any(r in [staffRole, vipRole] for r in member.roles):
+        return True
+    raise commands.MissingAnyRole([staffRole, vipRole])
 
 
-def is_staff():
-    """Checks to see if the author of ctx message is a staff member."""
-    # TODO make all variables id based
-    def predicate(ctx):
-        guild = ctx.bot.get_guild(SERVER_ID)
-        member = guild.get_member(ctx.message.author.id)
-        staffRole = discord.utils.get(guild.roles, name=ROLE_SERVERLEADER)
-        coachRole = discord.utils.get(guild.roles, name=ROLE_COACH)
-        if any(r in [staffRole, coachRole] for r in member.roles):
-            return True
-        raise discord.ext.commands.MissingAnyRole([staffRole, coachRole])
-    return commands.check(predicate)
+async def is_not_blacklisted(ctx):
+    member = ctx.message.author.id
+    f = open('blacklist.json')
+    data = json.load(f)
+
+    if member in data['blacklisted_ids']:
+        raise CommandBlacklistedUserInvoke(member=member)
+    else:
+        return True
+
+
+
+
+
+
 
 
 # async def is_staff(bot):
