@@ -39,10 +39,29 @@ async def is_not_blacklisted(ctx):
         return True
 
 
+async def is_not_canceled(ctx):
+    #TODO
+    # work in progress
+    member = ctx.message.author
+    f = open('blacklist.json')
+    data = json.load(f)
+
+    if member in data['canceled_ids']:
+        raise CommandBlacklistedUserInvoke(member=member)
+    else:
+        return True
+    
+   
 
 
-
-
+async def is_dev(ctx):
+    guild = ctx.bot.get_guild(SERVER_ID)
+    member = guild.get_member(ctx.message.author.id)
+    devRole = discord.utils.get(guild.roles, name=ROLE_DEVELOPER)
+    print(any(r in [devRole] for r in member.roles))
+    if any(r in [devRole] for r in member.roles):
+        return True
+    raise commands.MissingAnyRole([devRole])
 
 
 # async def is_staff(bot):
