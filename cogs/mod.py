@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Option
 from utils.variables import *
-from utils.times import times
 from utils.views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Pronouns, Ticket, Nuke
 from utils.checks import is_staff
 from utils.globalfunctions import assemble_embed
@@ -65,6 +64,20 @@ class Moderation(commands.Cog):
                                      ] = Option(
                       description='the amount of time banned')
                   ):
+
+        times = {
+            "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
+            "30 minutes": datetime.datetime.now() + datetime.timedelta(minutes=30),
+            "1 hour": datetime.datetime.now() + datetime.timedelta(hours=1),
+            "2 hours": datetime.datetime.now() + datetime.timedelta(hours=2),
+            "4 hours": datetime.datetime.now() + datetime.timedelta(hours=4),
+            "8 hours": datetime.datetime.now() + datetime.timedelta(hours=8),
+            "1 day": datetime.datetime.now() + datetime.timedelta(days=1),
+            "4 days": datetime.datetime.now() + datetime.timedelta(days=4),
+            "7 days": datetime.datetime.now() + datetime.timedelta(days=7),
+            "1 month": datetime.datetime.now() + datetime.timedelta(days=30),
+            "1 year": datetime.datetime.now() + datetime.timedelta(days=365),
+        }
 
         """Bans a user."""
         if ban_length == "Indefinitely":
@@ -214,6 +227,20 @@ class Moderation(commands.Cog):
                         "Indefinitely"
                     ] = Option(description="How long to mute the user for.")
                    ):
+
+        times = {
+            "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
+            "30 minutes": datetime.datetime.now() + datetime.timedelta(minutes=30),
+            "1 hour": datetime.datetime.now() + datetime.timedelta(hours=1),
+            "2 hours": datetime.datetime.now() + datetime.timedelta(hours=2),
+            "4 hours": datetime.datetime.now() + datetime.timedelta(hours=4),
+            "8 hours": datetime.datetime.now() + datetime.timedelta(hours=8),
+            "1 day": datetime.datetime.now() + datetime.timedelta(days=1),
+            "4 days": datetime.datetime.now() + datetime.timedelta(days=4),
+            "7 days": datetime.datetime.now() + datetime.timedelta(days=7),
+            "1 month": datetime.datetime.now() + datetime.timedelta(days=30),
+            "1 year": datetime.datetime.now() + datetime.timedelta(days=365),
+        }
 
         if mute_length == "Indefinitely":
             time_statement = "The user will never be automatically unmuted."
