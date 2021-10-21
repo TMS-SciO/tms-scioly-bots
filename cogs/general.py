@@ -4,7 +4,7 @@ from utils.variables import *
 from utils.rules import RULES
 from utils.checks import is_not_blacklisted
 from collections import Counter
-from utils.times import plural
+from utils import times
 import datetime
 import psutil
 import asyncio
@@ -17,9 +17,14 @@ import pkg_resources
 import inspect
 
 
-class GeneralCommands(commands.Cog):
-    """Fun related commands."""
+class General(commands.Cog):
+    """General commands."""
+
     print('GeneralCommands Cog Loaded')
+
+    @property
+    def display_emoji(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name='\U0001f62f')
 
     def __init__(self, bot):
         self.bot = bot
@@ -46,9 +51,6 @@ class GeneralCommands(commands.Cog):
         commits = list(itertools.islice(repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL), count))
         return '\n'.join(self.format_commit(c) for c in commits)
 
-    def format_relative(self, dt):
-        return self.format_dt(dt, 'R')
-
     def format_commit(self, commit):
         short, _, _ = commit.message.partition('\n')
         short_sha2 = commit.hex[0:6]
@@ -56,23 +58,31 @@ class GeneralCommands(commands.Cog):
         commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(commit_tz)
 
         # [`hash`](url) message (offset)
-        offset = self.format_relative(commit_time.astimezone(datetime.timezone.utc))
+        offset = times.format_relative(commit_time.astimezone(datetime.timezone.utc))
         return f'[`{short_sha2}`](https://github.com/pandabear189/tms-scioly-bots/commit/{commit.hex}) {short} ({offset})'
 
-    def format_dt(self, dt, style=None):
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=datetime.timezone.utc)
+    async def _basic_cleanup_strategy(self, ctx, search):
+        count = 0
+        async for msg in ctx.history(limit=search, before=ctx.message):
+            if msg.author == ctx.me and not (msg.mentions or msg.role_mentions):
+                await msg.delete()
+                count += 1
+        return {'Bot': count}
 
-        if style is None:
-            return f'<t:{int(dt.timestamp())}>'
-        return f'<t:{int(dt.timestamp())}:{style}>'
+    async def _complex_cleanup_strategy(self, ctx, search):
 
-    # @commands.command()
-    # async def help(self, ctx: commands.Context):
-    #     '''Sends a menu with all the commands'''
-    #     current = 0
-    #     view = HelpButtons(ctx, current)
-    #     await ctx.send(embed=paginationList[current], view=view)
+        def check(m):
+            return m.author == ctx.me or m.content.startswith("!" or "?")
+
+        deleted = await ctx.channel.purge(limit=search, check=check, before=ctx.message)
+        return Counter(m.author.display_name for m in deleted)
+
+    async def _regular_user_cleanup_strategy(self, ctx, search):
+        def check(m):
+            return (m.author == ctx.me or m.content.startswith("!" or "?")) and not (m.mentions or m.role_mentions)
+
+        deleted = await ctx.channel.purge(limit=search, check=check, before=ctx.message)
+        return Counter(m.author.display_name for m in deleted)
 
     @commands.command()
     async def source(self, ctx, command=None):
@@ -232,11 +242,11 @@ class GeneralCommands(commands.Cog):
             boosts = f'Level {guild.premium_tier}\n{guild.premium_subscription_count} boosts'
             last_boost = max(guild.members, key=lambda m: m.premium_since or guild.created_at)
             if last_boost.premium_since is not None:
-                boosts = f'{boosts}\nLast Boost: {last_boost} ({self.format_relative(last_boost.premium_since)})'
+                boosts = f'{boosts}\nLast Boost: {last_boost} ({times.format_relative(last_boost.premium_since)})'
             e.add_field(name='Boosts', value=boosts, inline=False)
 
         bots = sum(m.bot for m in guild.members)
-        fmt = f'Total: {guild.member_count} ({plural(bots):bot})'
+        fmt = f'Total: {guild.member_count} ({bots: bot(s)})'
 
         e.add_field(name='Members', value=fmt, inline=False)
         e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
@@ -342,7 +352,7 @@ class GeneralCommands(commands.Cog):
         def format_date(dt):
             if dt is None:
                 return 'N/A'
-            return f'{self.format_dt(dt, "F")} ({self.format_relative(dt)})'
+            return f'{times.format_dt(dt, "F")} ({times.format_relative(dt)})'
 
         e.add_field(name='ID', value=user.id, inline=False)
         e.add_field(name='Joined', value=format_date(getattr(user, 'joined_at', None)), inline=False)
@@ -542,6 +552,86 @@ class GeneralCommands(commands.Cog):
         embed2 = discord.Embed(title = " ", description= f"Posted! [Your Suggestion!]({suggest_url})")
         await ctx.send(embed= embed2)
 
+    @commands.command()
+    async def cleanup(self, ctx, search=100):
+        """Cleans up the bot's messages from the channel.
+        If a search number is specified, it searches that many messages to delete.
+        If the bot has Manage Messages permissions then it will try to delete
+        messages that look like they invoked the bot as well.
+        After the cleanup is completed, the bot will send you a message with
+        which people got their messages deleted and their count. This is useful
+        to see which users are spammers.
+        Members with Manage Messages can search up to 1000 messages.
+        Members without can search up to 25 messages.
+        """
+
+        strategy = self._basic_cleanup_strategy
+        is_mod = ctx.channel.permissions_for(ctx.author).manage_messages
+        if ctx.channel.permissions_for(ctx.me).manage_messages:
+            if is_mod:
+                strategy = self._complex_cleanup_strategy
+            else:
+                strategy = self._regular_user_cleanup_strategy
+
+        if is_mod:
+            search = min(max(2, search), 1000)
+        else:
+            search = min(max(2, search), 10)
+
+        spammers = await strategy(ctx, search)
+        deleted = sum(spammers.values())
+        messages = [f'{deleted} message{" was" if deleted == 1 else "s were"} removed.']
+        if deleted:
+            messages.append('')
+            spammers = sorted(spammers.items(), key=lambda t: t[1], reverse=True)
+            messages.extend(f'- **{author}**: {count}' for author, count in spammers)
+
+        await ctx.send('\n'.join(messages))
+
+    @commands.command()
+    async def newusers(self, ctx, *, count=5):
+        """Tells you the newest members of the server.
+        This is useful to check if any suspicious members have
+        joined.
+        The count parameter can only be up to 25.
+        """
+        count = max(min(count, 40), 5)
+
+        if not ctx.guild.chunked:
+            members = await ctx.guild.chunk(cache=True)
+
+        members = sorted(ctx.guild.members, key=lambda m: m.joined_at, reverse=True)[:count]
+
+        e = discord.Embed(title='New Members', colour=discord.Colour.green())
+
+        for member in members:
+            body = f'Joined {times.format_relative(member.joined_at)}\nCreated {times.format_relative(member.created_at)}'
+            e.add_field(name=f'{member} (ID: {member.id})', value=body, inline=False)
+
+        await ctx.send(embed=e)
+
+    # @commands.command()
+    # TODO FIX THIS
+    # async def selfmute(self, ctx, time):
+    #     """
+    #     Self mutes the user that invokes the command.
+    #
+    #     """
+    #     view = Confirm(ctx.author)
+    #     user = ctx.message.author
+    #
+    #     if time is None:
+    #         await ctx.send(
+    #             'You need to specify a length that this used will be muted. `exe:` `1 day`, `2 months, 1 day`')
+    #     else:
+    #         await ctx.send(f"Are you sure you want to selfmute for `{time}`", view=view)
+    #         await view.wait()
+    #         if view.value is False:
+    #             await ctx.send('Aborting...')
+    #         if view.value is True:
+    #             await _mute(ctx, user, time, self=True)
+    #         return view.value
+
 
 def setup(bot):
-    bot.add_cog(GeneralCommands(bot))
+    bot.add_cog(General(bot))
