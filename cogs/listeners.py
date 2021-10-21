@@ -4,15 +4,15 @@ from utils.variables import *
 from utils.censor import CENSORED_WORDS
 from utils.globalfunctions import auto_report, send_to_dm_log, censor
 from utils.embed import assemble_embed
-from utils.commanderr import CommandNotAllowedInChannel
+from utils.commanderr import CommandNotAllowedInChannel, CommandBlacklistedUserInvoke, CommandCanceledUserInvoke
 import re
 import traceback
 import dateparser
 import asyncio
 
 
-class discordEvents(commands.Cog):
-    """Discord Events."""
+class Listeners(commands.Cog):
+    """Listening to *everything*"""
     print('Events Cog Loaded')
 
     def __init__(self, bot):
@@ -190,11 +190,15 @@ class discordEvents(commands.Cog):
         if isinstance(error, discord.ext.commands.CommandNotFound):
             return await ctx.send("Sorry, I couldn't find that command.")
         if isinstance(error, discord.ext.commands.CheckFailure):
-            return await ctx.send("Sorry, but I don't think you can run that command.")
+            return await ctx.send("Sorry, but I don't think you can run that command.", ephemeral=True)
+        if isinstance(error, CommandBlacklistedUserInvoke):
+            return await ctx.send("You have been blacklisted from using commands", ephemeral=True)
+        if isinstance(error, CommandCanceledUserInvoke):
+            return await ctx.send("ur literally canceled stop trying to use commands :rolling_eyes:")
         if isinstance(error, discord.ext.commands.DisabledCommand):
-            return await ctx.send("Sorry, but this command is disabled.")
+            return await ctx.send("Sorry, but this command is disabled.", ephemeral=True)
         if isinstance(error, discord.ext.commands.CommandInvokeError):
-            return await ctx.send(f'Sorry, but an error incurred when the command was invoked. \n error: {error}')
+            return await ctx.send(f'Sorry, but an error incurred when the command was invoked. \n error: {error}', ephemeral=True)
         if isinstance(error, discord.ext.commands.CommandOnCooldown):
             return await ctx.send("Slow down buster! This command's on cooldown.")
         if isinstance(error, discord.ext.commands.MaxConcurrencyReached):
@@ -237,6 +241,8 @@ class discordEvents(commands.Cog):
         # Log DMs
         if type(message.channel) == discord.DMChannel:
             await send_to_dm_log(self.bot, message)
+        if message.author == self.bot.user:
+            return
         else:
             # Print to output
             if not (message.author.id in TMS_BOT_IDS and message.channel.name in [CHANNEL_EDITEDM, CHANNEL_DELETEDM,
@@ -313,15 +319,18 @@ class discordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        print('Message from {0.author} edited to: {0.content}, from: {1.content}'.format(after, before))
+        if before.author == self.bot.user:
+            return
+        else:
+            print('Message from {0.author} edited to: {0.content}, from: {1.content}'.format(after, before))
         for word in CENSORED_WORDS:
             if len(re.findall(fr"\b({word})\b", after.content, re.I)):
                 print(f"Censoring message by {after.author} because of the word: `{word}`")
                 await after.delete()
                 await censor(after)
-        if after.content.startswith(BOT_PREFIX):
+        if after.content.startswith(BOT_PREFIX or BOT_PREFIX1):
             await self.bot.process_commands(after)
 
 
 def setup(bot):
-    bot.add_cog(discordEvents(bot))
+    bot.add_cog(Listeners(bot))
