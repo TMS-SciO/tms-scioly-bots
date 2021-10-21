@@ -16,13 +16,18 @@ from typing import Literal
 import unicodedata
 
 
-class FunCommands(commands.Cog):
+class Fun(commands.Cog):
     """Fun related commands."""
+
     print('FunCommands Cog Loaded')
 
     def __init__(self, bot):
         self.bot = bot
         self.aiowikip = aioify(obj=wikip)
+
+    @property
+    def display_emoji(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name='\U0001f973')
 
     async def cog_check(self, ctx):
         return await is_not_blacklisted(ctx)
@@ -345,5 +350,15 @@ class FunCommands(commands.Cog):
         view = Nitro()
         await ctx.send(embed=em1, view=view)
 
+    @commands.command()
+    async def do(self, ctx, times: int, *, command):
+        """Repeats a command a specified number of times."""
+        msg = ctx.message
+        msg.content = command
+        new_ctx = await self.bot.get_context(msg, cls=type(ctx))
+        for i in range(times):
+            await new_ctx.reinvoke()
+
+
 def setup(bot):
-    bot.add_cog(FunCommands(bot))
+    bot.add_cog(Fun(bot))
