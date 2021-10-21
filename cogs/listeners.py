@@ -8,7 +8,6 @@ from utils.commanderr import CommandNotAllowedInChannel, CommandBlacklistedUserI
 import re
 import traceback
 import dateparser
-import asyncio
 
 
 class Listeners(commands.Cog):
@@ -250,26 +249,8 @@ class Listeners(commands.Cog):
                 # avoid sending logs for messages in log channels
                 print(f'Message from {message.author} in #{message.channel}: {message.content}')
 
-        # Prevent command usage in channels outside of #self.bot-spam
-        author = message.author
-        if type(message.channel) != discord.DMChannel and message.content.startswith(BOT_PREFIX) and author.roles[
-            -1] == discord.utils.get(author.guild.roles, name=ROLE_MR):
-            if message.channel.name != CHANNEL_BOTSPAM:
-                allowedCommands = ["about", "dogbomb", "exchange", "gallery", "invite", "me", "magic8ball", "latex",
-                                   "obb", "profile", "r", "report", "rule", "shibabomb", "tag", "wiki", "wikipedia",
-                                   "wp"]
-                allowed = False
-                for c in allowedCommands:
-                    if message.content.find(BOT_PREFIX + c) != -1: allowed = True
-                if not allowed:
-                    botspam_channel = discord.utils.get(message.guild.text_channels, id=CHANNEL_BOTSPAM)
-                    clarify_message = await message.channel.send(
-                        f"{author.mention}, please use bot commands only in {botspam_channel.mention}. If you have more questions, you can ping a moderator.")
-                    await asyncio.sleep(10)
-                    await clarify_message.delete()
-                    return await message.delete()
-
-        if message.author.id in TMS_BOT_IDS: return
+        if message.author.id in TMS_BOT_IDS: 
+            return
         content = message.content
         for word in CENSORED_WORDS:
             if len(re.findall(fr"\b({word})\b", content, re.I)):
