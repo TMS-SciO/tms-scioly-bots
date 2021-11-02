@@ -1,20 +1,22 @@
 from discord.ext import commands
+from discord.ext.commands import Option
 import discord
 from utils.variables import *
 from utils.rules import RULES
 from utils.checks import is_not_blacklisted
 from collections import Counter
 from utils import times
-import datetime
+from math import sqrt
+from fractions import Fraction
 import psutil
-import asyncio
 import pygit2
 from typing import Literal, Union
-import os
-import googletrans
-import itertools
 import pkg_resources
+import os
+import datetime
+import asyncio
 import inspect
+import itertools
 
 
 class General(commands.Cog):
@@ -30,7 +32,6 @@ class General(commands.Cog):
         self.bot = bot
         self.process = psutil.Process()
         self.bot.launch_time = datetime.datetime.utcnow()
-        self.trans = googletrans.Translator()
 
     async def cog_check(self, ctx):
         return await is_not_blacklisted(ctx)
@@ -162,8 +163,7 @@ class General(commands.Cog):
         return emoji
 
     @commands.command()
-    @commands.guild_only()
-    async def serverinfo(self, ctx, guild_id: int = None):
+    async def serverinfo(self, ctx, *, guild_id: int = None):
         """Shows info about the current server."""
 
         if guild_id is not None and await self.bot.is_owner(ctx.author):
@@ -253,7 +253,7 @@ class General(commands.Cog):
             e.add_field(name='Boosts', value=boosts, inline=False)
 
         bots = sum(m.bot for m in guild.members)
-        fmt = f'Total: {guild.member_count} ({bots: bot(s)})'
+        fmt = f'Total: {guild.member_count} ({bots} bots)'
 
         e.add_field(name='Members', value=fmt, inline=False)
         e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
@@ -390,10 +390,10 @@ class General(commands.Cog):
     @commands.command()
     async def tag(self,
                   ctx,
-                  name=commands.Option(description="Name of the tag")
+                  tag =commands.Option(description="Name of the tag")
                   ):
         '''Retrieves a tag'''
-        tag = name.lower()
+        tag = tag.lower()
         if tag == 'rules':
             em1 = discord.Embed(title="Rules", description="Here are the rules for the 2021-22 season", color=0xff008c)
             em1.add_field(name='Division B Rules',
@@ -411,9 +411,7 @@ class General(commands.Cog):
             await ctx.send(embed=em2)
 
         elif tag == 'bpl':
-            em3 = discord.Embed(title="Bio Process Lab Rules",
-                                description="This event is a lab-oriented competition involving the  fundamental  science  processes of a middle school life science/biology lab program. \n This event will consist of a series of lab stations. Each station will require the use of process skills to answer questions and/or perform a required task such as formulating and/or evaluating hypotheses and procedures, using scientific instruments to collect data, making observations, presenting and/or interpreting data, or making inferences and conclusions",
-                                color=0xff008c)
+            em3 = discord.Embed(title="Bio Process Lab Rules", color=0xff008c)
             em3.add_field(name='Full Bio Process Lab',
                           value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf#page=9/ \"Bio Process Lab\")")
             await ctx.send(embed=em3)
@@ -550,7 +548,8 @@ class General(commands.Cog):
         reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
         embed = discord.Embed(title = "New Suggestion" , description = f"{suggestion}", color = 0x967DCB)
         embed.timestamp = discord.utils.utcnow()
-        embed.set_author(name = ctx.author.nick, icon_url=ctx.author.avatar)
+        name = ctx.author.nick or ctx.author
+        embed.set_author(name = name, icon_url=ctx.author.avatar)
         suggest_message = await suggest_channel.send(embed=embed)
         await suggest_message.add_reaction("\U0001f44d")
         await suggest_message.add_reaction("\U0001f44e")
@@ -639,5 +638,133 @@ class General(commands.Cog):
     #         return view.value
 
 
+class Math(commands.Cog):
+    """Math commands."""
+
+    print('Math Cog Loaded')
+
+    @property
+    def display_emoji(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name='\U0001f522')
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    async def cog_check(self, ctx):
+        return await is_not_blacklisted(ctx)
+
+    def perfect_square(self, limit):
+        accumulation_list = [1]
+        index, increment = 0, 3
+        while accumulation_list[-1] + increment <= limit:
+            accumulation_list.append(accumulation_list[index] + increment)
+            index += 1
+            increment = 2 * index + 3
+        return accumulation_list
+
+    @commands.command()
+    async def quadratic(self, ctx,
+                        a: int = Option(description=" `a` value in standard form: ax^2 + bx + c"),
+                        b: int = Option(description= ' `b` value in standard form: ax^2 + bx + c'),
+                        c: int = Option(description=' `c` value in standard form: ax^2 + bx + c')
+                        ):
+        '''
+        Solves a Quadratic Function
+        `a:` represents the lead coefficient, if there is no coefficient; input 1
+        `b:` the middle term coefficient
+        `c:` the last term
+        `ax^2 + bx + c`
+        '''
+        if a <= 0:
+            return await ctx.send('Lead coefficient of `0 or less` is **not** a quadratic!!')
+
+        w = 4 * a * c
+        square_root_value = b**2 - w
+        bottom = 2 * a
+
+        if square_root_value < 0:
+            if square_root_value < 0:
+                square_root_value = square_root_value * -1
+                if sqrt(square_root_value).is_integer():
+                    print(int(sqrt(square_root_value)))
+                    print("is perfect square (imaginary/complex)")
+                    p = int(-b + sqrt(square_root_value))
+                    q = int(-b - sqrt(square_root_value))
+
+                    if (p / bottom).is_integer():
+                        if (q / bottom).is_integer():
+                            if q == p:
+                                return await ctx.send(
+                                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x=" + f"{int(p / bottom)}i" + r"}")
+                            else:
+                                return await ctx.send(
+                                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}i" + r"\;\;" + f"x_2={int(q / bottom)}i" + r"}")
+                        else:
+                            return await ctx.send(
+                                r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{q}" + r"}{" + f"{bottom}" + r"}}")
+                    if (q / bottom).is_integer():
+                        k, l = (p / bottom).as_integer_ratio()
+                        x = Fraction(k, l).limit_denominator()
+                        k, l = x.as_integer_ratio()
+                        return await ctx.send(
+                            r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(q / bottom)}i" + r"\;\;" + r"x_2=\frac{" + f"{k}i" + r"}{" + f"{l}" + r"}}")
+
+                    # Find perfect squares that are factors of n
+                factors = [square for square in self.perfect_square(square_root_value / 2) if
+                           square_root_value % square == 0 and square > 1]
+                if len(factors) == 0:
+                    print('\u221A', square_root_value)
+                    return await ctx.send(
+                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}i" + "}")
+                else:
+                    x = int(sqrt(max(factors)))  # Coefficient
+                    y = int(square_root_value / max(factors))  # Argument of the square root
+                    return await ctx.send(
+                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm{x}i\sqrt" + f"{y}" + r"}{" + f"{bottom}" + r"}" + "}")
+
+        if sqrt(square_root_value).is_integer():
+            print(int(sqrt(square_root_value)))
+            print("is perfect square")
+            p = int(-b + sqrt(square_root_value))
+            q = int(-b - sqrt(square_root_value))
+
+            if (p/bottom).is_integer():
+                if (q/bottom).is_integer():
+                    if q == p:
+                        return await ctx.send(
+                            r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x=" + f"{int(p / bottom)}" + r"}")
+                    else:
+                        return await ctx.send(r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1="+ f"{int(p/bottom)}" + r"\;\;" + f"x_2={int(q/bottom)}"+ r"}")
+                else:
+                    return await ctx.send(
+                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{q}"+r"}{"+f"{bottom}" + r"}}")
+            if (q/bottom).is_integer():
+                k, l = (p/bottom).as_integer_ratio()
+                x = Fraction(k, l).limit_denominator()
+                k, l = x.as_integer_ratio()
+                return await ctx.send(
+                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(q / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{k}" + r"}{" + f"{l}" + r"}}")
+            else:
+                #TODO figure out what the hell to do here
+                latex = r"\frac{" + f"{-b}" + r"\pm" + f"{int(sqrt(square_root_value))}" + r"}{" + f"{int(2 * a)}" + r"}"
+                return await ctx.send(
+                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + latex + "}")
+
+
+
+
+            # Find perfect squares that are factors of n
+        factors = [square for square in self.perfect_square(square_root_value / 2) if square_root_value % square == 0 and square > 1]
+        if len(factors) == 0:
+            print('\u221A', square_root_value)
+            return await ctx.send(r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}" + "}")
+        else:
+            x = int(sqrt(max(factors)))  # Coefficient
+            y = int(square_root_value / max(factors))  # Argument of the square root
+            return await ctx.send(
+                r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm{x}\sqrt" + f"{y}" + r"}{" + f"{bottom}" + r"}" + "}")
+
+
 def setup(bot):
     bot.add_cog(General(bot))
+    bot.add_cog(Math(bot))
