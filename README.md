@@ -3,13 +3,11 @@
 
 
 
-A bot for the TMS SciOly Discord
+#### A Bot for the TMS SciOly Discord
 
+Help command - taken and adapted from [R Danny](https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/meta.py#L180-L263)  
 
+Basic moderation command skeleton from [Pi-Bot](https://github.com/cbrxyz/pi-bot)
 
+Please open an issue for feature reuqests or bug reports!
 
-The  Current Version <2.5.1> has slash commands, buttons and select interface as well as auto moderation features
-
-
-
-### If you experience any issues or would like to see a feature, please open an issue! Thanks!
