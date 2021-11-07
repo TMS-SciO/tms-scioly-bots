@@ -1,3 +1,5 @@
+import random
+
 import discord
 from discord.ext import commands
 from discord.ext.commands import Option
@@ -5,13 +7,11 @@ from utils.variables import *
 from utils.views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Pronouns, Ticket, Nuke
 from utils.checks import is_staff
 from utils.globalfunctions import assemble_embed
+from utils.censor import CENSORED
 from typing import Literal, Union, Optional
 import asyncio
 import json
 import datetime
-import math
-import random
-
 
 STOPNUKE = datetime.datetime.utcnow()
 
@@ -30,12 +30,41 @@ class Moderation(commands.Cog):
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='mod_badge', id=900488706748731472)
 
+    @commands.group()
+    async def censor(self, ctx):
+        '''Manages the censor system and words'''
+        pass
+
+    @censor.command()
+    async def add(self, ctx, phrase: str = Option(description="The new word to add. For the new word, type the word")):
+        '''Adds a word to the censor'''
+        phrase = phrase.lower()
+        if phrase in CENSORED['words']:
+            return await ctx.send(f"`{phrase}` is already in the censored words list. Operation cancelled.")
+        else:
+            CENSORED['words'].append(phrase)
+            self.bot.reload_extension("cogs.listeners")
+            return await ctx.send(f"Added Word to censored list")
+
+    @censor.command()
+    async def remove(self, ctx, phrase: str = Option(description="The word to remove from the censor list.")):
+        '''Removes a word from the censor'''
+        phrase = phrase.lower()
+        if phrase not in CENSORED["words"]:
+            return await ctx.send(f"`{phrase}` is not in the list of censored words.")
+        else:
+            CENSORED["words"].remove(phrase)
+            self.bot.reload_extension("cogs.listeners")
+            return await ctx.send(f"Removed {phrase} from list of censored words")
+
     @commands.command()
     async def slowmode(self,
                        ctx,
-                       mode: Literal["set", "remove"] = Option(description="How to change the slowmode in the channel."),
-                       delay = Option(description="Optional. How long the slowmode delay should be, in seconds. If none, assumed to be 20 seconds.", default=20),
-                       channel: discord.TextChannel = Option(description="The channel to edit slowmode", default=None)
+                       mode: str = Option(description="How to change the slowmode in the channel."),
+                       delay: Optional[int] = Option(
+                           description="Slowmode delay in seconds",
+                           default=20),
+                       channel: Optional[discord.TextChannel] = Option(description="The channel to edit slowmode")
                        ):
         true_channel = channel or ctx.channel
         if mode == "remove":
@@ -48,20 +77,20 @@ class Moderation(commands.Cog):
     @commands.command()
     async def ban(self,
                   ctx,
-                  member:discord.User = Option(description='the member to ban'),
-                  reason = Option(description='the reason to ban this member'),
-                  ban_length:Literal["10 minutes",
-                                     "30 minutes",
-                                     "1 hour",
-                                     "2 hours",
-                                     "8 hours",
-                                     "1 day",
-                                     "4 days",
-                                     "7 days",
-                                     "1 month",
-                                     "1 year",
-                                     "Indefinitely"
-                                     ] = Option(
+                  member: Union[discord.Member, discord.User] = Option(description='the member to ban'),
+                  reason=Option(description='the reason to ban this member'),
+                  ban_length: Literal["10 minutes",
+                                      "30 minutes",
+                                      "1 hour",
+                                      "2 hours",
+                                      "8 hours",
+                                      "1 day",
+                                      "4 days",
+                                      "7 days",
+                                      "1 month",
+                                      "1 year",
+                                      "Indefinitely"
+                  ] = Option(
                       description='the amount of time banned')
                   ):
 
@@ -97,8 +126,8 @@ class Moderation(commands.Cog):
 
         view = Confirm(ctx)
         confirm_msg = await ctx.send("Please confirm that you would like to ban this user.", view=view,
-                                        embed=original_shown_embed,
-                                        ephemeral=False)
+                                     embed=original_shown_embed,
+                                     ephemeral=False)
 
         message = f"""
         You have been banned from the TMS Scioly Discord server for {reason}. \n
@@ -116,12 +145,12 @@ class Moderation(commands.Cog):
                 original_shown_embed.title = "Successfully Banned"
                 original_shown_embed.description = f"member: `{member}` \n id: `{member.id}`\n\n was successfully banned"
                 original_shown_embed.timestamp = discord.utils.utcnow()
-                embed = discord.Embed(title=" ", description = message)
+                embed = discord.Embed(title=" ", description=message)
                 embed.colour = discord.Color.brand_red()
 
                 await member.send(embed=embed)
                 await ctx.guild.ban(member, reason=reason)
-                await confirm_msg.edit(embed=original_shown_embed, content= None)
+                await confirm_msg.edit(embed=original_shown_embed, content=None)
                 await reports_channel.send(embed=original_shown_embed)
                 if ban_length != "Indefinitely":
                     CRON_LIST.append({"date": times[ban_length], "do": f"unban {member.id}"})
@@ -131,7 +160,7 @@ class Moderation(commands.Cog):
                 original_shown_embed.title = "Successfully Banned"
                 original_shown_embed.description = f"member: `{member}` \n id: `{member.id}`\n\n was successfully banned"
                 original_shown_embed.timestamp = discord.utils.utcnow()
-                await confirm_msg.edit(embed=original_shown_embed, content = None)
+                await confirm_msg.edit(embed=original_shown_embed, content=None)
                 await reports_channel.send(embed=original_shown_embed)
                 if ban_length != "Indefinitely":
                     CRON_LIST.append({"date": times[ban_length], "do": f"unban {member.id}"})
@@ -143,24 +172,24 @@ class Moderation(commands.Cog):
             original_shown_embed.colour = discord.Colour.brand_green()
             original_shown_embed.description = "f`{member.name}` was not banned"
             original_shown_embed.title = "Ban Cancelled"
-            await ctx.send(embed=original_shown_embed, view = None, content=None)
+            await ctx.send(embed=original_shown_embed, view=None, content=None)
 
     @commands.command()
-    async def unban(self, ctx, member:discord.User = Option(description="The user (id) to unban")):
+    async def unban(self, ctx, member: discord.User = Option(description="The user (id) to unban")):
         """Unbans a user."""
         if member is None:
             await ctx.channel.send("Please give either a user ID or mention a user.")
         else:
             await ctx.guild.unban(member)
-            embed=discord.Embed(title="Unban Request",
-                                description=f"Inverse ban hammer applied, {member.mention} unbanned. Please remember that I cannot force them to re-join the server, they must join themselves.",
-                                color=0x00FF00)
+            embed = discord.Embed(title="Unban Request",
+                                  description=f"Inverse ban hammer applied, {member.mention} unbanned. Please remember that I cannot force them to re-join the server, they must join themselves.",
+                                  color=0x00FF00)
             await ctx.send(embed=embed)
 
     @commands.command()
     async def dm(self, ctx,
-                 member:discord.Member = Option(description="The member you want to send the message to"),
-                 message:str = Option(description="The message you wish to send to the member")):
+                 member: discord.Member = Option(description="The member you want to send the message to"),
+                 message: str = Option(description="The message you wish to send to the member")):
         em1 = discord.Embed(title=f" ",
                             description=f"> {message}",
                             color=0x2F3136)
@@ -170,8 +199,7 @@ class Moderation(commands.Cog):
 
     @commands.command()
     async def sync(self, ctx,
-                   channel: discord.TextChannel = Option(description="The channel to sync permissions with",
-                                                         default=None)):
+                   channel: Optional[discord.TextChannel] = Option(description="The channel to sync permissions with")):
         '''Syncs permmissions to channel category'''
 
         if channel is None:
@@ -184,10 +212,10 @@ class Moderation(commands.Cog):
     @commands.command()
     async def kick(self,
                    ctx,
-                   member:discord.Member= Option(description="Which user to kick"),
-                   reason:str = Option(description="Why you're kicking this user")
+                   member: discord.Member = Option(description="Which user to kick"),
+                   reason: str = Option(description="Why you're kicking this user")
                    ):
-        view = Confirm(ctx.author)
+        view = Confirm(ctx)
 
         await ctx.send(f"Are you sure you want to kick `{member}` for `{reason}`", view=view)
         await view.wait()
@@ -211,21 +239,21 @@ class Moderation(commands.Cog):
     @commands.command()
     async def mute(self,
                    ctx,
-                   user: discord.Member = Option(description= "The user to mute."),
-                   reason: str = Option(description= "The reason to mute the user."),
+                   user: discord.Member = Option(description="The user to mute."),
+                   reason: str = Option(description="The reason to mute the user."),
                    mute_length: Literal[
-                        "10 minutes",
-                        "30 minutes",
-                        "1 hour",
-                        "2 hours",
-                        "8 hours",
-                        "1 day",
-                        "4 days",
-                        "7 days",
-                        "1 month",
-                        "1 year",
-                        "Indefinitely"
-                    ] = Option(description="How long to mute the user for.")
+                       "10 minutes",
+                       "30 minutes",
+                       "1 hour",
+                       "2 hours",
+                       "8 hours",
+                       "1 day",
+                       "4 days",
+                       "7 days",
+                       "1 month",
+                       "1 year",
+                       "Indefinitely"
+                   ] = Option(description="How long to mute the user for.")
                    ):
 
         times = {
@@ -248,9 +276,9 @@ class Moderation(commands.Cog):
             time_statement = f"The user will be muted until {discord.utils.format_dt(times[mute_length], 'F')}."
 
         original_shown_embed = discord.Embed(
-            title = "Mute Confirmation",
-            color = discord.Color.brand_red(),
-            description = f"""
+            title="Mute Confirmation",
+            color=discord.Color.brand_red(),
+            description=f"""
             {user.mention} will be muted across the entire server. 
             The user will no longer be able to communicate in any channels they can read.
             {time_statement}
@@ -258,7 +286,8 @@ class Moderation(commands.Cog):
         )
 
         view = Confirm(ctx)
-        msg = await ctx.send("Please confirm that you would like to mute this user.", view = view, embed = original_shown_embed)
+        msg = await ctx.send("Please confirm that you would like to mute this user.", view=view,
+                             embed=original_shown_embed)
 
         message = f"You have been muted from the TMS Scioly Discord server for {reason}."
 
@@ -288,13 +317,13 @@ class Moderation(commands.Cog):
         msg = await ctx.send(f"Are you sure you want to unmute `{user}`?", view=view)
         await view.wait()
         if view.value is False:
-            await ctx.send('Unmute Canceled')
+            await msg.edit('Unmute Canceled')
         else:
             role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
             await user.remove_roles(role)
             em5 = discord.Embed(title="",
                                 description=f"Successfully unmuted {user.mention}.",
-                                color=0x16F22C)
+                                color=discord.Color.brand_green())
             em5.timestamp = discord.utils.utcnow()
             server = self.bot.get_guild(SERVER_ID)
             reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
@@ -303,10 +332,11 @@ class Moderation(commands.Cog):
             for obj in CRON_LIST[:]:
                 if obj['do'] == f'unmute {user.id}':
                     CRON_LIST.remove(obj)
+                    await reports_channel.send(embed=em5)
         return view.value
 
     @commands.command()
-    async def nuke(self, ctx, count: int):
+    async def nuke(self, ctx, count: int = Option(description="The amount of messages to delete")):
         """Nukes (deletes) a specified amount of messages."""
         global STOPNUKE
         MAX_DELETE = 100
@@ -321,55 +351,56 @@ class Moderation(commands.Cog):
             else:
                 count = message_count + int(count) - 1
             if count <= 0:
-                return await ctx.send("Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
+                return await ctx.send(
+                    "Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
 
         original_shown_embed = discord.Embed(
-            title = "NUKE COMMAND PANEL",
-            color = discord.Color.brand_red(),
-            description = f"""
+            title="NUKE COMMAND PANEL",
+            color=discord.Color.brand_red(),
+            description=f"""
             {count} messages will be deleted from {channel.mention} in `10` seconds...
             To stop this nuke, press the red button below!
             """
         )
-        view = Nuke()
-        msg = await ctx.send(embed = original_shown_embed, view = view)
+        view = Nuke(ctx)
+        msg = await ctx.send(embed=original_shown_embed, view=view)
         await asyncio.sleep(1)
 
         for i in range(9, 0, -1):
+            if view.stopped:
+                break
             original_shown_embed.description = f"""
             {count} messages will be deleted from {channel.mention} in `{i}` seconds...
             To stop this nuke, press the red button below!
             """
-            await msg.edit(embed = original_shown_embed, view = view)
-            if view.stopped:
-                return
+            await msg.edit(embed=original_shown_embed, view=view)
             await asyncio.sleep(1)
 
-        original_shown_embed.description = f"""
-        Now nuking {count} messages from the channel...
-        """
-        await msg.edit(embed = original_shown_embed, view = None)
+        if not view.stopped:
+            original_shown_embed.description = f"""
+            Now nuking {count} messages from the channel...
+            """
+            await msg.edit(embed=original_shown_embed, view=None)
 
-        # Nuke has not been stopped, proceed with deleting messages
-        def nuke_check(msgs: discord.Message):
-            return not len(msgs.components) and not msgs.pinned
+            # Nuke has not been stopped, proceed with deleting messages
+            def nuke_check(msgs: discord.Message):
+                return not len(msgs.components) and not msgs.pinned
 
-        new_embed = discord.Embed(
-            title="NUKE COMMAND PANEL",
-            color=discord.Color.brand_green(),
-            description=f"""
-                    {count} messages have been deleted from {channel.mention} 
-                    """
-        )
+            new_embed = discord.Embed(
+                title="NUKE COMMAND PANEL",
+                color=discord.Color.brand_green(),
+                description=f"""
+                        {count} messages have been deleted from {channel.mention} 
+                        """
+            )
 
-        await channel.purge(limit=count + 1, check=nuke_check)
-        await ctx.send(embed=new_embed)
+            await channel.purge(limit=count + 2, check=nuke_check)
+            await ctx.send(embed=new_embed)
 
     @commands.command()
     async def lock(self,
                    ctx,
-                   channel: discord.TextChannel= Option(default=None, description= "The channel you want to lock")
-                   ):
+                   channel: Optional[discord.TextChannel] = Option(description="The channel you want to lock")):
         """
         Locks a channel to Member access.
         """
@@ -390,7 +421,7 @@ class Moderation(commands.Cog):
     @commands.command()
     async def unlock(self,
                      ctx,
-                     channel: discord.TextChannel= Option(default=None, description="The channel to unlock")
+                     channel: Optional[discord.TextChannel] = Option(description="The channel to unlock")
                      ):
         """Unlocks a channel to Member access."""
         member = ctx.message.author
@@ -412,8 +443,8 @@ class Moderation(commands.Cog):
     @commands.command()
     async def warn(self,
                    ctx,
-                   member:discord.Member = Option(description="Which user to warn"),
-                   reason:str = Option(description="Why you are warning this user")
+                   member: discord.Member = Option(description="Which user to warn"),
+                   reason: str = Option(description="Why you are warning this user")
                    ):
         '''Warns a user'''
         server = self.bot.get_guild(SERVER_ID)
@@ -451,7 +482,8 @@ class Moderation(commands.Cog):
 
     @commands.command()
     async def blacklist(self, ctx,
-                        member:discord.Member = Option(description="The member you want to blacklist from using commands")):
+                        member: discord.Member = Option(
+                            description="The member you want to blacklist from using commands")):
         '''Blacklist a user from using commands'''
         try:
             with open("blacklist.json") as f:
@@ -467,7 +499,7 @@ class Moderation(commands.Cog):
             await ctx.send(f'Failed to blacklist {member.mention}!', ephemeral=True)
 
     @commands.command()
-    async def unblacklist(self, ctx, member:discord.Member):
+    async def unblacklist(self, ctx, member: discord.Member):
         '''Un-Blacklist a user from using commands'''
         id = member.id
         with open("blacklist.json") as f:
@@ -486,7 +518,6 @@ class Moderation(commands.Cog):
         else:
             await ctx.send(f"{member.mention} is not blacklisted from using commands", ephemeral=True)
 
-
     # @commands.command()
     # async def cancel(self, ctx, member:discord.Member):
     #     try:
@@ -504,7 +535,6 @@ class Moderation(commands.Cog):
 
 
 class Staff(commands.Cog):
-
     '''Staff Commands'''
 
     print("Staff Commands Loaded")
@@ -522,7 +552,7 @@ class Staff(commands.Cog):
     @commands.command()
     async def trial(self,
                     ctx,
-                    user=Option(discord.Member, description="The user you wish promote to trial leader")):
+                    user: discord.Member = Option(description="The user you wish promote to trial leader")):
         """Promotes/Trials a user."""
         member = ctx.message.author
         role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
@@ -530,9 +560,8 @@ class Staff(commands.Cog):
         await ctx.send(f"Successfully added {role}. Congratulations {user.mention}! :partying_face: :partying_face: ")
 
     @commands.command()
-    async def untrial(self,
-                      ctx,
-                      user=Option(discord.Member, description="The user you wish to demote")):
+    async def untrial(self, ctx,
+                      user: discord.Member = Option(description="The user you wish to demote")):
         """Demotes/unTrials a user."""
         member = ctx.message.author
         role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
@@ -555,18 +584,16 @@ class Staff(commands.Cog):
     @commands.command()
     async def embed(self, ctx,
                     channel: discord.TextChannel = Option(description="The channel to send the embed to"),
-                    title=Option(description="Embed title", default=None),
-                    description=Option(description="Embed description", default=None),
-                    title_url=Option(description="Link that the title connects to", default=None),
-                    hexcolor=Option(description="Embed color (hexcolor) if not provided defaults to purple",
-                                    default=None),
-                    webcolor=Option(description="Webcolor of embed/ use webcolor and hex exclusively", default=None),
-                    thumbnail_url=Option(description="Thumbnail image link", default=None),
-                    author_url=Option(description="Link that embed author name connects to", default=None),
-                    footer_text=Option(description="Text displayed in embed footer", default=None),
-                    footer_url=Option(description="Embed footer icon image-url", default=None),
-                    image_url=Option(description="Embed image-link/url", default=None)
-                    ):
+                    title: Optional[str] = Option(description="Embed title"),
+                    description: Optional[str] = Option(description="Embed description"),
+                    title_url: Optional[str] = Option(description="Title text link, type: url"),
+                    hexcolor: Optional[str] = Option(description="Embed color, type: hexcolor"),
+                    webcolor: Optional[str] = Option(description="Embed color, type: webcolor"),
+                    thumbnail_url: Optional[str] = Option(description="Thumbnail image link, type: url"),
+                    author_url: Optional[str] = Option(description="Author name link, type: url"),
+                    footer_text: Optional[str] = Option(description="Text displayed in embed footer"),
+                    footer_url: Optional[str] = Option(description="Footer text link, type: url"),
+                    image_url: Optional[str] = Option(description="Embed image, type: url")):
         if title is None:
             title = ""
         else:
@@ -580,7 +607,7 @@ class Staff(commands.Cog):
         else:
             titleUrl = title_url
         if hexcolor is None:
-            hexcolor = random_hex_colors_purple[math.floor(random.random() * len(random_hex_colors_purple))]
+            hexcolor = random.choice(random_hex_colors_purple)
         else:
             hexcolor = hexcolor
         if webcolor is None:
@@ -648,11 +675,10 @@ class Staff(commands.Cog):
         await ctx.send(f"Successfully removed VIP from {user.mention}.")
 
 
-class Meta(commands.Cog):
-
+class Config(commands.Cog):
     '''Server utilities/Moderator Config Commands'''
 
-    print('Meta Cog Loaded')
+    print('Config Cog Loaded')
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
@@ -664,9 +690,16 @@ class Meta(commands.Cog):
     async def cog_check(self, ctx):
         return await is_staff(ctx)
 
-    @commands.command()
+    @commands.group()
+    async def ticket(self, ctx):
+        '''Ticket system commands'''
+        pass
+
+    @ticket.command()
     async def close(self, ctx):
-        '''Manually closes a ticket channel'''
+        '''
+        Manually closes the ticket channel
+        '''
 
         with open('data.json') as f:
             data = json.load(f)
@@ -700,33 +733,32 @@ class Meta(commands.Cog):
                                    color=0x00a8ff)
                 await ctx.send(embed=em)
 
-    @commands.command()
-    async def addaccess(self, ctx, role_id: int = Option(description="Role id: allow see tickets")):
-
+    @ticket.command()
+    async def add_access(self, ctx, role: Union[int, discord.Role] = Option(description="Role id or mention role")):
         with open('data.json') as f:
             data = json.load(f)
 
         valid_user = False
 
-        for role_id in data["verified-roles"]:
+        for role in data["verified-roles"]:
             try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
+                if ctx.guild.get_role(role) in ctx.author.roles:
                     valid_user = True
             except:
                 pass
 
         if valid_user or ctx.author.guild_permissions.administrator:
-            role_id = int(role_id)
+            role = int(role)
 
-            if role_id not in data["valid-roles"]:
+            if role not in data["valid-roles"]:
 
                 try:
-                    role = ctx.guild.get_role(role_id)
+                    role = ctx.guild.get_role(role)
 
                     with open("data.json") as f:
                         data = json.load(f)
 
-                    data["valid-roles"].append(role_id)
+                    data["valid-roles"].append(role)
 
                     with open('data.json', 'w') as f:
                         json.dump(data, f)
@@ -752,19 +784,16 @@ class Meta(commands.Cog):
                                color=0x00a8ff)
             await ctx.send(embed=em)
 
-    @commands.command()
-    async def delaccess(self,
-                        ctx,
-                        role_id: int = Option(description="Role id: delete access to see tickets")
-                        ):
+    @ticket.command()
+    async def delete_access(self, ctx, role: Union[int, discord.Role] = Option(description="Role id or mention role")):
         with open('data.json') as f:
             data = json.load(f)
 
         valid_user = False
 
-        for role_id in data["verified-roles"]:
+        for role in data["verified-roles"]:
             try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
+                if ctx.guild.get_role(role) in ctx.author.roles:
                     valid_user = True
             except:
                 pass
@@ -772,16 +801,16 @@ class Meta(commands.Cog):
         if valid_user or ctx.author.guild_permissions.administrator:
 
             try:
-                role_id = int(role_id)
-                role = ctx.guild.get_role(role_id)
+                role = int(role)
+                role = ctx.guild.get_role(role)
 
                 with open("data.json") as f:
                     data = json.load(f)
 
                 valid_roles = data["valid-roles"]
 
-                if role_id in valid_roles:
-                    index = valid_roles.index(role_id)
+                if role in valid_roles:
+                    index = valid_roles.index(role)
 
                     del valid_roles[index]
 
@@ -812,35 +841,34 @@ class Meta(commands.Cog):
                                color=0x00a8ff)
             await ctx.send(embed=em)
 
-    @commands.command()
-    async def addpingedrole(self, ctx,
-                            role_id: int = Option(description="Role id to be pinged when tickets are opened")
-                            ):
+    @ticket.command()
+    async def add_pinged_role(self, ctx,
+                              role: Union[int, discord.Role] = Option(description="Role id or mention role")):
         with open('data.json') as f:
             data = json.load(f)
 
         valid_user = False
 
-        for role_id in data["verified-roles"]:
+        for role in data["verified-roles"]:
             try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
+                if ctx.guild.get_role(role) in ctx.author.roles:
                     valid_user = True
             except:
                 pass
 
         if valid_user or ctx.author.guild_permissions.administrator:
 
-            role_id = int(role_id)
+            role = int(role)
 
-            if role_id not in data["pinged-roles"]:
+            if role not in data["pinged-roles"]:
 
                 try:
-                    role = ctx.guild.get_role(role_id)
+                    role = ctx.guild.get_role(role)
 
                     with open("data.json") as f:
                         data = json.load(f)
 
-                    data["pinged-roles"].append(role_id)
+                    data["pinged-roles"].append(role)
 
                     with open('data.json', 'w') as f:
                         json.dump(data, f)
@@ -867,19 +895,17 @@ class Meta(commands.Cog):
                                color=0x00a8ff)
             await ctx.send(embed=em)
 
-    @commands.command()
-    async def delpingedrole(self,
-                            ctx,
-                            role_id: int = Option(description="Role id: to delete, pinged when tickets are opened")
-                            ):
+    @ticket.command()
+    async def delete_pinged_role(self, ctx,
+                                 role: Union[int, discord.Role] = Option(description="Role id or mention role")):
         with open('data.json') as f:
             data = json.load(f)
 
         valid_user = False
 
-        for role_id in data["verified-roles"]:
+        for role in data["verified-roles"]:
             try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
+                if ctx.guild.get_role(role) in ctx.author.roles:
                     valid_user = True
             except:
                 pass
@@ -887,16 +913,16 @@ class Meta(commands.Cog):
         if valid_user or ctx.author.guild_permissions.administrator:
 
             try:
-                role_id = int(role_id)
-                role = ctx.guild.get_role(role_id)
+                role = int(role)
+                role = ctx.guild.get_role(role)
 
                 with open("data.json") as f:
                     data = json.load(f)
 
                 pinged_roles = data["pinged-roles"]
 
-                if role_id in pinged_roles:
-                    index = pinged_roles.index(role_id)
+                if role in pinged_roles:
+                    index = pinged_roles.index(role)
 
                     del pinged_roles[index]
 
@@ -926,13 +952,10 @@ class Meta(commands.Cog):
                                color=0xff008c)
             await ctx.send(embed=em)
 
-    @commands.command()
-    async def addadminrole(self,
-                           ctx,
-                           role_id: int = Option(description="Role id, to have admin ticket commands")
-                           ):
+    @ticket.command()
+    async def addadminrole(self, ctx, role: Union[int, discord.Role] = Option(description="Role id or mention role")):
         try:
-            role_id = int(role_id)
+            role_id = int(role)
             role = ctx.guild.get_role(role_id)
 
             with open("data.json") as f:
@@ -953,11 +976,10 @@ class Meta(commands.Cog):
                                description="That isn't a valid role ID. Please try again with a valid role ID.")
             await ctx.send(embed=em)
 
-    @commands.command()
-    async def deladminrole(self, ctx,
-                           role_id: int = Option(description="Role id, delete access to admin ticket commands")):
+    @ticket.command()
+    async def deladminrole(self, ctx, role: Union[int, discord.Role] = Option(description="Role id or mention role")):
         try:
-            role_id = int(role_id)
+            role_id = int(role)
             role = ctx.guild.get_role(role_id)
 
             with open("data.json") as f:
@@ -1137,9 +1159,9 @@ class Meta(commands.Cog):
         await roles_channel.send(embed=em6, view=Pronouns())
         await ctx.send('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @commands.command()
-    async def ticket(self, ctx):
-        '''Sends the ticket button embed'''
+    @ticket.command()
+    async def button(self, ctx):
+        '''Sends the ticket button embed to the rules channel'''
         view = Ticket(self.bot)
         em1 = discord.Embed(title="TMS Tickets",
                             description="To create a ticket press the button below", color=0xff008c)
@@ -1151,8 +1173,28 @@ class Meta(commands.Cog):
         await rules_channel.send(embed=em1, view=view)
         await ctx.send('Sent to ' + rules_channel.mention, ephemeral=True)
 
+    @commands.command()
+    async def theme(self, ctx, theme: Literal["Thanksgiving",
+                                              "Christmas",
+                                              "Aesthetic",
+                                              "Party"]):
+        themes = {"Thanksgiving": "\U0001f983",
+                  "Christmas": "\U0001f384",
+                  "Aesthetic": "\U00002728",
+                  "Party": "\U0001f389"}
+        emoji = themes[theme]
+        for channel in ctx.guild.channels:
+            channel_name_x = channel.name.split("│")
+            channel_name = channel_name_x[1]
+            await channel.edit(name=emoji + "│" + channel_name)
+        try:
+            await ctx.send("", ephemeral=True)
+            await ctx.channel.send("Theme change complete!")
+        except Exception as e:
+            await ctx.channel.send(e)
+
 
 def setup(bot):
     bot.add_cog(Moderation(bot))
     bot.add_cog(Staff(bot))
-    bot.add_cog(Meta(bot))
+    bot.add_cog(Config(bot))
