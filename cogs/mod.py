@@ -1,5 +1,3 @@
-import random
-
 import discord
 from discord.ext import commands
 from discord.ext.commands import Option
@@ -9,6 +7,7 @@ from utils.checks import is_staff
 from utils.globalfunctions import assemble_embed
 from utils.censor import CENSORED
 from typing import Literal, Union, Optional
+import random
 import asyncio
 import json
 import datetime
