@@ -18,5 +18,6 @@ Basic moderation command skeleton from [Pi-Bot](https://github.com/cbrxyz/pi-bot
 
 
 ### Issues
+
 Please open an issue for feature requests or bug reports!
 
