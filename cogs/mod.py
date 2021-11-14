@@ -7,9 +7,9 @@ from utils.checks import is_staff
 from utils.globalfunctions import assemble_embed
 from utils.censor import CENSORED
 from typing import Literal, Union, Optional
-import random
 import asyncio
 import json
+import random
 import datetime
 
 STOPNUKE = datetime.datetime.utcnow()
@@ -28,6 +28,57 @@ class Moderation(commands.Cog):
     @property
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='mod_badge', id=900488706748731472)
+
+    @commands.group()
+    async def suggestion(self, ctx):
+        '''Manages the suggestion system of the server'''
+        pass
+
+    @suggestion.command()
+    async def deny(self, ctx, message: str = Option(description="Suggestion message id")):
+        '''Denies a suggestion, is not reversible'''
+        message = await commands.MessageConverter().convert(ctx, message)
+        if message.channel.id == CHANNEL_SUGGESTIONS:
+            embed_obj = message.embeds[0]
+            embed = embed_obj.copy()
+            description = embed.description
+            embed.description = (description + "\n ```This suggestion has been denied```")
+            embed.colour = discord.Colour.brand_red()
+            await message.edit(embed=embed)
+            await message.clear_reactions()
+            await ctx.send("Successfully denied suggestion")
+        else:
+            await ctx.send("That is not a valid suggestion message")
+
+    @suggestion.command()
+    async def approve(self, ctx, message: str = Option(description="Suggestion message id")):
+        '''Approves a suggestion, is not reversible'''
+        message = await commands.MessageConverter().convert(ctx, message)
+        if message.channel.id == CHANNEL_SUGGESTIONS:
+            embed_obj = message.embeds[0]
+            embed = embed_obj.copy()
+            description = embed.description
+            embed.description = (description + "\n ```This suggestion has been approved```")
+            embed.colour = discord.Colour.brand_green()
+            await message.edit(embed=embed)
+            await ctx.send("Successfully approved suggestion")
+        else:
+            await ctx.send("That is not a valid suggestion message")
+
+    @suggestion.command()
+    async def delete(self, ctx, message: str = Option(description="Suggestion message id")):
+        '''Deletes a suggestion message'''
+        message = await commands.MessageConverter().convert(ctx, message)
+        if message.channel.id == CHANNEL_SUGGESTIONS:
+            msg = await ctx.send("Deleting suggestion in `5` seconds")
+            await asyncio.sleep(1)
+            for i in range(4, 0, -1):
+                await msg.edit(f"Deleting suggestion in `{i}` seconds")
+                await asyncio.sleep(1)
+            await message.delete()
+            await msg.edit(content="Deleted suggestion")
+        else:
+            await ctx.send("Not a valid suggestion message")
 
     @commands.group()
     async def censor(self, ctx):
@@ -59,7 +110,8 @@ class Moderation(commands.Cog):
     @commands.command()
     async def slowmode(self,
                        ctx,
-                       mode: str = Option(description="How to change the slowmode in the channel."),
+                       mode: Literal["remove", "set"] = Option(
+                           description="How to change the slowmode in the channel."),
                        delay: Optional[int] = Option(
                            description="Slowmode delay in seconds",
                            default=20),
@@ -77,7 +129,12 @@ class Moderation(commands.Cog):
     async def ban(self,
                   ctx,
                   member: Union[discord.Member, discord.User] = Option(description='the member to ban'),
-                  reason=Option(description='the reason to ban this member'),
+                  reason: str = Option(description='the reason to ban this member'),
+                  delete_message_days: Optional[Literal["Previous 24 hours",
+                                                        "Previous 7 days",
+                                                        "None"
+                                                         ]] = Option(
+                      description="The number of days of messages the user has sent to be deleted", default=0),
                   ban_length: Literal["10 minutes",
                                       "30 minutes",
                                       "1 hour",
@@ -89,10 +146,7 @@ class Moderation(commands.Cog):
                                       "1 month",
                                       "1 year",
                                       "Indefinitely"
-                  ] = Option(
-                      description='the amount of time banned')
-                  ):
-
+                  ] = Option(description='the amount of time banned')):
         times = {
             "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
             "30 minutes": datetime.datetime.now() + datetime.timedelta(minutes=30),
@@ -106,7 +160,12 @@ class Moderation(commands.Cog):
             "1 month": datetime.datetime.now() + datetime.timedelta(days=30),
             "1 year": datetime.datetime.now() + datetime.timedelta(days=365),
         }
-
+        delete_length = {
+            "Previous 24 hours": 1,
+            "Previous 7 days": 7,
+            "None": 0
+        }
+        delete_message = delete_length[delete_message_days]
         """Bans a user."""
         if ban_length == "Indefinitely":
             time_statement = f"They will never be automatically unbanned."
@@ -148,7 +207,7 @@ class Moderation(commands.Cog):
                 embed.colour = discord.Color.brand_red()
 
                 await member.send(embed=embed)
-                await ctx.guild.ban(member, reason=reason)
+                await ctx.guild.ban(member, reason=reason, delete_message_days=delete_message)
                 await confirm_msg.edit(embed=original_shown_embed, content=None)
                 await reports_channel.send(embed=original_shown_embed)
                 if ban_length != "Indefinitely":
@@ -161,6 +220,7 @@ class Moderation(commands.Cog):
                 original_shown_embed.timestamp = discord.utils.utcnow()
                 await confirm_msg.edit(embed=original_shown_embed, content=None)
                 await reports_channel.send(embed=original_shown_embed)
+                await ctx.guild.ban(member, reason=reason, delete_message_days=delete_message)
                 if ban_length != "Indefinitely":
                     CRON_LIST.append({"date": times[ban_length], "do": f"unban {member.id}"})
             else:
@@ -382,8 +442,8 @@ class Moderation(commands.Cog):
             await msg.edit(embed=original_shown_embed, view=None)
 
             # Nuke has not been stopped, proceed with deleting messages
-            def nuke_check(msgs: discord.Message):
-                return not len(msgs.components) and not msgs.pinned
+            def nuke_check(msgs: discord.Message) -> bool:
+                return not msgs.pinned
 
             new_embed = discord.Embed(
                 title="NUKE COMMAND PANEL",
@@ -393,8 +453,8 @@ class Moderation(commands.Cog):
                         """
             )
 
-            await channel.purge(limit=count + 2, check=nuke_check)
-            await ctx.send(embed=new_embed)
+            await channel.purge(limit=count + 3, check=nuke_check)
+            await channel.send(embed=new_embed)
 
     @commands.command()
     async def lock(self,
@@ -1183,11 +1243,12 @@ class Config(commands.Cog):
                   "Party": "\U0001f389"}
         emoji = themes[theme]
         for channel in ctx.guild.channels:
-            channel_name_x = channel.name.split("│")
-            channel_name = channel_name_x[1]
-            await channel.edit(name=emoji + "│" + channel_name)
+            async with ctx.typing():
+                channel_name_x = channel.name.split("│")
+                channel_name = channel_name_x[1]
+                await channel.edit(name=emoji + "│" + channel_name)
         try:
-            await ctx.send("", ephemeral=True)
+            await ctx.defer()
             await ctx.channel.send("Theme change complete!")
         except Exception as e:
             await ctx.channel.send(e)
