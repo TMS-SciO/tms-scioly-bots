@@ -1,22 +1,24 @@
-from discord.ext import commands
-from discord.ext.commands import Option
-import discord
-from utils.variables import *
-from utils.rules import RULES
-from utils.checks import is_not_blacklisted
+import asyncio
+import datetime
+import itertools
+import os
 from collections import Counter
-from utils import times
-from math import sqrt
 from fractions import Fraction
+from math import sqrt
+from typing import Optional
+
+import discord
+import pkg_resources
 import psutil
 import pygit2
-from typing import Literal, Union
-import pkg_resources
-import os
-import datetime
-import asyncio
-import inspect
-import itertools
+from discord.commands.commands import Option, slash_command
+from discord.ext import commands
+
+from utils import times
+from utils.checks import is_not_blacklisted
+from utils.rules import RULES
+from utils.variables import *
+from utils.views import ReportView
 
 
 class General(commands.Cog):
@@ -24,22 +26,23 @@ class General(commands.Cog):
 
     print('GeneralCommands Cog Loaded')
 
-    @property
-    def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\U0001f62f')
-
     def __init__(self, bot):
         self.bot = bot
         self.process = psutil.Process()
         self.bot.launch_time = datetime.datetime.utcnow()
+        self.commands_list = (self.bot.commands, self.bot.application_commands)
+
+    @property
+    def display_emoji(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name='\U0001f62f')
 
     async def cog_check(self, ctx):
         return await is_not_blacklisted(ctx)
 
-    def cog_unload(self):
-        print("general cog unloaded")
+    def cog_unload(self) -> None:
+        pass
 
-    def get_bot_uptime(self):
+    def get_bot_uptime(self) -> str:
         delta_uptime = datetime.datetime.utcnow() - self.bot.launch_time
         hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
@@ -85,71 +88,75 @@ class General(commands.Cog):
         deleted = await ctx.channel.purge(limit=search, check=check, before=ctx.message)
         return Counter(m.author.display_name for m in deleted)
 
-    @commands.command()
-    async def source(self, ctx, *, command: str = None):
-        """Displays my full source code or for a specific command.
-        To display the source code of a subcommand you can separate it by
-        periods, e.g. tag.create for the create subcommand of the tag command
-        or by spaces.
-        """
-        source_url = 'https://github.com/pandabear189/tms-scioly-bots'
-        branch = 'main'
-        if command is None:
-            return await ctx.send(source_url)
+    # @slash_command(guild_ids = [SERVER_ID])
+    # async def source(self, ctx, *, command: str = None):
+    #     """Displays my full source code or for a specific command.
+    #     To display the source code of a subcommand you can separate it by
+    #     periods, e.g. tag.create for the create subcommand of the tag command
+    #     or by spaces.
+    #     """
+    #     source_url = 'https://github.com/pandabear189/tms-scioly-bots'
+    #     branch = 'main'
+    #     if command is None:
+    #         return await ctx.respond(source_url)
+    #
+    #     if command == 'help':
+    #         src = type(self.bot.help_command)
+    #         module = src.__module__
+    #         filename = inspect.getsourcefile(src)
+    #     else:
+    #         obj = self.bot.get_command(command.replace('.', ' '))
+    #         if obj is None:
+    #             try:
+    #                 obj = self.bot.get_application_command(command.replace('.', ' '))
+    #                 if obj is N
+    #             return await ctx.respond('Could not find command.')
+    #
+    #         # since we found the command we're looking for, presumably anyway, let's
+    #         # try to access the code itself
+    #         src = obj.callback.__code__
+    #         module = obj.callback.__module__
+    #         filename = src.co_filename
+    #
+    #     lines, firstlineno = inspect.getsourcelines(src)
+    #     if not module.startswith('discord'):
+    #         # not a built-in command
+    #         location = os.path.relpath(filename).replace('\\', '/')
+    #     else:
+    #         location = module.replace('.', '/') + '.py'
+    #         source_url = 'https://github.com/Rapptz/discord.py'
+    #         branch = 'master'
+    #
+    #     final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
+    #     await ctx.respond(final_url)
 
-        if command == 'help':
-            src = type(self.bot.help_command)
-            module = src.__module__
-            filename = inspect.getsourcefile(src)
-        else:
-            obj = self.bot.get_command(command.replace('.', ' '))
-            if obj is None:
-                return await ctx.send('Could not find command.')
-
-            # since we found the command we're looking for, presumably anyway, let's
-            # try to access the code itself
-            src = obj.callback.__code__
-            module = obj.callback.__module__
-            filename = src.co_filename
-
-        lines, firstlineno = inspect.getsourcelines(src)
-        if not module.startswith('discord'):
-            # not a built-in command
-            location = os.path.relpath(filename).replace('\\', '/')
-        else:
-            location = module.replace('.', '/') + '.py'
-            source_url = 'https://github.com/Rapptz/discord.py'
-            branch = 'master'
-
-        final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
-        await ctx.send(final_url)
-
-    @commands.command()
-    async def rule(self, ctx, number:Literal["1", "2", "3", "4", "5", "6"] = commands.Option(description="Which rule to display")):
+    @slash_command(guild_ids = [SERVER_ID])
+    async def rule(self, ctx, number: Option(str,
+                                             description="Which rule to display",
+                                             choices=["1", "2", "3", "4", "5", "6"])):
         """Gets a specified rule."""
         rule = RULES[int(number) - 1]
         embed = discord.Embed(title="",
                               description=f"**Rule {number}:**\n> {rule}",
                               color=0xff008c)
-        return await ctx.send(embed=embed)
+        return await ctx.respond(embed=embed)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def report(self, ctx, reason):
         """Creates a report that is sent to staff members."""
         server = self.bot.get_guild(SERVER_ID)
         reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
-        ava = ctx.message.author.avatar
+        ava = ctx.author.avatar
+        if ava is None:
+            ava = ""
 
         message = reason
         embed = discord.Embed(title="Report received", description=" ", color=0xFF0000)
-        embed.add_field(name="User:", value=f"{ctx.message.author.mention} \n id: `{ctx.message.author.id}`")
+        embed.add_field(name="User:", value=f"{ctx.author.mention} \n id: `{ctx.author.id}`")
         embed.add_field(name="Report:", value=f"`{message}`")
-        embed.set_author(name=f"{ctx.message.author}", icon_url=ava)
-        message = await reports_channel.send(embed=embed)
-        REPORT_IDS.append(message.id)
-        await message.add_reaction("\U00002705")
-        await message.add_reaction("\U0000274C")
-        await ctx.send("Thanks, report created.")
+        embed.set_author(name=f"{ctx.author}", icon_url=ava)
+        await reports_channel.send(embed=embed, view=ReportView())
+        await ctx.respond("Thanks, report created.")
 
     def tick(self, opt, label=None):
         lookup = {
@@ -162,14 +169,14 @@ class General(commands.Cog):
             return f'{emoji}: {label}'
         return emoji
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def serverinfo(self, ctx, *, guild_id: int = None):
         """Shows info about the current server."""
 
         if guild_id is not None and await self.bot.is_owner(ctx.author):
             guild = self.bot.get_guild(guild_id)
             if guild is None:
-                return await ctx.send(f'Invalid Guild ID given.')
+                return await ctx.respond(f'Invalid Guild ID given.')
         else:
             guild = ctx.guild
 
@@ -277,7 +284,7 @@ class General(commands.Cog):
         fmt = f'{fmt}Total Emoji: {len(guild.emojis)}/{guild.emoji_limit * 2}'
         e.add_field(name='Emoji', value=fmt, inline=False)
         e.set_footer(text='Created').timestamp = guild.created_at
-        await ctx.send(embed=e)
+        await ctx.respond(embed=e)
 
     async def say_permissions(self, ctx, member, channel):
         permissions = channel.permissions_for(member)
@@ -294,11 +301,13 @@ class General(commands.Cog):
 
         e.add_field(name='Allowed', value='\n'.join(allowed))
         e.add_field(name='Denied', value='\n'.join(denied))
-        await ctx.send(embed=e)
+        await ctx.respond(embed=e)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     @commands.guild_only()
-    async def permissions(self, ctx, member: discord.Member = None, channel: discord.TextChannel = None):
+    async def permissions(self, ctx,
+                          member: Optional[discord.Member],
+                          channel: Optional[discord.TextChannel]):
         """Shows a member's permissions in a specific channel.
         If no channel is given then it uses the current one.
         You cannot use this in private messages. If no member is given then
@@ -310,9 +319,9 @@ class General(commands.Cog):
 
         await self.say_permissions(ctx, member, channel)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     @commands.guild_only()
-    async def botpermissions(self, ctx, channel: discord.TextChannel = None):
+    async def botpermissions(self, ctx, channel: Optional[discord.TextChannel]):
         """Shows the bot's permissions in a specific channel.
         If no channel is given then it uses the current one.
         This is a good way of checking if the bot has the permissions needed
@@ -324,31 +333,31 @@ class General(commands.Cog):
         member = ctx.guild.me
         await self.say_permissions(ctx, member, channel)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     @commands.is_owner()
     async def debugpermissions(self, ctx, guild_id: int, channel_id: int, author_id: int = None):
         """Shows permission resolution for a channel and an optional author."""
 
         guild = self.bot.get_guild(guild_id)
         if guild is None:
-            return await ctx.send('Guild not found?')
+            return await ctx.respond('Guild not found?')
 
         channel = guild.get_channel(channel_id)
         if channel is None:
-            return await ctx.send('Channel not found?')
+            return await ctx.respond('Channel not found?')
 
         if author_id is None:
             member = guild.me
         else:
-            member = await self.bot.get_or_fetch_member(guild, author_id)
+            member = await ctx.guild.get_member(author_id)
 
         if member is None:
-            return await ctx.send('Member not found?')
+            return await ctx.respond('Member not found?')
 
         await self.say_permissions(ctx, member, channel)
 
-    @commands.command()
-    async def info(self, ctx, user: Union[discord.Member, discord.User] = None):
+    @slash_command(guild_ids=[SERVER_ID])
+    async def info(self, ctx, user: discord.User):
         """Shows info about a user."""
 
         user = user or ctx.author
@@ -385,12 +394,12 @@ class General(commands.Cog):
         if isinstance(user, discord.User):
             e.set_footer(text='This member is not in this server.')
 
-        await ctx.send(embed=e)
+        await ctx.respond(embed=e)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def tag(self,
                   ctx,
-                  tag =commands.Option(description="Name of the tag")
+                  tag: Option(str, description="Name of the tag")
                   ):
         '''Retrieves a tag'''
         tag = tag.lower()
@@ -400,7 +409,7 @@ class General(commands.Cog):
                           value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf/ \"Division B\")")
             em1.add_field(name='Division C Rules',
                           value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_C_2022_Rules_Manual_Web_1.pdf/ \"Division C\")")
-            await ctx.send(embed=em1)
+            await ctx.respond(embed=em1)
 
         elif tag == 'anatomy':
             em2 = discord.Embed(title="Anatomy & Physiology Rules",
@@ -408,30 +417,30 @@ class General(commands.Cog):
                                 color=0xff008c)
             em2.add_field(name='Full Anatomy Rules',
                           value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf#page=7/ \"Anatomy\")")
-            await ctx.send(embed=em2)
+            await ctx.respond(embed=em2)
 
         elif tag == 'bpl':
             em3 = discord.Embed(title="Bio Process Lab Rules", color=0xff008c)
             em3.add_field(name='Full Bio Process Lab',
                           value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf#page=9/ \"Bio Process Lab\")")
-            await ctx.send(embed=em3)
+            await ctx.respond(embed=em3)
 
         else:
-            await ctx.send("Sorry I couldn't find that tag", mention_author=False)
+            await ctx.respond("Sorry I couldn't find that tag", mention_author=False)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def invite(self, ctx):
         '''Gives you a 1 time use invite link'''
         x = await ctx.channel.create_invite(max_uses=1)
-        await ctx.send(x)
+        await ctx.respond(x)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def uptime(self, ctx):
         '''Sends how long the bot has been online'''
         uptime = self.get_bot_uptime()
-        await ctx.send(f"**{uptime}**")
+        await ctx.respond(f"**{uptime}**")
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def about(self, ctx):
         """Tells you information about the bot itself."""
 
@@ -472,24 +481,24 @@ class General(commands.Cog):
         cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
         embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU')
 
-        dpyversion = pkg_resources.get_distribution('discord.py').version
+        dpyversion = pkg_resources.get_distribution('py-cord').version
         embed.add_field(name='Guilds', value=guilds)
-        embed.add_field(name='Number of Commands', value=len(self.bot.commands))
+        embed.add_field(name='Number of Commands', value=(len(self.bot.commands) + len(self.bot.application_commands)))
         uptime = self.get_bot_uptime()
         embed.add_field(name="Uptime", value= uptime)
         embed.set_footer(text=f'Made with discord.py v{dpyversion}', icon_url='https://i.imgur.com/RPrw70n.png')
         embed.timestamp = discord.utils.utcnow()
-        await ctx.send(embed=embed)
+        await ctx.respond(embed=embed)
 
-    @commands.command()
+    @slash_command(guild_ids=[SERVER_ID])
     async def bothealth(self, ctx):
         """Various bot health monitoring tools."""
 
         # This uses a lot of private methods because there is no
         # clean way of doing this otherwise.
 
-        HEALTHY = discord.Colour(value=0x43B581)
-        UNHEALTHY = discord.Colour(value=0xF04947)
+        HEALTHY = discord.Colour.brand_green()
+        UNHEALTHY = discord.Colour.brand_red()
 
         total_warnings = 0
 
@@ -522,31 +531,34 @@ class General(commands.Cog):
         cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
         embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', inline=False)
 
-        global_rate_limit = not self.bot.http._global_over.is_set()
+        ws_rate_limit = self.bot.is_ws_ratelimited()
+        description.append(f'Websocket Rate Limit: {ws_rate_limit}')
+
+        global_rate_limit = self.bot.http._global_over.set()
         description.append(f'Global Rate Limit: {global_rate_limit}')
 
-        if global_rate_limit or total_warnings >= 9:
+        if ws_rate_limit or total_warnings >= 3 or len(event_tasks) >= 4:
             embed.colour = UNHEALTHY
 
         embed.set_footer(text=f'{total_warnings} warning(s)')
         embed.description = '\n'.join(description)
-        await ctx.send(embed=embed)
+        await ctx.respond(embed=embed)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def update(self, ctx):
         '''Shows all the recent bot updates'''
         count = 20
         revisions = self.get_last_commits(count)
         embed = discord.Embed(title="Recent Changes", description = f"Displaying {count} changes \n" + revisions)
-        await ctx.send(embed=embed)
+        await ctx.respond(embed=embed)
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def suggest(self, ctx, suggestion):
         '''Make a suggestion for the server, team or bot'''
         server = self.bot.get_guild(SERVER_ID)
         suggest_channel = discord.utils.get(server.text_channels, id=CHANNEL_SUGGESTIONS)
         reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
-        embed = discord.Embed(title = "New Suggestion" , description = f"{suggestion}", color = 0x967DCB)
+        embed = discord.Embed(title = "New Suggestion", description=f"{suggestion}", color=0x967DCB)
         embed.timestamp = discord.utils.utcnow()
         name = ctx.author.nick or ctx.author
         embed.set_author(name = name, icon_url=ctx.author.avatar)
@@ -555,11 +567,16 @@ class General(commands.Cog):
         await suggest_message.add_reaction("\U0001f44e")
         await reports_channel.send(embed=embed)
         suggest_url = suggest_message.jump_url
-        embed2 = discord.Embed(title = " ", description= f"Posted! [Your Suggestion!]({suggest_url})")
-        await ctx.send(embed= embed2)
+        embed2 = discord.Embed(title=" ", description= f"Posted! [Your Suggestion!]({suggest_url})")
+        await ctx.respond(embed=embed2)
+        suggest_id = suggest_message.id
+        suggest_embed = suggest_message.embeds[0]
+        copy_of_embed = suggest_embed.copy()
+        copy_of_embed.add_field(name="Suggestion ID", value=f"`{suggest_id}`")
+        await suggest_message.edit(embed=copy_of_embed)
 
-    @commands.command()
-    async def cleanup(self, ctx, search=100):
+    @slash_command(guild_ids = [SERVER_ID])
+    async def cleanup(self, ctx, search: int = 100):
         """Cleans up the bot's messages from the channel.
         If a search number is specified, it searches that many messages to delete.
         If the bot has Manage Messages permissions then it will try to delete
@@ -592,21 +609,20 @@ class General(commands.Cog):
             spammers = sorted(spammers.items(), key=lambda t: t[1], reverse=True)
             messages.extend(f'- **{author}**: {count}' for author, count in spammers)
 
-        await ctx.send('\n'.join(messages))
+        await ctx.respond('\n'.join(messages))
 
-    @commands.command()
-    async def newusers(self, ctx, *, count=5):
+    @slash_command(guild_ids = [SERVER_ID])
+    async def newusers(self, ctx, count: int = None):
         """Tells you the newest members of the server.
         This is useful to check if any suspicious members have
         joined.
         The count parameter can only be up to 25.
         """
-        count = max(min(count, 40), 5)
 
         if not ctx.guild.chunked:
             members = await ctx.guild.chunk(cache=True)
-
-        members = sorted(ctx.guild.members, key=lambda m: m.joined_at, reverse=True)[:count]
+        else:
+            members = sorted(ctx.guild.members, key=lambda m: m.joined_at, reverse=True)[:count]
 
         e = discord.Embed(title='New Members', colour=discord.Colour.green())
 
@@ -614,38 +630,39 @@ class General(commands.Cog):
             body = f'Joined {times.format_relative(member.joined_at)}\nCreated {times.format_relative(member.created_at)}'
             e.add_field(name=f'{member} (ID: {member.id})', value=body, inline=False)
 
-        await ctx.send(embed=e)
+        await ctx.respond(embed=e)
 
-    # @commands.command()
+
+    # @slash_command(guild_ids = [SERVER_ID])
     # async def selfmute(self, ctx, time):
     #     """
     #     Self mutes the user that invokes the command.
     #
     #     """
     #     view = Confirm(ctx.author)
-    #     user = ctx.message.author
+    #     user = ctx.author
     #
     #     if time is None:
-    #         await ctx.send(
+    #         await ctx.respond(
     #             'You need to specify a length that this used will be muted. `exe:` `1 day`, `2 months, 1 day`')
     #     else:
-    #         await ctx.send(f"Are you sure you want to selfmute for `{time}`", view=view)
+    #         await ctx.respond(f"Are you sure you want to selfmute for `{time}`", view=view)
     #         await view.wait()
     #         if view.value is False:
-    #             await ctx.send('Aborting...')
+    #             await ctx.respond('Aborting...')
     #         if view.value is True:
     #             await _mute(ctx, user, time, self=True)
     #         return view.value
 
 
 class Math(commands.Cog):
-    """Math commands."""
+    """Math commands"""
 
     print('Math Cog Loaded')
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\U0001f522')
+        return discord.PartialEmoji(name='\U0000270f')
 
     def __init__(self, bot):
         self.bot = bot
@@ -662,11 +679,11 @@ class Math(commands.Cog):
             increment = 2 * index + 3
         return accumulation_list
 
-    @commands.command()
+    @slash_command(guild_ids = [SERVER_ID])
     async def quadratic(self, ctx,
-                        a: int = Option(description=" `a` value in standard form: ax^2 + bx + c"),
-                        b: int = Option(description= ' `b` value in standard form: ax^2 + bx + c'),
-                        c: int = Option(description=' `c` value in standard form: ax^2 + bx + c')
+                        a: Option(int, description=" `a` value in standard form: ax^2 + bx + c"),
+                        b: Option(int, description= ' `b` value in standard form: ax^2 + bx + c'),
+                        c: Option(int, description=' `c` value in standard form: ax^2 + bx + c')
                         ):
         '''
         Solves a Quadratic Function
@@ -676,7 +693,7 @@ class Math(commands.Cog):
         `ax^2 + bx + c`
         '''
         if a <= 0:
-            return await ctx.send('Lead coefficient of `0 or less` is **not** a quadratic!!')
+            return await ctx.respond('Lead coefficient of `0 or less` is **not** a quadratic!!')
 
         w = 4 * a * c
         square_root_value = b**2 - w
@@ -694,19 +711,19 @@ class Math(commands.Cog):
                     if (p / bottom).is_integer():
                         if (q / bottom).is_integer():
                             if q == p:
-                                return await ctx.send(
+                                return await ctx.respond(
                                     r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x=" + f"{int(p / bottom)}i" + r"}")
                             else:
-                                return await ctx.send(
+                                return await ctx.respond(
                                     r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}i" + r"\;\;" + f"x_2={int(q / bottom)}i" + r"}")
                         else:
-                            return await ctx.send(
+                            return await ctx.respond(
                                 r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{q}" + r"}{" + f"{bottom}" + r"}}")
                     if (q / bottom).is_integer():
                         k, l = (p / bottom).as_integer_ratio()
                         x = Fraction(k, l).limit_denominator()
                         k, l = x.as_integer_ratio()
-                        return await ctx.send(
+                        return await ctx.respond(
                             r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(q / bottom)}i" + r"\;\;" + r"x_2=\frac{" + f"{k}i" + r"}{" + f"{l}" + r"}}")
 
                     # Find perfect squares that are factors of n
@@ -714,12 +731,13 @@ class Math(commands.Cog):
                            square_root_value % square == 0 and square > 1]
                 if len(factors) == 0:
                     print('\u221A', square_root_value)
-                    return await ctx.send(
-                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}i" + "}")
+                    i = "i"
+                    return await ctx.respond(
+                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\," + fr"{i}" + r"\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}" + "}")
                 else:
                     x = int(sqrt(max(factors)))  # Coefficient
                     y = int(square_root_value / max(factors))  # Argument of the square root
-                    return await ctx.send(
+                    return await ctx.respond(
                         r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm{x}i\sqrt" + f"{y}" + r"}{" + f"{bottom}" + r"}" + "}")
 
         if sqrt(square_root_value).is_integer():
@@ -731,40 +749,40 @@ class Math(commands.Cog):
             if (p/bottom).is_integer():
                 if (q/bottom).is_integer():
                     if q == p:
-                        return await ctx.send(
+                        return await ctx.respond(
                             r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x=" + f"{int(p / bottom)}" + r"}")
                     else:
-                        return await ctx.send(r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1="+ f"{int(p/bottom)}" + r"\;\;" + f"x_2={int(q/bottom)}"+ r"}")
+                        return await ctx.respond(r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1="+ f"{int(p/bottom)}" + r"\;\;" + f"x_2={int(q/bottom)}"+ r"}")
                 else:
-                    return await ctx.send(
+                    return await ctx.respond(
                         r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{q}"+r"}{"+f"{bottom}" + r"}}")
             if (q/bottom).is_integer():
                 k, l = (p/bottom).as_integer_ratio()
                 x = Fraction(k, l).limit_denominator()
                 k, l = x.as_integer_ratio()
-                return await ctx.send(
+                return await ctx.respond(
                     r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(q / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{k}" + r"}{" + f"{l}" + r"}}")
             else:
                 #TODO figure out what the hell to do here
                 latex = r"\frac{" + f"{-b}" + r"\pm" + f"{int(sqrt(square_root_value))}" + r"}{" + f"{int(2 * a)}" + r"}"
-                return await ctx.send(
+                return await ctx.respond(
                     r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + latex + "}")
-
-
 
 
             # Find perfect squares that are factors of n
         factors = [square for square in self.perfect_square(square_root_value / 2) if square_root_value % square == 0 and square > 1]
         if len(factors) == 0:
             print('\u221A', square_root_value)
-            return await ctx.send(r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}" + "}")
+            return await ctx.respond(
+                r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}" + "}")
         else:
             x = int(sqrt(max(factors)))  # Coefficient
             y = int(square_root_value / max(factors))  # Argument of the square root
-            return await ctx.send(
+            return await ctx.respond(
                 r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm{x}\sqrt" + f"{y}" + r"}{" + f"{bottom}" + r"}" + "}")
 
 
 def setup(bot):
     bot.add_cog(General(bot))
     bot.add_cog(Math(bot))
+
