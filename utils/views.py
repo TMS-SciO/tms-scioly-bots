@@ -1,8 +1,10 @@
+import datetime
+import re
+
 import discord
 import json
 import asyncio
 from typing import List
-from urllib.parse import quote_plus
 from utils.variables import *
 
 
@@ -10,10 +12,11 @@ class Confirm(discord.ui.View):
     def __init__(self, ctx):
         super().__init__()
         self.value = None
-        self.author = ctx.message.author
+        self.author = ctx.author
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user == self.author:
+
+        if interaction.user == self.author or interaction.user.id == 747126643587416174:
             return True
         else:
             await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
@@ -48,161 +51,6 @@ class Counter(discord.ui.View):
 
         await interaction.response.edit_message(view=self)
 
-embedOne = discord.Embed(
-    title = "Help Page",
-    description = f"Hi I'm the main bot for the TMS SciOly discord server, on pages 2-3 you will find general command help and 4-5 is Server Leader commands \n \n My current status is <:online:884200464772661338>",
-    color=0xff008c
-)
-
-embedTwo = discord.Embed(
-    title = "Fun Commands",
-    description = f"Only use these commands in <#816809336113201193>",
-    color=0xff008c
-)
-
-embedTwo.add_field(name = "`!candy`", value= "Feeds Panda One or sometimes 100 pieces of candy", inline=False)
-embedTwo.add_field(name = "`!stealcandy`",
-                   value= "Steal candy from panda, but be warned you may be caught", inline=False)
-embedTwo.add_field(name = "`!ping`", value= "Test the bots latency", inline=False)
-embedTwo.add_field(name = "`!shiba @<>`", value= "Tag someone to get shiba-d", inline=False)
-embedTwo.add_field(name = "`!akita @<>`", value= "Tag someone to get akita-d", inline=False)
-embedTwo.add_field(name = "`!doge @<>`", value= "Tage someone to get dogee-d", inline=False)
-embedTwo.add_field(name = "`!conttondetulear @<>`", value= "Tag someone to get cottondetuleared/buddy-d", inline=False)
-embedTwo.add_field(name = "`!magic8ball <>`", value= "Ask the magic8ball something", inline=False)
-embedTwo.add_field(name = "`!count`", value= "Counts how many members there are", inline=False)
-
-
-embedThree = discord.Embed(
-    title = "Server Commands",
-    description = "You can use these commands anywhere but don't abuse them!",
-    color=0xff008c
-)
-embedThree.add_field(name="`!report <reason>`",
-                     value="This command is used for reporting another member or bot errors, you can use this command or open a ticket",
-                     inline=False)
-embedThree.add_field(name="`!latex <math code>`", value= "Input latex math-code to get an image of the equation", inline=False)
-embedThree.add_field(name="`!info`", value= "Shows info about the server", inline=False)
-
-embedFour = discord.Embed(
-    title = "Moderation Commands 1/2",
-    description = "Only Coaches or users with Server Leader may use these commands, put arguments `< >` in quotes",
-    color=0xff008c
-)
-embedFour.add_field(name="`!ban <@> '<reason>' <time>`", value="Bans a user", inline=False)
-embedFour.add_field(name="`!unban <user id>`", value="Unbans a user", inline=False)
-embedFour.add_field(name="`!kick <@> <reason>`", value="Kicks a user", inline=False)
-embedFour.add_field(name="`!mute <@> <time>`", value="Mutes a user", inline=False)
-embedFour.add_field(name="`!unmute <@>`", value="Unmutes a user", inline=False)
-embedFour.add_field(name="`!warn <@> <reason>`", value="Warns a user and sends a dm through the bot about the warning",
-                    inline=False)
-embedFour.add_field(name="`!nuke <amount>`", value="Clears a certain amount of messages", inline=False)
-embedFour.add_field(name="`!stopnuke`", value="Stops a clearing of messages", inline=False)
-embedFour.add_field(name="`!embed '<title>' '<description>'`", value="Creates an embed message", inline=False)
-embedFour.add_field(name="`!clrreact <message id>`", value="Clears all reactions on a given message", inline=False)
-embedFour.add_field(name='`!prepembed <mention channel> {see parameters below}`',
-                    value='Sends an embed to a channel \n'
-                    "parameters: `{'title':'<>', 'description':'<>', 'hexColor':'<>', 'webcolor':'<>', 'thumbnailUrl':'<>',"
-                    " 'authorName':'<>', 'authorUrl': '<>', 'authorIcon':'<>', 'fields':'<>', 'footerText':'<>',"
-                          " 'footerUrl':'<>', 'imageUrl':'<>'}`",
-                    inline=False)
-
-
-embedFive = discord.Embed(
-    title = "Moderation Commands 2/2",
-    description = "Only users with Server Leader may use these commands",
-    color=0xff008c
-)
-embedFive.add_field(name="`!events1`", value="Creates Role buttons for Life Science Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!events2`", value="Creates Role buttons for Earth and Space Science Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!events3`", value="Creates Role buttons for Physical Science & Chemistry Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!events4`", value="Creates Role buttons for Technology & Engineering Design Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!events5`", value="Creates Role buttons for Inquiry & Nature of Science Events (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!events6`", value="Creates Role buttons for All events role (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!button1`", value="Sends Embed instructions for removing roles (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!pronouns`", value="Creates Role buttons for Pronouns (only use in <#863054629787664464>)", inline=False)
-embedFive.add_field(name="`!ticket`", value="Creates ticket button (only use in <#848996283288518718>)", inline=False)
-embedFive.add_field(name="`!eventroles`", value="Creates all the button embeds (events 1-6) only use in <#863054629787664464>", inline=False)
-
-
-paginationList = [embedOne, embedTwo, embedThree, embedFour, embedFive]
-
-class HelpButtons(discord.ui.View):
-    def __init__(self, ctx, current):
-        super().__init__(timeout=30.0)
-        self.author = ctx.message.author
-        self.current = current
-
-    options = [
-        discord.SelectOption(label='Welcome Page', value="page1"),
-        discord.SelectOption(label='Fun Commands', value="page2"),
-        discord.SelectOption(label='Server Commands', value="page3"),
-        discord.SelectOption(label='Moderation Commands 1/2', value="page4"),
-        discord.SelectOption(label='Moderation Commands 2/2', value="page5")
-    ]
-
-    @discord.ui.select(placeholder='Select a category...', min_values=1, max_values=1, options=options)
-    async def selecthelpmenu(self, select:discord.ui.Select, interaction: discord.Interaction):
-        value = select.values[0]
-        if value == "page1":
-            self.current = 0
-            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-        if value == "page2":
-            self.current = 1
-            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-        if value == "page3":
-            self.current = 2
-            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-        if value == "page4":
-            self.current = 3
-            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-        if value == "page5":
-            self.current = 4
-            self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-            await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-    @discord.ui.button(emoji='<:first:886264720955437057>', custom_id="first", style=discord.ButtonStyle.blurple, row=2)
-    async def first(self, button: discord.ui.Button, interaction: discord.Interaction):
-        self.current = 0
-        print(self.current)
-        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-    @discord.ui.button(emoji='<:left:886264769466732574>', custom_id="left", style=discord.ButtonStyle.blurple, row=2)
-    async def left(self, button: discord.ui.Button, interaction: discord.Interaction):
-        self.current -= 1
-        print(self.current)
-        if self.current < 0:
-            self.current = len(paginationList) - 1
-
-        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-    @discord.ui.button(label="Page 1/5", disabled=True, row=2)
-    async def pagebutton(self, button:discord.ui.button, interaction:discord.Interaction):
-        pass
-
-    @discord.ui.button(emoji='<:right:886264833320820747>', custom_id="right", style=discord.ButtonStyle.blurple, row=2)
-    async def right(self, button: discord.ui.Button, interaction: discord.Interaction):
-        self.current += 1
-        if self.current == len(paginationList):
-            self.current = 0
-        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
-    @discord.ui.button(emoji='<:last:886264854523043860>', custom_id="last", style=discord.ButtonStyle.blurple, row=2)
-    async def last(self, button: discord.ui.Button, interaction: discord.Interaction):
-        self.current = 4
-        self.pagebutton.label = f"Page {int(paginationList.index(paginationList[self.current])) + 1}/{len(paginationList)}"
-        await interaction.response.edit_message(embed=paginationList[self.current], view=self)
-
 
 class Ticket(discord.ui.View):
     def __init__(self, bot):
@@ -218,61 +66,59 @@ class Ticket(discord.ui.View):
             ticket_number = int(data["ticket-counter"])
             ticket_number += 1
 
-            ticket_channel = await interaction.guild.create_text_channel("ticket-{}".format(ticket_number))
+            ticket_channel = await interaction.guild.create_text_channel("\U0001f4e9│ticket-{}".format(ticket_number))
             await ticket_channel.set_permissions(interaction.guild.get_role(interaction.guild.id), send_messages=False,
-                                                     read_messages=False)
+                                                 read_messages=False)
 
             for role_id in data["valid-roles"]:
-                    role = interaction.guild.get_role(role_id)
+                role = interaction.guild.get_role(role_id)
 
-                    await ticket_channel.set_permissions(role, send_messages=True, read_messages=True,
-                                                         add_reactions=True,
-                                                         embed_links=True, attach_files=True,
-                                                         read_message_history=True,
-                                                         external_emojis=True)
+                await ticket_channel.set_permissions(role, send_messages=True, read_messages=True,
+                                                     add_reactions=True,
+                                                     embed_links=True, attach_files=True,
+                                                     read_message_history=True,
+                                                     external_emojis=True)
 
-                    await ticket_channel.set_permissions(interaction.user, send_messages=True, read_messages=True,
-                                                         add_reactions=True,
-                                                         embed_links=True, attach_files=True,
-                                                         read_message_history=True,
-                                                         external_emojis=True)
+                await ticket_channel.set_permissions(interaction.user, send_messages=True, read_messages=True,
+                                                     add_reactions=True,
+                                                     embed_links=True, attach_files=True,
+                                                     read_message_history=True,
+                                                     external_emojis=True)
 
-                    pinged_msg_content = ""
-                    non_mentionable_roles = []
+                pinged_msg_content = ""
+                non_mentionable_roles = []
 
-                    if data["pinged-roles"] != []:
+                if data["pinged-roles"] != []:
 
-                        for role_id in data["pinged-roles"]:
-                            role = interaction.guild.get_role(role_id)
+                    for role_id in data["pinged-roles"]:
+                        role = interaction.guild.get_role(role_id)
 
-                            pinged_msg_content += role.mention
-                            pinged_msg_content += " "
+                        pinged_msg_content += role.mention
+                        pinged_msg_content += " "
 
-                            if role.mentionable:
-                                pass
-                            else:
-                                await role.edit(mentionable=True)
-                                non_mentionable_roles.append(role)
+                        if role.mentionable:
+                            pass
+                        else:
+                            await role.edit(mentionable=True)
+                            non_mentionable_roles.append(role)
 
-                    message_content = "Please wait and a moderator will assist you! To close this ticket press the `Close` button below"
-                    em = discord.Embed(
-                        title="New ticket from {}#{}".format(interaction.user.name, interaction.user.discriminator),
-                        description=f"{message_content} {pinged_msg_content}", color=0x00a8ff)
-                    view1 = Close(self.bot)
+                message_content = "Please wait and a moderator will assist you! To close this ticket press the `Close` button below"
+                em = discord.Embed(
+                    title="New ticket from {}#{}".format(interaction.user.name, interaction.user.discriminator),
+                    description=f"{message_content} {pinged_msg_content}", color=0x00a8ff)
+                view1 = Close(self.bot)
 
+                data["ticket-channel-ids"].append(ticket_channel.id)
+                data["ticket-counter"] = int(ticket_number)
+                with open("data.json", 'w') as f:
+                    json.dump(data, f)
 
-
-                    data["ticket-channel-ids"].append(ticket_channel.id)
-                    data["ticket-counter"] = int(ticket_number)
-                    with open("data.json", 'w') as f:
-                        json.dump(data, f)
-
-                        em3 = discord.Embed(title="TMS Tickets",
-                                            description="Your ticket has been created at {}".format(
-                                                ticket_channel.mention),
-                                            color=0x00a8ff)
-                        await interaction.response.send_message(embed=em3, ephemeral=True)
-                    return await ticket_channel.send(embed=em, view=view1)
+                    em3 = discord.Embed(title="TMS Tickets",
+                                        description="Your ticket has been created at {}".format(
+                                            ticket_channel.mention),
+                                        color=0x00a8ff)
+                    await interaction.response.send_message(embed=em3, ephemeral=True)
+                return await ticket_channel.send(embed=em, view=view1)
 
 
 class Close(discord.ui.View):
@@ -386,7 +232,6 @@ class TicTacToe(discord.ui.View):
             [0, 0, 0],
         ]
 
-
         for x in range(3):
             for y in range(3):
                 self.add_item(TicTacToeButton(x, y))
@@ -426,7 +271,6 @@ class TicTacToe(discord.ui.View):
             return self.Tie
 
         return None
-
 
 
 class Role1(discord.ui.View):
@@ -558,6 +402,7 @@ class Role2(discord.ui.View):
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
+
 class Role3(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -622,6 +467,7 @@ class Role3(discord.ui.View):
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
+
 class Role4(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -650,7 +496,6 @@ class Role4(discord.ui.View):
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
-
     @discord.ui.button(label="\U000023f1 Mission Possible", custom_id='mp', row=2)
     async def mp(self, button: discord.ui.Button, interaction: discord.Interaction):
         role = discord.utils.get(interaction.guild.roles, name=ROLE_MP)
@@ -674,6 +519,7 @@ class Role4(discord.ui.View):
             member = await interaction.guild.fetch_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
 
 class Role5(discord.ui.View):
     def __init__(self):
@@ -726,6 +572,7 @@ class Role5(discord.ui.View):
             member = await interaction.guild.fetch_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
+
 
 class Pronouns(discord.ui.View):
     def __init__(self):
@@ -797,60 +644,265 @@ class Allevents(discord.ui.View):
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
 
-class Nitro(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="Claim")
-    async def nitroclaim(self, button: discord.ui.Button, interaction: discord.Interaction):
-        number = 0
-
-        if number + 1 >= 1:
-            button.style = discord.ButtonStyle.secondary
-            button.disabled = True
-            button.label = "Claimed"
-        em1 = discord.Embed(title= "You received a gift, but...",
-                            description="The gift link has either expired or has been revoked. The sender can still create a new link to send again.")
-        em1.set_thumbnail(url = "https://i.imgur.com/w9aiD6F.png")
-        await interaction.response.edit_message(embed= em1, view=self)
-        await interaction.followup.send('https://tenor.com/view/rick-astley-rick-roll-dancing-dance-moves-gif-14097983', ephemeral=True)
-
-
-class Google(discord.ui.View):
-    def __init__(self, query: str):
-        super().__init__()
-        # we need to quote the query string to make a valid url. Discord will raise an error if it isn't valid.
-        query = quote_plus(query)
-        url = f'https://www.google.com/search?q={query}'
-
-        # Link buttons cannot be made with the decorator
-        # Therefore we have to manually create one.
-        # We add the quoted url to the button, and add the button to the view.
-        self.add_item(discord.ui.Button(label='Click Here', url=url))
+# class Google(discord.ui.View):
+#     def __init__(self, query: str):
+#         super().__init__()
+#         # we need to quote the query string to make a valid url. Discord will raise an error if it isn't valid.
+#         query = quote_plus(query)
+#         url = f'https://www.google.com/search?q={query}'
+#         self.add_item(discord.ui.Button(label='Click Here', url=url))
 
 
 class NukeStopButton(discord.ui.Button["Nuke"]):
 
-    def __init__(self, nuke):
-        super().__init__(label = "ABORT", style = discord.ButtonStyle.danger)
+    def __init__(self, nuke, ctx):
+        super().__init__(label="ABORT", style=discord.ButtonStyle.danger)
         self.nuke = nuke
+        self.author = ctx.author
 
     async def callback(self, interaction: discord.Interaction):
         self.nuke.stopped = True
         self.style = discord.ButtonStyle.green
         self.label = "ABORTED"
         self.disabled = True
-        await interaction.response.send_message(content = "NUKE ABORTED, COMMANDER.")
-        await interaction.edit_original_message(view = self.nuke)
+        embed = discord.Embed()
+        embed.description = f"""
+        NUKE ABORTED COMMANDER \n Nuke request canceled by {interaction.user.mention} in {interaction.channel.mention}
+        """
+        embed.title = "NUKE COMMAND PANEL"
+        embed.colour = discord.Colour.brand_green()
+        embed.timestamp = discord.utils.utcnow()
+        await interaction.response.edit_message(embed=embed, view=None, content=None)
         self.nuke.stop()
 
 
 class Nuke(discord.ui.View):
-
     stopped = False
 
-    def __init__(self):
+    def __init__(self, ctx):
         super().__init__()
-        button = NukeStopButton(self)
+        button = NukeStopButton(self, ctx)
         self.add_item(button)
-        
+        self.author = ctx.author
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user == self.author or interaction.user.id == 747126643587416174:
+            return True
+        await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+
+
+class AllEventsSelect(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    options = [
+        discord.SelectOption(label="Anatomy and Physiology", value="anatomy", emoji="\U0001f9e0"),
+        discord.SelectOption(label="Bio Process Lab", value="bpl", emoji="\U0001f9ec"),
+        discord.SelectOption(label="Bridges", value="bridges", emoji="\U0001f309"),
+        discord.SelectOption(label="Codebusters", value="code", emoji="\U0001f512"),
+        discord.SelectOption(label="Crave the Wave", value="wave", emoji="\U0001f30a"),
+        discord.SelectOption(label="Crime Busters", value="crime", emoji="\U0001f9ea"),
+        discord.SelectOption(label="Disease Detectives", value="dd", emoji="\U0001f9a0"),
+        discord.SelectOption(label="Dynamic Planet", value="dp", emoji="\U0001f30e"),
+        discord.SelectOption(label="Electric Wright Stuff", value="ews", emoji="\U0001f6e9"),
+        discord.SelectOption(label="Experimental Design", value="expd", emoji="\U0001f97d"),
+        discord.SelectOption(label="Food Science", value="fs", emoji="\U0001f349"),
+        discord.SelectOption(label="Green Generation", value="gg", emoji="\U0001f333"),
+        discord.SelectOption(label="Meteorology", value="meteo", emoji="\U000026c8"),
+        discord.SelectOption(label="Mission Possible", value="mission", emoji="\U000023f2"),
+        discord.SelectOption(label="Mousetrap Vehicle", value="mouse", emoji="\U0001faa4"),
+        discord.SelectOption(label="Ornithology", value="orni", emoji="\U0001f985"),
+        discord.SelectOption(label="Ping Pong Parachute", value="ppp", emoji="\U0001fa82"),
+        discord.SelectOption(label="Road Scholar", value="road", emoji="\U0001f3d4"),
+        discord.SelectOption(label="Rocks and Minerals", value="rocks", emoji="\U0001f48e"),
+        discord.SelectOption(label="Solar System", value="solar", emoji="\U0001fa90"),
+        discord.SelectOption(label="Sounds of Music", value="music", emoji="\U0001f3b5"),
+        discord.SelectOption(label="Storm the Castle", value="castle", emoji="\U0001f3af"),
+        discord.SelectOption(label="Write It Do It", value="widi", emoji="\U0001f4dd")
+    ]
+
+    @discord.ui.select(
+        placeholder="Chose what events you're participating in!",
+        max_values=1,
+        min_values=0,
+        options=options,
+        custom_id="events_select")
+    async def event_select(self, select: discord.ui.Select, interaction: discord.Interaction):
+        roles = {"anatomy": ROLE_AP,
+                 "bpl": ROLE_BPL,
+                 "bridges": ROLE_B,
+                 "code": ROLE_C,
+                 "crime": ROLE_CB,
+                 "wave": ROLE_CTW,
+                 "dd": ROLE_DD,
+                 "dp": ROLE_DP,
+                 "ews": ROLE_EWS,
+                 "expd": ROLE_ED,
+                 "fs": ROLE_FS,
+                 "gg": ROLE_GG,
+                 "meteo": ROLE_M,
+                 "mission": ROLE_MP,
+                 "mouse": ROLE_MV,
+                 "orni": ROLE_O,
+                 "ppp": ROLE_PPP,
+                 "road": ROLE_RS,
+                 "rocks": ROLE_RM,
+                 "solar": ROLE_SS,
+                 "music": ROLE_SOM,
+                 "castle": ROLE_STC,
+                 "widi": ROLE_WIDI
+                 }
+        values = select.values[0]
+        role_name = roles[values]
+        role = discord.utils.get(interaction.guild.roles, name=role_name)
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.send_message(
+                f'Removed Roles {role.mention}, if you accidentally added this role click the option again to remove it',
+                ephemeral=True)
+        else:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message(
+                f'Added Roles {role.mention}, if you accidentally added this role click the option again to remove it',
+                ephemeral=True)
+
+
+class ReportView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="\U00002705", custom_id="green_check", style=discord.ButtonStyle.green)
+    async def green_check(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if interaction.channel.id == CHANNEL_REPORTS:
+            await interaction.response.defer()
+            await interaction.message.delete()
+            print("Handled by staff")
+        else:
+            await interaction.response.defer()
+
+    @discord.ui.button(label="\U0000274c", custom_id="red_x", style=discord.ButtonStyle.red)
+    async def red_x(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if interaction.channel.id == CHANNEL_REPORTS:
+            await interaction.response.defer()
+            await interaction.message.delete()
+            print("Cleared with no action")
+        else:
+            await interaction.response.defer()
+
+
+class CronView(discord.ui.View):
+
+    def __init__(self, docs, bot):
+        super().__init__()
+        self.add_item(CronSelect(docs, bot))
+
+
+class CronSelect(discord.ui.Select):
+    def __init__(self, docs, bot):
+        options = []
+        docs.sort(key=lambda d: d['time'])
+        print([d['time'] for d in docs])
+        counts = {}
+        for doc in docs[:20]:
+            timeframe = (doc['time'] - datetime.datetime.utcnow()).days
+            if abs(timeframe) < 1:
+                timeframe = f"{(doc['time'] - datetime.datetime.utcnow()).total_seconds() // 3600} hours"
+            else:
+                timeframe = f"{(doc['time'] - datetime.datetime.utcnow()).days} days"
+            tag_name = f"{doc['type'].title()} {doc['tag']}"
+            if tag_name in counts:
+                counts[tag_name] = counts[tag_name] + 1
+            else:
+                counts[tag_name] = 1
+            if counts[tag_name] > 1:
+                tag_name = f"{tag_name} (#{counts[tag_name]})"
+            option = discord.SelectOption(
+                label=tag_name,
+                description=f"Occurs in {timeframe}."
+            )
+            options.append(option)
+
+        super().__init__(
+            placeholder="View potential actions to modify...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+        self.docs = docs
+        self.bot = bot
+
+    async def callback(self, interaction: discord.Interaction):
+        value = self.values[0]
+        num = re.findall(r'\(#(\d*)', value)
+        value = re.sub(r' \(#\d*\)', '', value)
+        relevant_doc = [d for d in self.docs if f"{d['type'].title()} {d['tag']}" == value]
+        if len(relevant_doc) == 1:
+            relevant_doc = relevant_doc[0]
+        else:
+            if not len(num):
+                relevant_doc = relevant_doc[0]
+            else:
+                num = num[0]
+                relevant_doc = relevant_doc[int(num) - 1]
+        view = CronConfirm(relevant_doc, self.bot)
+        await interaction.response.edit_message(
+            content=f"Okay! What would you like me to do with this CRON item?\n> {self.values[0]}",
+            view=view,
+            embed=None)
+
+
+class CronConfirm(discord.ui.View):
+
+    def __init__(self, doc, bot):
+        super().__init__()
+        self.doc = doc
+        self.bot = bot
+
+    @discord.ui.button(label="Remove", style=discord.ButtonStyle.danger)
+    async def remove_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        CRON_LIST.remove(self.doc)
+        await interaction.response.edit_message(
+            content="Awesome! I successfully removed the action from the CRON list.", view=None)
+
+    @discord.ui.button(label="Complete Now", style=discord.ButtonStyle.green)
+    async def complete_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        server = self.bot.get_guild(SERVER_ID)
+        if self.doc["type"] == "UNBAN":
+            # User needs to be unbanned
+            try:
+                await server.unban(self.doc["user"])
+            except:
+                pass
+            await interaction.response.edit_message(
+                content="Attempted to unban the user. Checking to see if operation was succesful...", view=None)
+            bans = await server.bans()
+            for ban in bans:
+                if ban.user.id == self.doc["user"]:
+                    return await interaction.edit_original_message(
+                        content="Uh oh! The operation was not succesful - the user remains banned.")
+            CRON_LIST.remove(self.doc)
+            return await interaction.edit_original_message(
+                content="The operation was verified - the user can now rejoin the server.")
+        elif self.doc["type"] == "UNMUTE":
+            # User needs to be unmuted.
+            member = server.get_member(self.doc["user"])
+            if member is None:
+                return await interaction.response.edit_message(
+                    content="The user is no longer in the server, so I was not able to unmute them. The task remains in the CRON list in case the user rejoins the server.",
+                    view=None)
+            else:
+                role = discord.utils.get(server.roles, name=ROLE_MUTED)
+                try:
+                    await member.remove_roles(role)
+                except:
+                    pass
+                await interaction.response.edit_message(
+                    content="Attempted to unmute the user. Checking to see if the operation was succesful...",
+                    view=None)
+                if role not in member.roles:
+                    CRON_LIST.remove(self.doc)
+                    return await interaction.edit_original_message(
+                        content="The operation was verified - the user can now speak in the server again.")
+                else:
+                    return await interaction.edit_original_message(
+                        content="Uh oh! The operation was not successful - the user is still muted.")
