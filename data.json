@@ -1,7 +1,8 @@
 {
-  "ticket-counter": 0, 
+ "ticket-counter": 0, 
  "valid-roles": [], 
  "pinged-roles": [], 
  "ticket-channel-ids": [], 
- "verified-roles": []
+ "verified-roles": [],
+ "report_id": 4
 }
