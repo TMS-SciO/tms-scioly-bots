@@ -1,3 +1,4 @@
+
 # ROLES
 ROLE_SELFMUTE = "Self-Muted"
 ROLE_MUTED = "Muted"
@@ -51,6 +52,7 @@ CHANNEL_DMLOG = 874827004069957654
 WELCOME_CHANNEL = 816806329925894220
 CHANNEL_UNSELFMUTE = 872949802495787058
 CHANNEL_SUGGESTIONS = 897233313784266752
+CHANNEL_CLOSED_REPORTS = 922321290168266803
 
 # OTHER
 SERVER_ID = 816806329925894217
@@ -59,29 +61,14 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 BOT_PREFIX = "!"
 BOT_PREFIX1 = "?"
 
+REPO = "https://github.com/pandabear189/tms-scioly-bots"
+
 STEALFISH_BAN = []
 CRON_LIST = []
 fish_now = 0
 REPORT_IDS = []
 WARN_IDS = []
 RECENT_MESSAGES = []
-
-INITIAL_EXTENSIONS = ["cogs.mod",
-                      "cogs.fun",
-                      "cogs.general",
-                      "cogs.tasks",
-                      "cogs.listeners",
-                      "cogs.meta",
-                      "cogs.base"]
-
-
-BASE_EXTENSIONS = [
-                    "cogs.mod",
-                    "cogs.fun",
-                    "cogs.general",
-                    "cogs.tasks",
-                    "cogs.listeners"
-                    ]
 
 
 random_hex_colors_purple = ["#dcb9f7",
@@ -93,3 +80,4 @@ random_hex_colors_purple = ["#dcb9f7",
                             "#deb4f7",
                             "#8b0bc1",
                             "#dac9ff"]
+
