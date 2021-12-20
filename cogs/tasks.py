@@ -23,17 +23,23 @@ class CronTasks(commands.Cog):
                         server = self.bot.get_guild(SERVER_ID)
                         member = await self.bot.fetch_user(task['user'])
                         await server.unban(member)
+                        CRON_LIST.remove(task)
                         print(f"Unbanned user ID: {member.id}")
+
                     elif task['type'] == "UNMUTE":
                         server = self.bot.get_guild(SERVER_ID)
                         member = server.get_member(task['user'])
                         role = discord.utils.get(server.roles, name=ROLE_MUTED)
                         self_role = discord.utils.get(server.roles, name=ROLE_SELFMUTE)
                         await member.remove_roles(role, self_role)
+                        CRON_LIST.remove(task)
                         print(f"Unmuted user ID: {member.id}")
-                    elif task['type'] == "UNSTEALFISHBAN":
+
+                    elif task['type'] == "UNSTEALCANDYBAN":
                         STEALFISH_BAN.remove(task['user'])
-                        print(f"Un-stealfished user ID: {task['user']}")
+                        CRON_LIST.remove(task)
+                        print(f"Un-stealcandybanneded user ID: {task['user']}")
+
                     else:
                         guild = self.bot.get_guild(SERVER_ID)
                         reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
