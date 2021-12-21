@@ -1,4 +1,4 @@
-# tms-scioly-bots  [![Lines-of-Code](https://hitsofcode.com/github/pandabear189/tms-scioly-bots?branch=main)](https://hitsofcode.com/github/pandabear189/tms-scioly-bots/view?branch=main)
+# tms-scioly-bots ![](https://tokei.rs/b1/github/pandabear189/tms-scioly-bots)
 
    
 
