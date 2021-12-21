@@ -792,23 +792,31 @@ class ReportView(discord.ui.View):
 
 class CronView(discord.ui.View):
 
-    def __init__(self, docs, bot):
+    def __init__(self, docs, bot, ctx):
         super().__init__()
-        self.add_item(CronSelect(docs, bot))
+        self.add_item(CronSelect(docs, bot, ctx))
+        self.ctx = ctx
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user == self.ctx.author:
+            return True
+        else:
+            await interaction.response.send_message('Sorry, this menu cannot be controlled by you', ephemeral=True)
+            return False
 
 
 class CronSelect(discord.ui.Select):
-    def __init__(self, docs, bot):
+    def __init__(self, docs, bot, ctx):
         options = []
         docs.sort(key=lambda d: d['time'])
         print([d['time'] for d in docs])
         counts = {}
         for doc in docs[:20]:
-            timeframe = (doc['time'] - datetime.datetime.utcnow()).days
+            timeframe = (doc['time'] - datetime.datetime.now()).days
             if abs(timeframe) < 1:
-                timeframe = f"{(doc['time'] - datetime.datetime.utcnow()).total_seconds() // 3600} hours"
+                timeframe = f"{((doc['time']) - datetime.datetime.now()).total_seconds() // 3600} hours"
             else:
-                timeframe = f"{(doc['time'] - datetime.datetime.utcnow()).days} days"
+                timeframe = f"{((doc['time']) - datetime.datetime.now()).days} days"
             tag_name = f"{doc['type'].title()} {doc['tag']}"
             if tag_name in counts:
                 counts[tag_name] = counts[tag_name] + 1
@@ -830,6 +838,7 @@ class CronSelect(discord.ui.Select):
         )
         self.docs = docs
         self.bot = bot
+        self.ctx = ctx
 
     async def callback(self, interaction: discord.Interaction):
         value = self.values[0]
@@ -844,65 +853,127 @@ class CronSelect(discord.ui.Select):
             else:
                 num = num[0]
                 relevant_doc = relevant_doc[int(num) - 1]
-        view = CronConfirm(relevant_doc, self.bot)
+        view = CronConfirm(relevant_doc, self.bot, self.ctx)
+        embed = discord.Embed(
+            title="Action Dashboard",
+            description=f"Okay! What would you like me to do with this CRON item?\n> {self.values[0]}",
+            color=discord.Color.fuchsia()
+        )
         await interaction.response.edit_message(
-            content=f"Okay! What would you like me to do with this CRON item?\n> {self.values[0]}",
             view=view,
-            embed=None)
+            embed=embed)
 
 
 class CronConfirm(discord.ui.View):
 
-    def __init__(self, doc, bot):
+    def __init__(self, doc, bot, ctx):
         super().__init__()
         self.doc = doc
         self.bot = bot
+        self.ctx = ctx
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user == self.ctx.author:
+            return True
+        else:
+            await interaction.response.send_message('Sorry, this menu cannot be controlled by you', ephemeral=True)
+            return False
 
     @discord.ui.button(label="Remove", style=discord.ButtonStyle.danger)
     async def remove_button(self, button: discord.ui.Button, interaction: discord.Interaction):
         CRON_LIST.remove(self.doc)
         await interaction.response.edit_message(
             content="Awesome! I successfully removed the action from the CRON list.", view=None)
+        if self.doc["type"] != "UNSTEALCANDYBAN":
+            return
+        STEALFISH_BAN.remove(self.doc["user"])
 
     @discord.ui.button(label="Complete Now", style=discord.ButtonStyle.green)
     async def complete_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+
         server = self.bot.get_guild(SERVER_ID)
+        embed = discord.Embed()
+
         if self.doc["type"] == "UNBAN":
+
+            embed.title = "Checking..."
+            embed.description = "Attempting to unban the user. Checking to see if operation was successful..."
+            embed.colour = discord.Colour.yellow()
+
+            await interaction.response.edit_message(embed=embed, view=None)
+
             # User needs to be unbanned
-            try:
-                await server.unban(self.doc["user"])
-            except:
-                pass
-            await interaction.response.edit_message(
-                content="Attempted to unban the user. Checking to see if operation was succesful...", view=None)
+            member = self.bot.get_user(self.doc["user"])
+            await server.unban(member)
+
             bans = await server.bans()
             for ban in bans:
                 if ban.user.id == self.doc["user"]:
-                    return await interaction.edit_original_message(
-                        content="Uh oh! The operation was not succesful - the user remains banned.")
+                    embed.title = "\U000026a0 Failed to unban"
+                    embed.description = "Uh oh! The operation was not successful - the user remains banned."
+                    embed.colour = discord.Colour.brand_red()
+                    return await interaction.edit_original_message(embed=embed, content=None)
+
             CRON_LIST.remove(self.doc)
-            return await interaction.edit_original_message(
-                content="The operation was verified - the user can now rejoin the server.")
+            embed.title = "Completed Unban"
+            embed.description = "The operation was verified - the user can now rejoin the server."
+            embed.colour = discord.Colour.brand_green()
+            return await interaction.edit_original_message(embed=embed, content=None)
+
         elif self.doc["type"] == "UNMUTE":
             # User needs to be unmuted.
             member = server.get_member(self.doc["user"])
             if member is None:
-                return await interaction.response.edit_message(
-                    content="The user is no longer in the server, so I was not able to unmute them. The task remains in the CRON list in case the user rejoins the server.",
-                    view=None)
+                embed.title = "\U000026a0 Unable to unmute user"
+                embed.description = "The user is no longer in the server, so I was not able to unmute them. The task " \
+                                    "remains in the CRON list in case the user rejoins the server. "
+                embed.colour = discord.Colour.yellow()
+
             else:
                 role = discord.utils.get(server.roles, name=ROLE_MUTED)
                 try:
                     await member.remove_roles(role)
                 except:
                     pass
-                await interaction.response.edit_message(
-                    content="Attempted to unmute the user. Checking to see if the operation was succesful...",
-                    view=None)
+
+                embed.title = "Checking..."
+                embed.description = "Attempting to unmute the user. Checking to see if the operation was succesful..."
+                embed.colour = discord.Colour.yellow()
+                await interaction.response.edit_message(embed=embed, view=None)
+
                 if role not in member.roles:
                     CRON_LIST.remove(self.doc)
-                    return await interaction.edit_original_message(
-                        content="The operation was verified - the user can now speak in the server again.")
+                    embed.title = "Success!"
+                    embed.description = f"The operation was verified - the user ({member.mention}) can now speak in " \
+                                        f"the server again. "
+                    embed.colour = discord.Colour.brand_green()
+                    return await interaction.edit_original_message(content=None, embed=embed)
                 else:
+                    embed.title = "\U000026a0 Failed to unmute"
+                    embed.description = "Uh oh! The operation was not successful - the user is still muted."
+                    embed.colour = discord.Colour.brand_red()
                     return await interaction.edit_original_message(
-                        content="Uh oh! The operation was not successful - the user is still muted.")
+                        content=None)
+
+        elif self.doc["type"] == "UNSTEALCANDYBAN":
+            member = self.bot.get_user(self.doc["user"])
+            embed.title = "Checking..."
+            embed.description = "Attempting to unban the user. Checking to see if operation was successful..."
+            embed.colour = discord.Colour.yellow()
+
+            await interaction.response.edit_message(embed=embed, view=None)
+
+            try:
+                STEALFISH_BAN.remove(self.doc["user"])
+                CRON_LIST.remove(self.doc)
+                embed.title = "\U0001f36c Success! \U0001f36c"
+                embed.description = f"Successfully unbanned {member} from stealing candy!"
+                embed.colour = discord.Colour.brand_green()
+                return await interaction.edit_original_message(embed=embed, content=None)
+
+            except Exception:
+                embed.title = "\U0001f36c Failed!"
+                embed.description = "Uh oh! The operation was not successful - the user remains banned from stealing " \
+                                    "candy. "
+                embed.colour = discord.Colour.brand_red()
+                return await interaction.edit_original_message(embed=embed, content=None)
