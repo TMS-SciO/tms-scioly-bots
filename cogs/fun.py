@@ -1,8 +1,8 @@
 import asyncio
+import datetime
 import random
 import unicodedata
 
-import dateparser
 import discord
 
 import math
@@ -121,15 +121,26 @@ class Fun(commands.Cog):
             per = round(ratio * 100)
             return await ctx.respond(f"You stole {per}% of panda's candy!")
         if r >= 0.416:
-            parsed = dateparser.parse("1 hour", settings={"PREFER_DATES_FROM": "future"})
+            date = datetime.datetime.now() + datetime.timedelta(hours=1)
             STEALFISH_BAN.append(member.id)
-            CRON_LIST.append({"date": parsed, "do": f"unstealfishban {member.id}"})
+            CRON_LIST.append({
+                'type': "UNSTEALCANDYBAN",
+                'user': member.id,
+                'time': date,
+                'tag': str(member)
+            })
             return await ctx.respond(
-                f"Sorry {member.mention}, but it looks like you're going to be banned from using this command for 1 hour!")
+                f"Sorry {member.mention}, but it looks like you're going to be banned from using this command for 1 "
+                f"hour!")
         if r >= 0.25:
-            parsed = dateparser.parse("1 day", settings={"PREFER_DATES_FROM": "future"})
+            date = datetime.datetime.now() + datetime.timedelta(days=1)
             STEALFISH_BAN.append(member.id)
-            CRON_LIST.append({"date": parsed, "do": f"unstealfishban {member.id}"})
+            CRON_LIST.append({
+                'type': "UNSTEALCANDYBAN",
+                'user': member.id,
+                'time': date,
+                'tag': str(member)
+            })
             return await ctx.respond(
                 f"Sorry {member.mention}, but it looks like you're going to be banned from using this command for 1 day!")
         if r >= 0.01:
