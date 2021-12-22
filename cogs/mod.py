@@ -13,7 +13,6 @@ from utils.checks import is_staff
 from utils.variables import *
 from utils.views import Confirm, CronView, ReportView, Nuke
 
-
 STOPNUKE = datetime.datetime.utcnow()
 
 
@@ -30,65 +29,6 @@ class Moderation(commands.Cog):
     @property
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='mod_badge', id=900488706748731472)
-
-    # suggestion = discord.SlashCommandGroup(
-    #     name="suggestion",
-    #     description="Managing suggests",
-    #     guild_ids=[SERVER_ID]
-    # )
-
-    # @suggestion.command()
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def suggestion_deny(self, ctx, message: Option(str, description="Suggestion message id")):
-        '''Denies a suggestion, is not reversible'''
-        message = await commands.MessageConverter().convert(ctx, message)
-        if message.channel.id == CHANNEL_SUGGESTIONS:
-            embed_obj = message.embeds[0]
-            embed = embed_obj.copy()
-            description = embed.description
-            embed.description = (description + "\n ```This suggestion has been denied```")
-            embed.colour = discord.Colour.brand_red()
-            await message.edit(embed=embed)
-            await message.clear_reactions()
-            await ctx.respond("Successfully denied suggestion")
-        else:
-            await ctx.respond("That is not a valid suggestion message")
-
-        # @suggestion.command()
-
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def suggestion_approve(self, ctx, message: Option(str, description="Suggestion message id")):
-        '''Approves a suggestion, is not reversible'''
-        message = await commands.MessageConverter().convert(ctx, message)
-        if message.channel.id == CHANNEL_SUGGESTIONS:
-            embed_obj = message.embeds[0]
-            embed = embed_obj.copy()
-            description = embed.description
-            embed.description = (description + "\n ```This suggestion has been approved```")
-            embed.colour = discord.Colour.brand_green()
-            await message.edit(embed=embed)
-            await ctx.respond("Successfully approved suggestion")
-        else:
-            await ctx.respond("That is not a valid suggestion message")
-
-    # @suggestion.command()
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def suggestion_delete(self, ctx, message: Option(str, description="Suggestion message id")):
-        '''Deletes a suggestion message'''
-        message = await commands.MessageConverter().convert(ctx, message)
-        if message.channel.id == CHANNEL_SUGGESTIONS:
-            msg = await ctx.respond("Deleting suggestion in `5` seconds")
-            await asyncio.sleep(1)
-            for i in range(4, 0, -1):
-                await msg.edit(f"Deleting suggestion in `{i}` seconds")
-                await asyncio.sleep(1)
-            await message.delete()
-            await msg.edit(content="Deleted suggestion")
-        else:
-            await ctx.respond("Not a valid suggestion message")
 
     @slash_command(guild_ids=[SERVER_ID])
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
@@ -108,21 +48,34 @@ class Moderation(commands.Cog):
         cron_embed = discord.Embed(
             title="Managing the CRON list",
             color=discord.Color.fuchsia(),
-            description=f'Hello! Managing the CRON list gives you the power to change when or how TMS-Bot ' 
-            'automatically executes commands. \n**Completing a task:** Do you want to instantly unmute a user who is ' 
-            'scheduled to be unmuted later? Sure, select the CRON entry from the dropdown, and then select *"Complete ' 
-            'Now"*! \n**Removing a task:** Want to completely remove a task so TMS-Bot will never execute it? No worries, ' 
-            'select the CRON entry from the dropdown and select *Remove*!'
+            description=f'Hello! Managing the CRON list gives you the power to change when or how TMS-Bot '
+                        'automatically executes commands. \n\n**Completing a task:** Do you want to instantly unmute '
+                        'a user who is '
+                        'scheduled to be unmuted later? Sure, select the CRON entry from the dropdown, and then '
+                        'select *"Complete '
+                        'Now"*! \n\n**Removing a task:** Want to completely remove a task so TMS-Bot will never '
+                        'execute it? No worries, '
+                        'select the CRON entry from the dropdown and select *Remove*!'
         )
 
         await ctx.respond("See information below for how to manage the CRON list.",
-                          view=CronView(cron_list, self.bot),
+                          view=CronView(cron_list, self.bot, ctx),
                           embed=cron_embed)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    censor = discord.SlashCommandGroup(
+        "censor",
+        "Managing the bot's censor system",
+        [SERVER_ID],
+        # default_permission=False,
+    )
+
+    @censor.command()
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def censor_add(self, ctx,
-                         phrase: Option(str, description="The new word to add. For the new word, type the word")):
+    async def add(
+            self,
+            ctx,
+            phrase: Option(str, description="The new word to add. For the new word, type the word")
+    ):
         '''Adds a word to the censor'''
         phrase = phrase.lower()
         if phrase in CENSORED['words']:
@@ -132,9 +85,13 @@ class Moderation(commands.Cog):
             self.bot.reload_extension("cogs.censor")
             return await ctx.respond(f"Added Word to censored list")
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @censor.command()
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def censor_remove(self, ctx, phrase: Option(str, description="The word to remove from the censor list.")):
+    async def remove(
+            self,
+            ctx,
+            phrase: Option(str, description="The word to remove from the censor list.")
+    ):
         '''Removes a word from the censor'''
         phrase = phrase.lower()
         if phrase not in CENSORED["words"]:
@@ -277,19 +234,6 @@ class Moderation(commands.Cog):
             original_shown_embed.description = "f`{member.name}` was not banned"
             original_shown_embed.title = "Ban Cancelled"
             await ctx.respond(embed=original_shown_embed, view=None, content=None)
-
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def unban(self, ctx, member: Option(discord.User, description="The user (id) to unban")):
-        """Unbans a user."""
-        if member is None:
-            await ctx.channel.send("Please give either a user ID or mention a user.")
-        else:
-            await ctx.guild.unban(member)
-            embed = discord.Embed(title="Unban Request",
-                                  description=f"Inverse ban hammer applied, {member.mention} unbanned. Please remember that I cannot force them to re-join the server, they must join themselves.",
-                                  color=0x00FF00)
-            await ctx.respond(embed=embed)
 
     @slash_command(guild_ids=[SERVER_ID])
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
@@ -468,7 +412,8 @@ class Moderation(commands.Cog):
                 count = message_count + int(count) - 1
             if count <= 0:
                 return await ctx.respond(
-                    "Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
+                    "Sorry, you can not delete a negative amount of messages. This is likely because you are asking "
+                    "to save more messages than there are in the channel.")
 
         original_shown_embed = discord.Embed(
             title="NUKE COMMAND PANEL",
@@ -537,10 +482,11 @@ class Moderation(commands.Cog):
 
     @slash_command(guild_ids=[SERVER_ID])
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def unlock(self,
-                     ctx,
-                     channel: Option(discord.TextChannel, description="The channel to unlock", required=False)
-                     ):
+    async def unlock(
+            self,
+            ctx,
+            channel: Option(discord.TextChannel, description="The channel to unlock", required=False)
+    ):
         """Unlocks a channel to Member access."""
         member = ctx.author
         if channel is None:
