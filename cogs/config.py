@@ -2,7 +2,7 @@ import asyncio
 import json
 
 import discord
-from discord import slash_command
+from discord import Permission, slash_command
 from discord.commands import permissions
 from discord.commands.commands import Option
 from discord.ext import commands
@@ -10,8 +10,6 @@ from discord.ext import commands
 from utils.checks import is_staff
 from utils.variables import *
 from utils.views import Allevents, AllEventsSelect, Pronouns, Role1, Role2, Role3, Role4, Role5, Ticket
-
-#TODO MAKE EVERYTHING SLASH COMMANDS
 
 
 class Config(commands.Cog):
@@ -29,12 +27,15 @@ class Config(commands.Cog):
     async def cog_check(self, ctx):
         return await is_staff(ctx)
 
-    @commands.group()
-    async def ticket(self, ctx):
-        '''Ticket system commands'''
-        pass
+    ticket = discord.SlashCommandGroup(
+        "ticket",
+        "Managing the ticket system",
+        [SERVER_ID],
+        default_permission=False,
+    )
 
     @ticket.command()
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def close(self, ctx):
         '''
         Manually closes the ticket channel
@@ -52,13 +53,15 @@ class Config(commands.Cog):
 
             try:
 
-                em = discord.Embed(title="TMS Tickets",
-                                   description="Are you sure you want to close this ticket? Reply with `close` if you are sure.",
-                                   color=0x00a8ff)
-                ticket_chnl = ctx.channel
+                em = discord.Embed(
+                    title="TMS Tickets",
+                    description="Are you sure you want to close this ticket? Reply with `close` if you are sure.",
+                    color=0x00a8ff)
+
+                ticket_channel = ctx.channel
                 await ctx.respond(embed=em)
                 await self.bot.wait_for('message', check=check, timeout=60)
-                await ticket_chnl.delete()
+                await ticket_channel.delete()
 
                 index = data["ticket-channel-ids"].index(channel_id)
                 del data["ticket-channel-ids"][index]
@@ -67,12 +70,14 @@ class Config(commands.Cog):
                     json.dump(data, f)
 
             except asyncio.TimeoutError:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="You have run out of time to close this ticket. Please run the command again.",
-                                   color=0x00a8ff)
+                em = discord.Embed(
+                    title="TMS Tickets",
+                    description="You have run out of time to close this ticket. Please run the command again.",
+                    color=0x00a8ff)
                 await ctx.respond(embed=em)
 
     @ticket.command()
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def add_access(self, ctx, role: Option(discord.Role, description="Role id or mention role")):
         with open('data.json') as f:
             data = json.load(f)
@@ -124,6 +129,7 @@ class Config(commands.Cog):
             await ctx.respond(embed=em)
 
     @ticket.command()
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def delete_access(self, ctx, role: Option(discord.Role, description="Role id or mention role")):
         with open('data.json') as f:
             data = json.load(f)
@@ -181,6 +187,7 @@ class Config(commands.Cog):
             await ctx.respond(embed=em)
 
     @ticket.command()
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def add_pinged_role(self, ctx,
                               role: Option(discord.Role, description="Role id or mention role")):
         with open('data.json') as f:
@@ -235,6 +242,7 @@ class Config(commands.Cog):
             await ctx.respond(embed=em)
 
     @ticket.command()
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def delete_pinged_role(self, ctx,
                                  role: Option(discord.Role, description="Role id or mention role")):
         with open('data.json') as f:
@@ -292,7 +300,8 @@ class Config(commands.Cog):
             await ctx.respond(embed=em)
 
     @ticket.command()
-    async def addadminrole(self, ctx, role: Option(discord.Role, description="Role id or mention role")):
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def add_admin_role(self, ctx, role: Option(discord.Role, description="Role id or mention role")):
         try:
             role_id = int(role)
             role = ctx.guild.get_role(role_id)
@@ -316,7 +325,8 @@ class Config(commands.Cog):
             await ctx.respond(embed=em)
 
     @ticket.command()
-    async def deladminrole(self, ctx, role: Option(discord.Role, description="Role id or mention role")):
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def del_admin_role(self, ctx, role: Option(discord.Role, description="Role id or mention role")):
         try:
             role_id = int(role)
             role = ctx.guild.get_role(role_id)
@@ -353,9 +363,20 @@ class Config(commands.Cog):
                                description="That isn't a valid role ID. Please try again with a valid role ID.")
             await ctx.respond(embed=em)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    roles = discord.SlashCommandGroup(
+        "roles",
+        "Managing the server button roles",
+        [SERVER_ID],
+        # default_permission=False,
+        # permissions=[
+        #     Permission(
+        #         823929718717677568, 1, True
+        #     )]
+    )
+
+    @roles.command(name="one")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def events1(self, ctx):
+    async def _one(self, ctx):
         '''Buttons for Life Science Events'''
         em1 = discord.Embed(title="Chose what events you're participating in!",
                             description="To choose your event roles press the buttons below",
@@ -368,9 +389,9 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em1, view=Role1())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command(name="two")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def events2(self, ctx):
+    async def _two(self, ctx):
         '''Buttons for Earth and Space Science Events'''
         em1 = discord.Embed(title="Chose what events you're participating in!",
                             description="To choose your event roles press the buttons below",
@@ -383,9 +404,9 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em1, view=Role2())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command(name="three")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def events3(self, ctx):
+    async def _three(self, ctx):
         '''Buttons for Physical Science & Chemistry Events'''
         em1 = discord.Embed(title="Chose what events you're participating in!",
                             description="To choose your event roles press the buttons below",
@@ -398,9 +419,9 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em1, view=Role3())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command(name="four")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def events4(self, ctx):
+    async def _four(self, ctx):
         '''Buttons for Technology & Engineering Design Events'''
         em1 = discord.Embed(title="Chose what events you're participating in!",
                             description="To choose your event roles press the buttons below",
@@ -413,9 +434,9 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em1, view=Role4())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command(name="five")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def events5(self, ctx):
+    async def _five(self, ctx):
         '''Buttons for Inquiry & Nature'''
         em1 = discord.Embed(title="Chose what events you're participating in!",
                             description="To choose your event roles press the buttons below",
@@ -428,9 +449,9 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em1, view=Role5())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command(name="six")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def events6(self, ctx):
+    async def _six(self, ctx):
         '''Buttons for All Events Role'''
         em1 = discord.Embed(title="Chose what events you're participating in!",
                             description="Press the button below to gain access to all the event channels",
@@ -442,7 +463,7 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em1, view=Allevents())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command()
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def pronouns(self, ctx):
         '''Buttons for Pronoun Roles'''
@@ -457,9 +478,9 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em1, view=Pronouns())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command(name="all")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def eventroles(self, ctx):
+    async def _all(self, ctx):
         '''Creates all the event role buttons'''
 
         server = self.bot.get_guild(SERVER_ID)
@@ -506,14 +527,19 @@ class Config(commands.Cog):
         await roles_channel.send(embed=em6, view=Pronouns())
         await ctx.respond('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @roles.command()
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def event_test(self, ctx):
+    async def _test(self, ctx):
+        """
+        USES: TESTING ONLY
+        :param ctx:
+        :return: select menu
+        """
         await ctx.respond("test", view=AllEventsSelect())
 
-    @ticket.command()
+    @ticket.command(name="button")
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def button(self, ctx):
+    async def _button(self, ctx):
         '''Sends the ticket button embed to the rules channel'''
         view = Ticket(self.bot)
         em1 = discord.Embed(title="TMS Tickets",
@@ -529,16 +555,20 @@ class Config(commands.Cog):
     @slash_command(guild_ids=[SERVER_ID])
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def theme(
-            self, ctx, theme: Option(str, choices=["Christmas",
-                                                   "Thanksgiving",
-                                                   "Aesthetic",
-                                                   "Party"]
-                                     )
+            self,
+            ctx,
+            theme: Option(str, choices=["Christmas",
+                                        "Thanksgiving",
+                                        "Aesthetic",
+                                        "Party"]
+                          )
     ) -> discord.InteractionMessage:
 
-        themes = {"Thanksgiving": "\U0001f983",
-                  "Aesthetic": "\U00002728",
-                  "Party": "\U0001f389"}
+        themes = {
+            "Thanksgiving": "\U0001f983",
+            "Aesthetic": "\U00002728",
+            "Party": "\U0001f389"
+        }
         await ctx.defer()
 
         if theme == "Christmas":
@@ -601,4 +631,3 @@ class Config(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Config(bot))
-    
