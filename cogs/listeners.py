@@ -60,7 +60,7 @@ class Listeners(commands.Cog):
         message_embed.add_field(name="Content", value=f"{message.content}", inline=False)
         message_embed.add_field(name="Attachments", value=" | ".join(
             [f"**{a.filename}**: [Link]({a.url})" for a in message.attachments]) if
-            message.attachments else "None", inline=False)
+        message.attachments else "None", inline=False)
         message_embed.add_field(name="Created", value=discord.utils.format_dt(message.created_at, 'R'), inline=False)
 
         guild = self.bot.get_guild(SERVER_ID)
@@ -85,7 +85,6 @@ class Listeners(commands.Cog):
     async def on_member_join(
             self, member: discord.Member
     ):
-
         if member.guild.id != SERVER_ID:
             return
 
@@ -94,19 +93,19 @@ class Listeners(commands.Cog):
         if censor_cog.censor_needed(name):
             reporter_cog: commands.Cog = self.bot.get_cog('Reporter')
             await reporter_cog.create_inappropriate_username_report(member, member.name)
-            return
 
         role: discord.Role = discord.utils.get(member.guild.roles, name=ROLE_MR)
         join_channel: discord.TextChannel = discord.utils.get(member.guild.text_channels, id=WELCOME_CHANNEL)
         await member.add_roles(role)
-        embed = discord.Embed(title="Welcome!",
-                              description=f"""
-                                             {member.mention}! Welcome to the TMS Scio Discord. If you need any help feel 
-                                             free to open a ticket in <#848996283288518718> or use `!help` for 
-                                             bot-command help! Please state your name, JV or Varsity, and add your events 
-                                             in <#863054629787664464> !""",
-                              timestamp=discord.utils.utcnow(),
-                              color=discord.Color.blurple())
+        embed = discord.Embed(
+            title="Welcome!",
+            description=f"{member.mention}! Welcome to the TMS Scio Discord. If you need any help "
+                        "feel free to open a ticket in <#848996283288518718> or use `/help` for "
+                        "bot-command help! Please state your name, JV or Varsity, and add your "
+                        "events in <#863054629787664464> ! ",
+            timestamp=discord.utils.utcnow(),
+            color=discord.Color.fuchsia()
+        )
         await join_channel.send(
             embed=embed, content=f"{member.mention}"
         )
