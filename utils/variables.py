@@ -1,3 +1,4 @@
+
 # ROLES
 ROLE_SELFMUTE = "Self-Muted"
 ROLE_MUTED = "Muted"
@@ -6,6 +7,7 @@ ROLE_TRIAL = "Trial [SL]"
 ROLE_VIP = "VIP"
 ROLE_SERVERLEADER = "Server Leader"
 ROLE_COACH = "Coach"
+ROLE_DEVELOPER = "TMS Bot Developer"
 
 # ROLES FOR VIEWS
 ROLE_AP = "Anatomy and Physiology"
@@ -48,7 +50,9 @@ CHANNEL_DELETEDM = 819363833390825482
 CHANNEL_EDITEDM = 819363833390825482
 CHANNEL_DMLOG = 874827004069957654
 WELCOME_CHANNEL = 816806329925894220
-CHANNEL_UNSELFMUTE = "un-self-mute"
+CHANNEL_UNSELFMUTE = 872949802495787058
+CHANNEL_SUGGESTIONS = 897233313784266752
+CHANNEL_CLOSED_REPORTS = 922321290168266803
 
 # OTHER
 SERVER_ID = 816806329925894217
@@ -57,9 +61,23 @@ TMS_BOT_IDS = [865671215179366410, 870741665294467082]
 BOT_PREFIX = "!"
 BOT_PREFIX1 = "?"
 
+REPO = "https://github.com/pandabear189/tms-scioly-bots"
+
 STEALFISH_BAN = []
 CRON_LIST = []
 fish_now = 0
 REPORT_IDS = []
 WARN_IDS = []
 RECENT_MESSAGES = []
+
+
+random_hex_colors_purple = ["#dcb9f7",
+                            "#d4aef2",
+                            "#d3b5f2",
+                            "#baa6ea",
+                            "#ab93d8",
+                            "#781fd1",
+                            "#deb4f7",
+                            "#8b0bc1",
+                            "#dac9ff"]
+

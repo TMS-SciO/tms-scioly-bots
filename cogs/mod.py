@@ -1,995 +1,581 @@
-import discord
-from discord.ext import commands
-from variables import *
-from views import Confirm, Role1, Role2, Role3, Role4, Role5, Allevents, Nitro, Pronouns, Ticket
-from checks import is_staff, _nuke_countdown
-from globalfunctions import _mute
-import dateparser
-import pytz
 import asyncio
-import json
-import tabulate
 import datetime
+import json
+
+import discord
+from discord import ApplicationContext
+from discord.commands import slash_command, permissions
+from discord.commands.commands import Option
+from discord.ext import commands
+
+from cogs.censor import CENSORED
+from utils.checks import is_staff
+from utils.variables import *
+from utils.views import Confirm, CronView, ReportView, Nuke
 
 
 STOPNUKE = datetime.datetime.utcnow()
 
 
-class Mod(commands.Cog):
-    """Moderation related commands."""
+class Moderation(commands.Cog):
+    """Commands used for moderation"""
+    print('Moderation Cog Loaded')
+
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def rules(self, ctx):
-        '''Displays all of the servers rules'''
-        em4 = discord.Embed(title="TMS SciOly Discord Rules",
-                            description="",
-                            color=0xff008c)
-        em4.add_field(name="Rule 1",
-                      value="⌬ Respect ALL individuals in this server",
-                      inline=False)
-        em4.add_field(name="Rule 2",
-                      value="⌬ No profanity or inappropriate language, content, or links.",
-                      inline=False)
-        em4.add_field(name="Rule 3",
-                      value="⌬ Do not spam or flood the chat with an excessive amount of repetitive messages",
-                      inline=False)
-        em4.add_field(name="Rule 4",
-                      value="⌬ Do not self-promote",
-                      inline=False)
-        em4.add_field(name="Rule 5",
-                      value="⌬ Do not harass other members",
-                      inline=False)
-        em4.add_field(name="Rule 6",
-                      value="⌬ Use good judgment when deciding what content to leave in and take out. As a general rule of thumb: **When in doubt, leave it out**.",
-                      inline=False)
-        em4.add_field(name="Punishments",
-                      value="◈ Violations of these rules may result in warnings, mutes, kicks and bans which will be decided by <@&823929718717677568>",
-                      inline=False)
-        em4.add_field(name="Support",
-                      value="◈ If you need help with anything TMS SciOly or anything related to this Discord Server, or are reporting violations of these rules, feel free to open a ticket below or tag <@&823929718717677568> and <@!747126643587416174>",
-                      inline=False)
+    async def cog_check(self, ctx):
+        return await is_staff(ctx)
 
-        em4.set_footer(text="TMS SciOly Website https://sites.google.com/student.sd25.org/tmsscioly/home ")
-        await ctx.send(embed=em4)
+    @property
+    def display_emoji(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name='mod_badge', id=900488706748731472)
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def gift(self, ctx):
-        em1 = discord.Embed(title="You've been gifted a subscription!", description=" ", color=0x2F3136)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/882408068242092062/883882671028179014/Screenshot_2021-09-04_201357.jpg')
-        view = Nitro()
-        await ctx.send(embed=em1, view=view)
+    # suggestion = discord.SlashCommandGroup(
+    #     name="suggestion",
+    #     description="Managing suggests",
+    #     guild_ids=[SERVER_ID]
+    # )
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def events1(self, ctx: commands.Context):
-        '''Buttons for Life Science Events'''
-        em1 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        em1.set_footer(text="Life Science Events - Page 1 of 5")
-        await ctx.send(embed=em1, view=Role1())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def events2(self, ctx: commands.Context):
-        '''Buttons for Earth and Space Science Events'''
-        em1 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        em1.set_footer(text="Earth and Space Science Events - Page 2 of 5")
-        await ctx.send(embed=em1, view=Role2())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def events3(self, ctx: commands.Context):
-        '''Buttons for Physical Science & Chemistry Events'''
-        em1 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        em1.set_footer(text="Physical Science & Chemistry Events - Page 3 of 5")
-        await ctx.send(embed=em1, view=Role3())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def events4(self, ctx: commands.Context):
-        '''Buttons for Technology & Engineering Design Events'''
-        em1 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        em1.set_footer(text="Technology & Engineering Design Events - Page 4 of 5")
-        await ctx.send(embed=em1, view=Role4())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def events5(self, ctx: commands.Context):
-        '''Buttons for Inquiry & Nature'''
-        em1 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        em1.set_footer(text="Inquiry & Nature of Science Events")
-        await ctx.send(embed=em1, view=Role5())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def events6(self, ctx: commands.Context):
-        '''Buttons for All Events Role'''
-        em1 = discord.Embed(title="What events do you want to do?",
-                            description="Press the button below to gain access to all the event channels",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        await ctx.send(embed=em1, view=Allevents())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def pronouns(self, ctx: commands.Context):
-        '''Buttons for Pronoun Roles'''
-        em1 = discord.Embed(title="What pronouns do you use?",
-                            description="Press the buttons below to choose your pronoun role(s)",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        em1.set_footer(text="Pronoun Roles")
-        await ctx.send(embed=em1, view=Pronouns())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def eventroles(self, ctx: commands.Context):
-        '''Creates all the event role buttons'''
-        em1 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-        em1.set_footer(text="Life Science Events - Page 1 of 5")
-
-        em2 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-
-        em2.set_footer(text="Earth and Space Science Events - Page 2 of 5")
-
-        em3 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-
-        em3.set_footer(text="Physical Science & Chemistry Events - Page 3 of 5")
-
-        em4 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-
-        em4.set_footer(text="Technology & Engineering Design Events - Page 4 of 5")
-
-        em5 = discord.Embed(title="What events do you want to do?",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
-        em5.set_footer(text="Inquiry & Nature of Science Events")
-
-        em6 = discord.Embed(title="What pronouns do you use?",
-                            description="Press the buttons below to choose your pronoun role(s)",
-                            color=0xff008c)
-        em6.set_footer(text="Pronoun Roles")
-
-        await ctx.send(embed=em1, view=Role1())
-        await ctx.send(embed=em2, view=Role2())
-        await ctx.send(embed=em3, view=Role3())
-        await ctx.send(embed=em4, view=Role4())
-        await ctx.send(embed=em5, view=Role5())
-        await ctx.send(embed=em6, view=Pronouns())
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def ticket(self, ctx):
-        '''Sends the ticket button embed'''
-        view = Ticket(self.bot)
-        em1 = discord.Embed(title="TMS Tickets",
-                           description="To create a ticket press the button below",color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
-        await ctx.send(embed=em1, view=view)
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def embed(self, ctx, title=None, description=None):
-        '''Sends an embed'''
-        ava = ctx.author.avatar
-        if title is None:
-            embed=discord.Embed(title=" ",
-                                description=description,
-                                color=0xff008c,
-                                )
-            embed.set_author(name=ctx.author,
-                             icon_url=ava)
-            await ctx.send(embed=embed)
-        elif description is None:
-            embed = discord.Embed(title=title,
-                                  description=' ',
-                                  color=0xff008c,
-                                  )
-            embed.set_author(name=ctx.author,
-                             icon_url=ava)
-            await ctx.send(embed=embed)
+    # @suggestion.command()
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def suggestion_deny(self, ctx, message: Option(str, description="Suggestion message id")):
+        '''Denies a suggestion, is not reversible'''
+        message = await commands.MessageConverter().convert(ctx, message)
+        if message.channel.id == CHANNEL_SUGGESTIONS:
+            embed_obj = message.embeds[0]
+            embed = embed_obj.copy()
+            description = embed.description
+            embed.description = (description + "\n ```This suggestion has been denied```")
+            embed.colour = discord.Colour.brand_red()
+            await message.edit(embed=embed)
+            await message.clear_reactions()
+            await ctx.respond("Successfully denied suggestion")
         else:
-            embed = discord.Embed(title=title,
-                                  description=description,
-                                  color=0xff008c,
-                                  )
-            embed.set_author(name=ctx.author,
-                             icon_url=ava)
-            await ctx.send(embed=embed)
+            await ctx.respond("That is not a valid suggestion message")
 
-    @commands.command()
-    @commands.check(is_staff())
+        # @suggestion.command()
+
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def suggestion_approve(self, ctx, message: Option(str, description="Suggestion message id")):
+        '''Approves a suggestion, is not reversible'''
+        message = await commands.MessageConverter().convert(ctx, message)
+        if message.channel.id == CHANNEL_SUGGESTIONS:
+            embed_obj = message.embeds[0]
+            embed = embed_obj.copy()
+            description = embed.description
+            embed.description = (description + "\n ```This suggestion has been approved```")
+            embed.colour = discord.Colour.brand_green()
+            await message.edit(embed=embed)
+            await ctx.respond("Successfully approved suggestion")
+        else:
+            await ctx.respond("That is not a valid suggestion message")
+
+    # @suggestion.command()
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def suggestion_delete(self, ctx, message: Option(str, description="Suggestion message id")):
+        '''Deletes a suggestion message'''
+        message = await commands.MessageConverter().convert(ctx, message)
+        if message.channel.id == CHANNEL_SUGGESTIONS:
+            msg = await ctx.respond("Deleting suggestion in `5` seconds")
+            await asyncio.sleep(1)
+            for i in range(4, 0, -1):
+                await msg.edit(f"Deleting suggestion in `{i}` seconds")
+                await asyncio.sleep(1)
+            await message.delete()
+            await msg.edit(content="Deleted suggestion")
+        else:
+            await ctx.respond("Not a valid suggestion message")
+
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def cron(self, ctx):
+        """
+        Allows staff to manipulate the CRON list.
+        Steps:
+            1. Parse the cron list.
+            2. Create relevant action rows.
+            3. Perform steps as staff request.
+        """
+
+        cron_list = CRON_LIST
+        if len(CRON_LIST) == 0:
+            return await ctx.respond("No items currently in CRON_LIST")
+
+        cron_embed = discord.Embed(
+            title="Managing the CRON list",
+            color=discord.Color.fuchsia(),
+            description=f'Hello! Managing the CRON list gives you the power to change when or how TMS-Bot ' 
+            'automatically executes commands. \n**Completing a task:** Do you want to instantly unmute a user who is ' 
+            'scheduled to be unmuted later? Sure, select the CRON entry from the dropdown, and then select *"Complete ' 
+            'Now"*! \n**Removing a task:** Want to completely remove a task so TMS-Bot will never execute it? No worries, ' 
+            'select the CRON entry from the dropdown and select *Remove*!'
+        )
+
+        await ctx.respond("See information below for how to manage the CRON list.",
+                          view=CronView(cron_list, self.bot),
+                          embed=cron_embed)
+
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def censor_add(self, ctx,
+                         phrase: Option(str, description="The new word to add. For the new word, type the word")):
+        '''Adds a word to the censor'''
+        phrase = phrase.lower()
+        if phrase in CENSORED['words']:
+            return await ctx.respond(f"`{phrase}` is already in the censored words list. Operation cancelled.")
+        else:
+            CENSORED['words'].append(phrase)
+            self.bot.reload_extension("cogs.censor")
+            return await ctx.respond(f"Added Word to censored list")
+
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def censor_remove(self, ctx, phrase: Option(str, description="The word to remove from the censor list.")):
+        '''Removes a word from the censor'''
+        phrase = phrase.lower()
+        if phrase not in CENSORED["words"]:
+            return await ctx.respond(f"`{phrase}` is not in the list of censored words.")
+        else:
+            CENSORED["words"].remove(phrase)
+            self.bot.reload_extension("cogs.censor")
+            return await ctx.respond(f"Removed {phrase} from list of censored words")
+
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def slowmode(self,
-                       ctx,
-                       time: int = commands.Option(description="The amount of seconds")
+                       ctx: ApplicationContext,
+                       mode: Option(str,
+                                    choices=["remove", "set"],
+                                    description="How to change the slowmode in the channel."),
+                       delay: Option(int,
+                                     description="Slowmode delay in seconds"),
+                       channel: Option(discord.TextChannel,
+                                       description="The channel to edit slowmode",
+                                       required=False)
                        ):
-        '''Sets slowmode for the channel.'''
-        arg = time
-        if arg is None:
-            if ctx.channel.slowmode_delay == 0:
-                await ctx.channel.edit(slowmode_delay=10)
-                await ctx.send("Enabled a 10 second slowmode.")
-            else:
-                await ctx.channel.edit(slowmode_delay=0)
-                await ctx.send("Removed slowmode.")
-        else:
-            await ctx.channel.edit(slowmode_delay=arg)
-            if arg != 0:
-                await ctx.send(f"Enabled a {arg} second slowmode.")
-            else:
-                await ctx.send(f"Removed slowmode.")
+        true_channel = channel or ctx.channel
+        if mode == "remove":
+            await true_channel.edit(slowmode_delay=0)
+            await ctx.respond("The slowmode was removed.")
+        elif mode == "set":
+            await true_channel.edit(slowmode_delay=delay)
+            await ctx.respond(f"Enabled a slowmode delay of {delay} seconds.")
 
-    @commands.command()
-    @commands.check(is_staff())
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def ban(self,
                   ctx,
-                  member : discord.User= commands.Option(description='the member to ban'),
-                  reason = commands.Option(description='the reason to ban this member'),
-                  duration = commands.Option(description='the amount of time banned')):
+                  member: Option(discord.User, description='the member to ban'),
+                  reason: Option(str, description='the reason to ban this member'),
+                  ban_length: Option(str, choices=["10 minutes",
+                                                   "30 minutes",
+                                                   "1 hour",
+                                                   "2 hours",
+                                                   "8 hours",
+                                                   "1 day",
+                                                   "4 days",
+                                                   "7 days",
+                                                   "1 month",
+                                                   "1 year",
+                                                   "Indefinitely"
+                                                   ],
+                                     description='the amount of time banned'),
+                  delete_message_days: Option(str,
+                                              description="The number of days of messages the user has sent to be "
+                                                          "deleted",
+                                              choices=["Previous 24 hours", "Previous 7 days", "None"]
+                                              )
+                  ):
         """Bans a user."""
-        time = duration
-        if member is None or member == ctx.message.author:
-            return await ctx.reply("You cannot ban yourself! >:(", mention_author=False)
-        elif reason is None:
-            return await ctx.reply("You need to give a reason for you banning this user.", mention_author=False)
-        elif time is None:
-            return await ctx.reply("You need to specify a length that this used will be banned. Examples are: `1 day`, `2 months or 1 day`",
-                                   mention_author=False)
-        elif member.id in TMS_BOT_IDS:
-            return await ctx.reply("Hey! You can't ban me!!", mention_author=False)
-        message = f"You have been banned from the TMS SciOly Discord server for {reason}."
-        parsed = "indef"
-        if time != "indef":
-            parsed = dateparser.parse(time, settings={"PREFER_DATES_FROM": "future"})
-            if parsed is None:
-                return await ctx.send(f"Sorry, but I don't understand the length of time: `{time}`.")
-            CRON_LIST.append({"date": parsed, "do": f"unban {member.id}"})
-        await member.send(message)
-        await ctx.guild.ban(member, reason=reason)
-        central = pytz.timezone("US/Central")
-        embed = discord.Embed(title="Member Banned",
-                              description=f"`{member}` is banned until `{str(central.localize(parsed))} CT` for `{reason}`.",
-                              color=0xFF0000)
+        times = {
+            "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
+            "30 minutes": datetime.datetime.now() + datetime.timedelta(minutes=30),
+            "1 hour": datetime.datetime.now() + datetime.timedelta(hours=1),
+            "2 hours": datetime.datetime.now() + datetime.timedelta(hours=2),
+            "4 hours": datetime.datetime.now() + datetime.timedelta(hours=4),
+            "8 hours": datetime.datetime.now() + datetime.timedelta(hours=8),
+            "1 day": datetime.datetime.now() + datetime.timedelta(days=1),
+            "4 days": datetime.datetime.now() + datetime.timedelta(days=4),
+            "7 days": datetime.datetime.now() + datetime.timedelta(days=7),
+            "1 month": datetime.datetime.now() + datetime.timedelta(days=30),
+            "1 year": datetime.datetime.now() + datetime.timedelta(days=365),
+        }
+        delete_length = {
+            "Previous 24 hours": 1,
+            "Previous 7 days": 7,
+            "None": 0
+        }
+        delete_message = delete_length[delete_message_days]
+        if ban_length == "Indefinitely":
+            time_statement = f"They will never be automatically unbanned."
+        else:
+            time_statement = f"They will be banned until {discord.utils.format_dt(times[ban_length], 'F')}."
+
+        original_shown_embed = discord.Embed(
+            title="Ban Confirmation",
+            color=discord.Color.brand_red(),
+            description=f"""
+                    {member.mention} will be banned from the entire server. 
+                    \n They will not be able to re-enter the server until the ban is lifted or the time expires.
+                    \n {time_statement}
+                    """
+        )
+
+        view = Confirm(ctx)
+        await ctx.respond("Please confirm that you would like to ban this user.", view=view,
+                          embed=original_shown_embed,
+                          ephemeral=False)
+
+        message = f"""
+        You have been banned from the TMS Scioly Discord server for {reason}. \n
+        If you would like to appeal please DM `pandabear#0001`
+        """
+
+        guild = ctx.author.guild
         server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
-        embed1 = discord.Embed(title=f"New Banned Member",
-                               description=f"{member.mention} has been banned from {server}",
-                               color=0xFF0000)
-        embed1.add_field(name="Reason:", value=f'`{reason}`')
-        embed1.add_field(name="Responsible Moderator:", value=f"`{ctx.message.author}`")
-        embed1.set_author(name=f'{member}', icon_url=f"{member.avatar}")
+        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
 
-        await reports_channel.send(embed=embed1)
-        await ctx.reply(embed=embed, mention_author=False)
+        await view.wait()
+        if view.value is True:
+            if member in guild.members:
+                original_shown_embed.colour = discord.Color.brand_green()
+                original_shown_embed.title = "Successfully Banned"
+                original_shown_embed.description = f"member: `{member}` \n id: `{member.id}`\n\n was successfully banned"
+                original_shown_embed.timestamp = discord.utils.utcnow()
+                embed = discord.Embed(title=" ", description=message)
+                embed.colour = discord.Color.brand_red()
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def unban(self,
-                    ctx,
-                    member:discord.User= commands.Option(description="The user (id) to unban")
-                    ):
+                await member.send(embed=embed)
+                await ctx.guild.ban(member, reason=reason, delete_message_days=delete_message)
+                await ctx.interaction.edit_original_message(embed=original_shown_embed, content=None)
+                await reports_channel.send(embed=original_shown_embed)
+                if ban_length != "Indefinitely":
+                    cron_cog = self.bot.get_cog("CronTasks")
+                    await cron_cog.schedule_unban(member, times[ban_length])
+
+            elif member not in guild.members:
+                original_shown_embed.colour = discord.Color.brand_green()
+                original_shown_embed.title = "Successfully Banned"
+                original_shown_embed.description = f"member: `{member}` \n id: `{member.id}`\n\n was successfully banned"
+                original_shown_embed.timestamp = discord.utils.utcnow()
+                await ctx.interaction.edit_original_message(embed=original_shown_embed, content=None)
+                await reports_channel.send(embed=original_shown_embed)
+                await ctx.guild.ban(member, reason=reason, delete_message_days=delete_message)
+                if ban_length != "Indefinitely":
+                    cron_cog = self.bot.get_cog("CronTasks")
+                    await cron_cog.schedule_unban(member, times[ban_length])
+            else:
+                await ctx.interaction.edit_original_message(
+                    content="The user was not successfully banned because of an error. They remain in the server.",
+                    embed=None, view=None)
+        else:
+            original_shown_embed.colour = discord.Colour.brand_green()
+            original_shown_embed.description = "f`{member.name}` was not banned"
+            original_shown_embed.title = "Ban Cancelled"
+            await ctx.respond(embed=original_shown_embed, view=None, content=None)
+
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def unban(self, ctx, member: Option(discord.User, description="The user (id) to unban")):
         """Unbans a user."""
         if member is None:
             await ctx.channel.send("Please give either a user ID or mention a user.")
-            return
-        await ctx.guild.unban(member)
-        embed=discord.Embed(title="Unban Request",
-                            description=f"Inverse ban hammer applied, {member.mention} unbanned. Please remember that I cannot force them to re-join the server, they must join themselves.",
-                            color=0x00FF00)
-        await ctx.channel.send(embed=embed)
+        else:
+            await ctx.guild.unban(member)
+            embed = discord.Embed(title="Unban Request",
+                                  description=f"Inverse ban hammer applied, {member.mention} unbanned. Please remember that I cannot force them to re-join the server, they must join themselves.",
+                                  color=0x00FF00)
+            await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def dm(self, ctx, member: discord.Member,
-                 message=commands.Option(description="What to DM the member")
-                 ):
-        '''DMs a user.'''
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def dm(self, ctx,
+                 member: Option(discord.Member, description="The member you want to send the message to"),
+                 message: Option(str, description="The message you wish to send to the member")):
         em1 = discord.Embed(title=f" ",
                             description=f"> {message}",
                             color=0x2F3136)
-        em1.set_author(name=f"Message from {ctx.message.author}", icon_url=ctx.message.author.avatar)
-        await ctx.reply(f"Message sent to `{member}`", mention_author=False)
+        em1.set_author(name=f"Message from {ctx.author}", icon_url=ctx.author.avatar)
+        await ctx.respond(f"Message sent to `{member}`")
         await member.send(embed=em1)
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def sync(self,
-                   ctx,
-                   channel: discord.TextChannel = commands.Option(description="The channel to sync permissions with")
-                   ):
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def sync(self, ctx,
+                   channel: Option(discord.TextChannel, description="The channel to sync permissions with",
+                                   required=False)):
         '''Syncs permmissions to channel category'''
 
         if channel is None:
-            await ctx.message.channel.edit(sync_permissions=True)
-            await ctx.send(f'Permissions for {ctx.message.channel.mention} synced with {ctx.message.channel.category}')
+            await ctx.channel.edit(sync_permissions=True)
+            await ctx.respond(f'Permissions for {ctx.channel.mention} synced with {ctx.channel.category}')
         else:
             await channel.edit(sync_permissions=True)
-            await ctx.send(f'Permissions for {channel.mention} synced with {channel.category}')
+            await ctx.respond(f'Permissions for {channel.mention} synced with {channel.category}')
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def vip(self,
-                  ctx,
-                  user: discord.Member = commands.Option(description="The user you wish to VIP")):
-        """Exalts/VIPs a user."""
-        member = ctx.message.author
-        role = discord.utils.get(member.guild.roles, name=ROLE_VIP)
-        await user.add_roles(role)
-        await ctx.send(f"Successfully added VIP. Congratulations {user.mention}! :partying_face: :partying_face: ")
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def unvip(self,
-                    ctx,
-                    user: discord.Member = commands.Option(description="The user you wish to unVIP")):
-        """Unexalts/unVIPs a user."""
-        member = ctx.message.author
-        role = discord.utils.get(member.guild.roles, name=ROLE_VIP)
-        await user.remove_roles(role)
-        await ctx.send(f"Successfully removed VIP from {user.mention}.")
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def trial(self,
-                    ctx,
-                    user: discord.Member = commands.Option(description="The user you wish promote to trial leader")):
-        """Promotes/Trials a user."""
-        member = ctx.message.author
-        role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
-        await user.add_roles(role)
-        await ctx.send(f"Successfully added {role}. Congratulations {user.mention}! :partying_face: :partying_face: ")
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def untrial(self,
-                      ctx,
-                      user: discord.Member = commands.Option(description="The user you wish to demote")):
-        """Demotes/unTrials a user."""
-        member = ctx.message.author
-        role = discord.utils.get(member.guild.roles, name=ROLE_TRIAL)
-        await user.remove_roles(role)
-        await ctx.send(f"Successfully removed {role} from {user.mention}.")
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def kick(self,
-                   ctx,
-                   member: discord.Member = commands.Option(description="Which user to kick"),
-                   reason=commands.Option(description="Why you're kicking this user")
-                   ):
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def kick(
+            self,
+            ctx,
+            member: Option(discord.Member, description="Which user to kick"),
+            reason: Option(str, description="Why you're kicking this user")
+    ):
         view = Confirm(ctx)
 
-        await ctx.reply(f"Are you sure you want to kick {member} for {reason}", view=view)
+        await ctx.respond(f"Are you sure you want to kick `{member}` for `{reason}`", view=view)
         await view.wait()
         if view.value is False:
-            await ctx.send('Aborting...')
+            await ctx.respond('Aborting...')
         if view.value is True:
 
-            if reason == None:
-                return await ctx.send("Please specify a reason why you want to kick this user!")
+            if reason is None:
+                await ctx.respond("Please specify a reason why you want to kick this user!")
             if member.id in TMS_BOT_IDS:
-                return await ctx.send("Hey! You can't kick me!!")
+                return await ctx.respond("Hey! You can't kick me!!")
             await member.kick(reason=reason)
 
             em6 = discord.Embed(title="",
                                 description=f"{member.mention} was kicked for {reason}.",
                                 color=0xFF0000)
 
-            await ctx.send(embed=em6)
+            await ctx.respond(embed=em6)
         return view.value
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def mute(self,
-                   ctx,
-                   user: discord.Member = commands.Option(description="The user to mute"),
-                   time=commands.Option(description="The amount of time to mute the user")
-                   ):
-        """
-        Mutes a user.
-        """
-        view = Confirm(ctx)
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def mute(
+            self,
+            ctx,
+            user: Option(discord.Member, description="The user to mute."),
+            reason: Option(str, description="The reason to mute the user."),
+            mute_length: Option(str, description="How long to mute the user for.",
+                                choices=[
+                                    "10 minutes",
+                                    "30 minutes",
+                                    "1 hour",
+                                    "2 hours",
+                                    "8 hours",
+                                    "1 day",
+                                    "4 days",
+                                    "7 days",
+                                    "1 month",
+                                    "1 year",
+                                    "Indefinitely"
+                                ])
+    ):
 
-        await ctx.reply(f"Are you sure you want to mute {user} for {time}", view=view)
+        times = {
+            "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
+            "30 minutes": datetime.datetime.now() + datetime.timedelta(minutes=30),
+            "1 hour": datetime.datetime.now() + datetime.timedelta(hours=1),
+            "2 hours": datetime.datetime.now() + datetime.timedelta(hours=2),
+            "4 hours": datetime.datetime.now() + datetime.timedelta(hours=4),
+            "8 hours": datetime.datetime.now() + datetime.timedelta(hours=8),
+            "1 day": datetime.datetime.now() + datetime.timedelta(days=1),
+            "4 days": datetime.datetime.now() + datetime.timedelta(days=4),
+            "7 days": datetime.datetime.now() + datetime.timedelta(days=7),
+            "1 month": datetime.datetime.now() + datetime.timedelta(days=30),
+            "1 year": datetime.datetime.now() + datetime.timedelta(days=365),
+        }
+
+        if mute_length == "Indefinitely":
+            time_statement = "The user will never be automatically unmuted."
+        else:
+            time_statement = f"The user will be muted until {discord.utils.format_dt(times[mute_length], 'F')}."
+
+        original_shown_embed = discord.Embed(
+            title="Mute Confirmation",
+            color=discord.Color.brand_red(),
+            description=f"""
+            {user.mention} will be muted across the entire server. 
+            The user will no longer be able to communicate in any channels they can read.
+            {time_statement}
+            """
+        )
+
+        view = Confirm(ctx)
+        await ctx.respond("Please confirm that you would like to mute this user.", view=view,
+                          embed=original_shown_embed)
+
+        message = f"You have been muted from the TMS Scioly Discord server for {reason}."
+
         await view.wait()
-        if view.value is False:
-            await ctx.send('Aborting...')
+        role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
         if view.value is True:
-            await _mute(ctx, user, time, self=False)
-        return view.value
+            await user.add_roles(role)
+            await user.send(message)
+            if mute_length != "Indefinitely":
+                cron_cog = self.bot.get_cog("CronTasks")
+                await cron_cog.schedule_unmute(user, times[mute_length])
 
+            original_shown_embed.colour = discord.Colour.brand_green()
+            original_shown_embed.title = "Successfully Muted"
+            original_shown_embed.description = f"{user.name} was successfully muted"
+            original_shown_embed.timestamp = discord.utils.utcnow()
+            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def getvariable(self,
-                          ctx,
-                          var=commands.Option(description="The global variable to display")):
-        """Fetches a local variable."""
-        await ctx.send("Attempting to find variable.")
-        if var == "CRON_LIST":
-            try:
-                header = CRON_LIST[0].keys()
-                rows = [x.values() for x in CRON_LIST]
-                table = tabulate.tabulate(rows, header, "fancy_grid")
-                await ctx.reply(f"```{table}```", mention_author=False)
-            except IndexError as e:
-                await ctx.send(f'Nothing in the cron list, {e}')
         else:
-            try:
-                variable = globals()[var]
-                # await ctx.send(f"`{var}`  Variable value: ```ini\n{variable}```")
-                header = variable[0].keys()
-                rows = [x.values() for x in variable]
-                table = tabulate.tabulate(rows, header, "fancy_grid")
-                await ctx.reply(f"```{table}```", mention_author=False)
+            original_shown_embed.colour = discord.Colour.brand_green()
+            original_shown_embed.title = "Mute Canceled"
+            original_shown_embed.description = f"Mute of `{user.name}` was canceled"
+            original_shown_embed.timestamp = discord.utils.utcnow()
+            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
 
-            except Exception as e:
-                await ctx.send(f"Can't find that variable! `{e}`")
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def removevariable(self,
-                             ctx,
-                             user: discord.User = commands.Option(description="The user to remove from the CRON_LIST")
-                             ):
-        for obj in CRON_LIST[:]:
-            if obj['do'] == f'unmute {user.id}':
-                CRON_LIST.remove(obj)
-                await ctx.send(f'Removed {user} unmute from CRON_LIST')
-            elif obj['do'] == f'unban {user.id}':
-                CRON_LIST.remove(obj)
-                await ctx.send(f'Removed {user} unban from CRON_LIST')
-            else:
-                await ctx.send('Unknown object to remove')
-
-    @commands.command()
-    async def selfmute(self, ctx, time):
-        """
-        Self mutes the user that invokes the command.
-
-        """
-        view = Confirm(ctx)
-        user = ctx.message.author
-
-        if time is None:
-            await ctx.send(
-                'You need to specify a length that this used will be muted. `exe:` `1 day`, `2 months, 1 day`')
-        else:
-            await ctx.reply(f"Are you sure you want to selfmute for {time}", view=view)
-            await view.wait()
-            if view.value is False:
-                await ctx.send('Aborting...')
-            if view.value is True:
-                await _mute(ctx, user, time, self=True)
-            return view.value
-
-    @commands.command()
-    @commands.check(is_staff())
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def unmute(self, ctx, user: discord.Member):
         view = Confirm(ctx)
-        await ctx.reply(f"Are you sure you want to unmute `{user}`?", view=view)
+        await ctx.respond(f"Are you sure you want to unmute `{user}`?", view=view)
         await view.wait()
         if view.value is False:
-            await ctx.send('Unmute Canceled')
-        if view.value is True:
+            return await ctx.interaction.edit_original_message('Unmute Canceled')
+        else:
             role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
             await user.remove_roles(role)
             em5 = discord.Embed(title="",
                                 description=f"Successfully unmuted {user.mention}.",
-                                color=0x16F22C)
-
-            await ctx.send(embed=em5)
+                                color=discord.Color.brand_green())
+            em5.timestamp = discord.utils.utcnow()
+            server = self.bot.get_guild(SERVER_ID)
+            reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
+            await reports_channel.send(embed=em5)
+            await ctx.interaction.edit_original_message(embed=em5, view=None, content=None)
             for obj in CRON_LIST[:]:
                 if obj['do'] == f'unmute {user.id}':
                     CRON_LIST.remove(obj)
         return view.value
 
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def nuke(self, ctx, count: int):
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def nuke(self, ctx, count: Option(int, description="The amount of messages to delete")):
         """Nukes (deletes) a specified amount of messages."""
-        import datetime
         global STOPNUKE
         MAX_DELETE = 100
         if int(count) > MAX_DELETE:
-            return await ctx.send("Chill. No more than deleting 100 messages at a time.")
-        channel = ctx.message.channel
-        if int(count) < 0: count = MAX_DELETE
-        await _nuke_countdown(ctx, count)
-        if STOPNUKE <= datetime.datetime.utcnow():
-            await channel.purge(limit=int(count) + 13, check=lambda m: not m.pinned)
+            return await ctx.respond("Chill. No more than deleting 100 messages at a time.")
+        channel = ctx.channel
+        if int(count) < 0:
+            history = await channel.history(limit=105).flatten()
+            message_count = len(history)
+            if message_count > 100:
+                count = 100
+            else:
+                count = message_count + int(count) - 1
+            if count <= 0:
+                return await ctx.respond(
+                    "Sorry, you can not delete a negative amount of messages. This is likely because you are asking to save more messages than there are in the channel.")
 
-            msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
-            await msg.delete(delay=5)
+        original_shown_embed = discord.Embed(
+            title="NUKE COMMAND PANEL",
+            color=discord.Color.brand_red(),
+            description=f"""
+            {count} messages will be deleted from {channel.mention} in `10` seconds...
+            To stop this nuke, press the red button below!
+            """
+        )
+        view = Nuke(ctx)
+        await ctx.respond(embed=original_shown_embed, view=view)
+        await asyncio.sleep(1)
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def nukeuntil(self, ctx, message_id):  # prob can use converters to convert the msgid to a Message object
+        for i in range(9, 0, -1):
+            if view.stopped:
+                break
+            original_shown_embed.description = f"""
+            {count} messages will be deleted from {channel.mention} in `{i}` seconds...
+            To stop this nuke, press the red button below!
+            """
+            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=view)
+            await asyncio.sleep(1)
 
-        import datetime
-        global STOPNUKE
-        channel = ctx.message.channel
-        message = await ctx.fetch_message(message_id)
-        if channel == message.channel:
-            await _nuke_countdown(ctx)
-            if STOPNUKE <= datetime.datetime.utcnow():
-                await channel.purge(limit=1000, after=message)
-                msg = await ctx.send("https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif")
-                await msg.delete(delay=5)
-        else:
-            return await ctx.send("MESSAGE ID DOES NOT COME FROM THIS TEXT CHANNEL. ABORTING NUKE.")
+        if not view.stopped:
+            original_shown_embed.description = f"""
+            Now nuking {count} messages from the channel...
+            """
+            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None)
 
-    @nuke.error
-    @nukeuntil.error
-    async def nuke_error(self, ctx, error):
-        ctx.__slots__ = True
-        print(f"{BOT_PREFIX}nuke error handler: {error}")
-        if isinstance(error, discord.ext.commands.MissingAnyRole):
-            return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR NUKE.")
-        if isinstance(error, discord.ext.commands.CommandOnCooldown):
-            return await ctx.send(
-                f"TRANSMISSION FAILED. ALL NUKES ARE CURRENTLY PAUSED FOR ANOTHER {'%.3f' % error.retry_after} SECONDS. TRY AGAIN LATER.")
-        ctx.__slots__ = False
+            # Nuke has not been stopped, proceed with deleting messages
+            def nuke_check(msgs: discord.Message) -> bool:
+                return not msgs.pinned
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def stopnuke(self, ctx):
-        global STOPNUKE
-        NUKE_COOLDOWN = 20
-        STOPNUKE = datetime.datetime.utcnow() + datetime.timedelta(seconds=NUKE_COOLDOWN)  # True
-        await ctx.send(f"TRANSMISSION RECEIVED. STOPPED ALL CURRENT NUKES FOR {NUKE_COOLDOWN} SECONDS.")
+            new_embed = discord.Embed(
+                title="NUKE COMMAND PANEL",
+                color=discord.Color.brand_green(),
+                description=f"""
+                        {count} messages have been deleted from {channel.mention} 
+                        """
+            )
 
-    @stopnuke.error
-    async def stopnuke_error(self, ctx, error):
-        ctx.__slots__ = True
-        print(f"{BOT_PREFIX}nuke error handler: {error}")
-        if isinstance(error, discord.ext.commands.MissingAnyRole):
-            return await ctx.send("APOLOGIES. INSUFFICIENT RANK FOR STOPPING NUKE.")
+            await channel.purge(limit=count + 3, check=nuke_check)
+            await channel.send(embed=new_embed)
 
-    @commands.command()
-    @commands.check(is_staff())
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def lock(self,
                    ctx,
-                   channel: discord.TextChannel = commands.Option(default=None,
-                                                                  description="The channel you want to lock")
-                   ):
-        """Locks a channel to Member access."""
-        member = ctx.message.author
+                   channel: Option(discord.TextChannel, description="The channel you want to lock")):
+        """
+        Locks a channel to Member access.
+        """
+        member = ctx.author
         if channel is None:
             member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
             await ctx.channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
             SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
             await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.send(f"Locked :lock: {ctx.channel.mention} to Member access.")
+            await ctx.respond(f"Locked :lock: {ctx.channel.mention} to Member access.")
         else:
             member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
             await channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
             SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
             await channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.send(f"Locked :lock: {channel.mention} to Member access.")
+            await ctx.respond(f"Locked :lock: {channel.mention} to Member access.")
 
-    @commands.command()
-    @commands.check(is_staff())
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def unlock(self,
                      ctx,
-                     channel: discord.TextChannel = commands.Option(default=None, description="The channel to unlock")
+                     channel: Option(discord.TextChannel, description="The channel to unlock", required=False)
                      ):
         """Unlocks a channel to Member access."""
-        member = ctx.message.author
+        member = ctx.author
         if channel is None:
             member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
             await ctx.channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
             SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
             await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.send(
+            await ctx.respond(
                 f"Unlocked :unlock: {ctx.channel.mention} to Member access. Please check if permissions need to be synced.")
         else:
             member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
             await channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
             SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
             await channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.send(
+            await ctx.respond(
                 f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def close(self, ctx):
-        '''Manually closes a ticket channel'''
-        with open('data.json') as f:
-            data = json.load(f)
-
-        if ctx.channel.id in data["ticket-channel-ids"]:
-
-            channel_id = ctx.channel.id
-
-            def check(message):
-                return message.author == ctx.author and message.channel == ctx.channel and message.content.lower() == "close"
-
-            try:
-
-                em = discord.Embed(title="TMS Tickets",
-                                   description="Are you sure you want to close this ticket? Reply with `close` if you are sure.",
-                                   color=0x00a8ff)
-                ticket_chnl = ctx.channel
-                await ctx.send(embed=em)
-                await self.bot.wait_for('message', check=check, timeout=60)
-                await ticket_chnl.delete()
-
-                index = data["ticket-channel-ids"].index(channel_id)
-                del data["ticket-channel-ids"][index]
-
-                with open('data.json', 'w') as f:
-                    json.dump(data, f)
-
-            except asyncio.TimeoutError:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="You have run out of time to close this ticket. Please run the command again.",
-                                   color=0x00a8ff)
-                await ctx.send(embed=em)
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def addaccess(self,
-                        ctx,
-                        role_id=commands.Option(description="Role id: allow see tickets")
-                        ):
-        with open('data.json') as f:
-            data = json.load(f)
-
-        valid_user = False
-
-        for role_id in data["verified-roles"]:
-            try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
-                    valid_user = True
-            except:
-                pass
-
-        if valid_user or ctx.author.guild_permissions.administrator:
-            role_id = int(role_id)
-
-            if role_id not in data["valid-roles"]:
-
-                try:
-                    role = ctx.guild.get_role(role_id)
-
-                    with open("data.json") as f:
-                        data = json.load(f)
-
-                    data["valid-roles"].append(role_id)
-
-                    with open('data.json', 'w') as f:
-                        json.dump(data, f)
-
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="You have successfully added `{}` to the list of roles with access to tickets.".format(
-                                           role.name), color=0x00a8ff)
-
-                    await ctx.send(embed=em)
-
-                except:
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="That isn't a valid role ID. Please try again with a valid role ID.")
-                    await ctx.send(embed=em)
-
-            else:
-                em = discord.Embed(title="TMS Tickets", description="That role already has access to tickets!",
-                                   color=0x00a8ff)
-                await ctx.send(embed=em)
-
-        else:
-            em = discord.Embed(title="TMS Tickets", description="Sorry, you don't have permission to run that command.",
-                               color=0x00a8ff)
-            await ctx.send(embed=em)
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def delaccess(self,
-                        ctx,
-                        role_id=commands.Option(description="Role id: delete access to see tickets")
-                        ):
-        with open('data.json') as f:
-            data = json.load(f)
-
-        valid_user = False
-
-        for role_id in data["verified-roles"]:
-            try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
-                    valid_user = True
-            except:
-                pass
-
-        if valid_user or ctx.author.guild_permissions.administrator:
-
-            try:
-                role_id = int(role_id)
-                role = ctx.guild.get_role(role_id)
-
-                with open("data.json") as f:
-                    data = json.load(f)
-
-                valid_roles = data["valid-roles"]
-
-                if role_id in valid_roles:
-                    index = valid_roles.index(role_id)
-
-                    del valid_roles[index]
-
-                    data["valid-roles"] = valid_roles
-
-                    with open('data.json', 'w') as f:
-                        json.dump(data, f)
-
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="You have successfully removed `{}` from the list of roles with access to tickets.".format(
-                                           role.name), color=0x00a8ff)
-
-                    await ctx.send(embed=em)
-
-                else:
-
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="That role already doesn't have access to tickets!", color=0x00a8ff)
-                    await ctx.send(embed=em)
-
-            except:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="That isn't a valid role ID. Please try again with a valid role ID.")
-                await ctx.send(embed=em)
-
-        else:
-            em = discord.Embed(title="TMS Tickets", description="Sorry, you don't have permission to run that command.",
-                               color=0x00a8ff)
-            await ctx.send(embed=em)
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def addpingedrole(self,
-                            ctx,
-                            role_id=commands.Option(description="Role id to be pinged when tickets are opened")
-                            ):
-        with open('data.json') as f:
-            data = json.load(f)
-
-        valid_user = False
-
-        for role_id in data["verified-roles"]:
-            try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
-                    valid_user = True
-            except:
-                pass
-
-        if valid_user or ctx.author.guild_permissions.administrator:
-
-            role_id = int(role_id)
-
-            if role_id not in data["pinged-roles"]:
-
-                try:
-                    role = ctx.guild.get_role(role_id)
-
-                    with open("data.json") as f:
-                        data = json.load(f)
-
-                    data["pinged-roles"].append(role_id)
-
-                    with open('data.json', 'w') as f:
-                        json.dump(data, f)
-
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="You have successfully added `{}` to the list of roles that get pinged when new tickets are created!".format(
-                                           role.name), color=0x00a8ff)
-
-                    await ctx.send(embed=em)
-
-                except:
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="That isn't a valid role ID. Please try again with a valid role ID.")
-                    await ctx.send(embed=em)
-
-            else:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="That role already receives pings when tickets are created.",
-                                   color=0x00a8ff)
-                await ctx.send(embed=em)
-
-        else:
-            em = discord.Embed(title="TMS Tickets", description="Sorry, you don't have permission to run that command.",
-                               color=0x00a8ff)
-            await ctx.send(embed=em)
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def delpingedrole(self,
-                            ctx,
-                            role_id=commands.Option(description="Role id: to delete, pinged when tickets are opened")
-                            ):
-        with open('data.json') as f:
-            data = json.load(f)
-
-        valid_user = False
-
-        for role_id in data["verified-roles"]:
-            try:
-                if ctx.guild.get_role(role_id) in ctx.author.roles:
-                    valid_user = True
-            except:
-                pass
-
-        if valid_user or ctx.author.guild_permissions.administrator:
-
-            try:
-                role_id = int(role_id)
-                role = ctx.guild.get_role(role_id)
-
-                with open("data.json") as f:
-                    data = json.load(f)
-
-                pinged_roles = data["pinged-roles"]
-
-                if role_id in pinged_roles:
-                    index = pinged_roles.index(role_id)
-
-                    del pinged_roles[index]
-
-                    data["pinged-roles"] = pinged_roles
-
-                    with open('data.json', 'w') as f:
-                        json.dump(data, f)
-
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="You have successfully removed `{}` from the list of roles that get pinged when new tickets are created.".format(
-                                           role.name), color=0x00a8ff)
-                    await ctx.send(embed=em)
-
-                else:
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="That role already isn't getting pinged when new tickets are created!",
-                                       color=0xff008c)
-                    await ctx.send(embed=em)
-
-            except:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="That isn't a valid role ID. Please try again with a valid role ID.")
-                await ctx.send(embed=em)
-
-        else:
-            em = discord.Embed(title="TMS Tickets", description="Sorry, you don't have permission to run that command.",
-                               color=0xff008c)
-            await ctx.send(embed=em)
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def addadminrole(self,
-                           ctx,
-                           role_id=commands.Option(description="Role id, to have admin ticket commands")
-                           ):
-        try:
-            role_id = int(role_id)
-            role = ctx.guild.get_role(role_id)
-
-            with open("data.json") as f:
-                data = json.load(f)
-
-            data["verified-roles"].append(role_id)
-
-            with open('data.json', 'w') as f:
-                json.dump(data, f)
-
-            em = discord.Embed(title="TMS Tickets",
-                               description="You have successfully added `{}` to the list of roles that can run admin-level commands!".format(
-                                   role.name), color=0xff008c)
-            await ctx.send(embed=em)
-
-        except:
-            em = discord.Embed(title="TMS Tickets",
-                               description="That isn't a valid role ID. Please try again with a valid role ID.")
-            await ctx.send(embed=em)
-
-    @commands.command()
-    @commands.check(is_staff())
-    async def deladminrole(self,
-                           ctx,
-                           role_id=commands.Option(description="Role id, delete access to admin ticket commands")):
-        try:
-            role_id = int(role_id)
-            role = ctx.guild.get_role(role_id)
-
-            with open("data.json") as f:
-                data = json.load(f)
-
-            admin_roles = data["verified-roles"]
-
-            if role_id in admin_roles:
-                index = admin_roles.index(role_id)
-
-                del admin_roles[index]
-
-                data["verified-roles"] = admin_roles
-
-                with open('data.json', 'w') as f:
-                    json.dump(data, f)
-
-                em = discord.Embed(title="TMS Tickets",
-                                   description="You have successfully removed `{}` from the list of roles that get pinged when new tickets are created.".format(
-                                       role.name), color=0x00a8ff)
-
-                await ctx.send(embed=em)
-
-            else:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="That role isn't getting pinged when new tickets are created!",
-                                   color=0x00a8ff)
-                await ctx.send(embed=em)
-
-        except:
-            em = discord.Embed(title="TMS Tickets",
-                               description="That isn't a valid role ID. Please try again with a valid role ID.")
-            await ctx.send(embed=em)
-
-    @commands.command()
-    @commands.check(is_staff())
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
     async def warn(self,
                    ctx,
-                   member: discord.Member = commands.Option(description="Which user to warn"),
-                   reason=commands.Option(description="Why you are warning this user")
+                   member: Option(discord.Member, description="Which user to warn"),
+                   reason: Option(str, description="Why you are warning this user")
                    ):
         '''Warns a user'''
         server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, name=CHANNEL_REPORTS)
-        mod = ctx.message.author
+        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
+        mod = ctx.author
         avatar = mod.avatar
         avatar1 = member.avatar.url
 
-        if member is None or member == ctx.message.author:
-            return await ctx.reply("You cannot warn yourself :rolling_eyes:",
-                                   mention_author=False)
-        if reason is None:
-            return await ctx.reply(
-                f"{ctx.message.author.mention} You need to give a reason for why you are warning {member.mention}",
-                mention_author=False)
+        if member is ctx.author:
+            return await ctx.respond("You cannot warn yourself :rolling_eyes:")
         if member.id in TMS_BOT_IDS:
-            return await ctx.reply(f"Hey {ctx.message.author.mention}! You can't warn {member.mention}",
-                                   mention_author=False)
+            return await ctx.respond(f"Hey {ctx.author.mention}! You can't warn {member.mention}")
         embed = discord.Embed(title="Warning Given",
                               description=f"Warning issued to {member.mention} \n id: `{member.id}`",
                               color=0xFF0000)
@@ -1006,36 +592,52 @@ class Mod(commands.Cog):
         embed2.set_author(name=f"{mod}",
                           icon_url=avatar)
 
-        message = await reports_channel.send(embed=embed)
-        WARN_IDS.append(message.id)
-        await message.add_reaction("\U00002705")
-        await message.add_reaction("\U0000274C")
-        await ctx.reply(embed=embed1, mention_author=False)
+        await reports_channel.send(embed=embed, view=ReportView())
+        await ctx.respond(embed=embed1)
         await member.send(embed=embed2)
 
-    @commands.command()
-    @commands.check(is_staff())
-    async def update(self, ctx):
-        '''Sends the message containing all bot updates'''
-        em5 = discord.Embed(title="TMS Bot `v2.1.0` Update for 9/5/21",
-                            description="", color=0xff008c)
-        em5.add_field(name="Temporarily removed webhook commands",
-                      value="The webhook commands have been removed as the discord.py library beta does not use the old converter",
-                      inline=False)
-        em5.add_field(name="Removed `/` Prefix",
-                      value="The slash prefix was interacting with the discord API thinking it was a slash command",
-                      inline=False)
-        em5.add_field(name="New commands",
-                      value="`emoji`, `charinfo`, `tictactoe`, `roll`",
-                      inline=False)
-        em5.add_field(name="New confirmation screen",
-                      value=f"The new confirmaton screen when invoking certain commands like `selfmute` has been added",
-                      inline=False)
-        em5.set_thumbnail(
-            url="https://cdn.discordapp.com/avatars/870741665294467082/0da0cbe08327c1081e6a055d957b3229.png?size=1024")
-        em5.set_footer(text="TMS SciOly Bot Development Updates")
-        await ctx.send(embed=em5)
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def blacklist(self, ctx,
+                        member: Option(discord.Member,
+                                       description="The member you want to blacklist from using commands")):
+        '''Blacklist a user from using commands'''
+        if member.id == self.bot.owner_id:
+            return await ctx.respond("You can't blacklist the owner of the bot :rolling_eyes:")
+        try:
+            with open("blacklist.json") as f:
+                data = json.load(f)
+            if member.id in data['blacklisted_ids']:
+                return await ctx.respond(f'{member.mention} is already blacklisted from using commands!')
+            else:
+                data["blacklisted_ids"].append(member.id)
+                with open("blacklist.json", 'w') as f:
+                    json.dump(data, f)
+                await ctx.respond(f'Blacklisted {member.mention} from using commands!')
+        except Exception:
+            await ctx.respond(f'Failed to blacklist {member.mention}!')
+
+    @slash_command(guild_ids=[SERVER_ID])
+    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    async def unblacklist(self, ctx, member: discord.Member):
+        '''Un-Blacklist a user from using commands'''
+        id = member.id
+        with open("blacklist.json") as f:
+            data = json.load(f)
+        if member.id in data['blacklisted_ids']:
+            # try:
+            index = data["blacklisted_ids"].index(id)
+            del data["blacklisted_ids"][index]
+            with open('blacklist.json', 'w') as f:
+                json.dump(data, f)
+
+                await ctx.respond(f"Successfully removed command blacklist from {member.mention}")
+            #
+            # except Exception:
+            #     await ctx.respond(f"Couldn't remove command blacklist from {member.mention}", ephemeral=True)
+        else:
+            await ctx.respond(f"{member.mention} is not blacklisted from using commands")
 
 
 def setup(bot):
-    bot.add_cog(Mod(bot))
+    bot.add_cog(Moderation(bot))

@@ -1,41 +1,67 @@
 import discord
-from variables import *
-import asyncio
-import datetime
+from utils.variables import *
 from discord.ext import commands
-
-STOPNUKE = datetime.datetime.utcnow()
-
-
-def is_staff():
-    """Checks to see if the author of ctx message is a staff member."""
-    def predicate(ctx):
-        guild = ctx.bot.get_guild(SERVER_ID)
-        member = guild.get_member(ctx.message.author.id)
-        staffRole = discord.utils.get(guild.roles, name=ROLE_SERVERLEADER)
-        coachRole = discord.utils.get(guild.roles, name=ROLE_COACH)
-        if any(r in [staffRole, coachRole] for r in member.roles):
-            return True
-        raise discord.ext.commands.MissingAnyRole([staffRole, coachRole])
-    return commands.check(predicate)
+from utils.commanderr import CommandBlacklistedUserInvoke
+import json
+#
+# def is_staff():
+#     def predicate(ctx):
+#         guild = ctx.bot.get_guild(SERVER_ID)
+#         member = guild.get_member(ctx.message.author.id)
+#         staffRole = discord.utils.get(guild.roles, name=ROLE_SERVERLEADER)
+#         coachRole = discord.utils.get(guild.roles, name=ROLE_COACH)
+#         if any(r in [staffRole, coachRole] for r in member.roles):
+#             return True
+#         raise discord.ext.commands.MissingAnyRole([staffRole, coachRole])
+#     return commands.check(predicate)
 
 
-async def _nuke_countdown(ctx, count=-1):
-    import datetime
-    global STOPNUKE
-    await ctx.send("=====\nINCOMING TRANSMISSION.\n=====")
-    await ctx.send("PREPARE FOR IMPACT.")
-    for i in range(10, 0, -1):
-        if count < 0:
-            await ctx.send(f"NUKING MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
-        else:
-            await ctx.send(
-                f"NUKING {count} MESSAGES IN {i}... TYPE `!stopnuke` AT ANY TIME TO STOP ALL TRANSMISSION.")
-        await asyncio.sleep(1)
-        if STOPNUKE > datetime.datetime.utcnow():
-            return await ctx.send("A COMMANDER HAS PAUSED ALL NUKES FOR 20 SECONDS. NUKE CANCELLED.")
+async def is_staff(ctx):
+    """Checks to see if the user is a launch helper."""
+    guild = ctx.bot.get_guild(SERVER_ID)
+    member = guild.get_member(ctx.message.author.id)
+    staffRole = discord.utils.get(guild.roles, name=ROLE_SERVERLEADER)
+    vipRole = discord.utils.get(guild.roles, name=ROLE_COACH)
+    print(any(r in [staffRole, vipRole] for r in member.roles))
+    if any(r in [staffRole, vipRole] for r in member.roles):
+        return True
+    raise commands.MissingAnyRole([staffRole, vipRole])
 
 
+async def is_not_blacklisted(ctx):
+    member = ctx.message.author.id
+    f = open('blacklist.json')
+    data = json.load(f)
+
+    if member in data['blacklisted_ids']:
+        raise CommandBlacklistedUserInvoke(member=member)
+    else:
+        return True
+
+
+async def is_not_canceled(ctx):
+    #TODO
+    # work in progress
+    member = ctx.message.author
+    f = open('blacklist.json')
+    data = json.load(f)
+
+    if member in data['canceled_ids']:
+        raise CommandBlacklistedUserInvoke(member=member)
+    else:
+        return True
+    
+   
+
+
+async def is_dev(ctx):
+    guild = ctx.bot.get_guild(SERVER_ID)
+    member = guild.get_member(ctx.message.author.id)
+    devRole = discord.utils.get(guild.roles, name=ROLE_DEVELOPER)
+    print(any(r in [devRole] for r in member.roles))
+    if any(r in [devRole] for r in member.roles):
+        return True
+    raise commands.MissingAnyRole([devRole])
 
 
 # async def is_staff(bot):
