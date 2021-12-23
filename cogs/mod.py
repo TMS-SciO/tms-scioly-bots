@@ -3,7 +3,7 @@ import datetime
 import json
 
 import discord
-from discord import ApplicationContext
+from discord import ApplicationContext, Permission
 from discord.commands import slash_command, permissions
 from discord.commands.commands import Option
 from discord.ext import commands
@@ -65,8 +65,13 @@ class Moderation(commands.Cog):
     censor = discord.SlashCommandGroup(
         "censor",
         "Managing the bot's censor system",
-        [SERVER_ID],
-        # default_permission=False,
+        guild_ids=[SERVER_ID],
+        permissions=[Permission(
+            823929718717677568,
+            1,
+            True
+        )],
+        default_permission=False
     )
 
     @censor.command()
