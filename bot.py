@@ -1,10 +1,11 @@
 import json
+import os
+from abc import ABC
 
 import aiohttp
 import discord
 from discord.ext import commands
 
-from utils.secret import TOKEN
 from utils.functions import send_to_dm_log
 from utils.views import ReportView, Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Allevents
 from utils.variables import *
@@ -12,35 +13,38 @@ from utils.variables import *
 import sys
 import traceback
 
-INITIAL_EXTENSIONS = ["cogs.mod",
-                      "cogs.fun",
-                      "cogs.general",
-                      "cogs.tasks",
-                      "cogs.meta",
-                      "cogs.base",
-                      "cogs.github",
-                      "cogs.google",
-                      "cogs.censor",
-                      "cogs.elements",
-                      "cogs.activities",
-                      "cogs.spam",
-                      "cogs.report",
-                      "cogs.listeners",
-                      "cogs.config",
-                      "cogs.staff",
-                      "jishaku"]
+INITIAL_EXTENSIONS = [
+    "cogs.mod",
+    "cogs.fun",
+    "cogs.general",
+    "cogs.tasks",
+    "cogs.meta",
+    "cogs.base",
+    "cogs.github",
+    "cogs.google",
+    "cogs.censor",
+    "cogs.elements",
+    "cogs.activities",
+    "cogs.spam",
+    "cogs.report",
+    "cogs.listeners",
+    "cogs.wikipedia",
+    "cogs.config",
+    "cogs.staff",
+    "jishaku"
+]
 
 
-class TMS(commands.Bot):
+class TMS(commands.Bot, ABC):
     def __init__(self):
         intents = discord.Intents.all()
-        super().__init__(command_prefix=commands.when_mentioned_or("!"),
-                         case_insensitive=True,
-                         slash_commands=True,
-                         intents=intents,
-                         status=discord.Status.dnd,
-                         activity=discord.Activity(type=discord.ActivityType.listening, name="Jingle Bells")
-                         )
+        super().__init__(
+            command_prefix=commands.when_mentioned_or("!"),
+            case_insensitive=True,
+            slash_commands=True,
+            intents=intents,
+            status=discord.Status.dnd
+        )
         self.persistent_views_added = False
         self.session = aiohttp.ClientSession(loop=self.loop)
         self.owner_id = 747126643587416174
@@ -76,15 +80,17 @@ class TMS(commands.Bot):
 
     async def on_application_command_error(
             self, ctx: discord.ApplicationContext, exception: discord.DiscordException
-    ) -> discord.InteractionMessage:
+    ) -> None:
         print(exception)
         try:
             await ctx.defer()
-            return await ctx.respond(exception)
-        except:
+            await ctx.respond(exception)
+        except all:
             pass
 
-    async def on_interaction(self, interaction):
+    async def on_interaction(
+            self,  interaction
+    ) -> None:
         ctx = await self.get_application_context(interaction)
         member = ctx.author.id
         f = open('blacklist.json')
@@ -110,7 +116,7 @@ class TMS(commands.Bot):
         await spam.store_and_validate(message)
 
     def run(self):
-        super().run(TOKEN, reconnect=True)
+        super().run(os.environ['TOKEN'], reconnect=True)
 
     async def close(self):
         await self.session.close()
@@ -119,4 +125,10 @@ class TMS(commands.Bot):
 
 bot = TMS()
 
-bot.run()
+
+def main():
+    bot.run()
+
+
+if __name__ == "__main__":
+    main()
