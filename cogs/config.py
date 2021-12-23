@@ -30,8 +30,13 @@ class Config(commands.Cog):
     ticket = discord.SlashCommandGroup(
         "ticket",
         "Managing the ticket system",
-        [SERVER_ID],
-        default_permission=False,
+        guild_ids=[SERVER_ID],
+        permissions=[Permission(
+            823929718717677568,
+            1,
+            True
+        )],
+        default_permission=False
     )
 
     @ticket.command()
@@ -366,12 +371,13 @@ class Config(commands.Cog):
     roles = discord.SlashCommandGroup(
         "roles",
         "Managing the server button roles",
-        [SERVER_ID],
-        # default_permission=False,
-        # permissions=[
-        #     Permission(
-        #         823929718717677568, 1, True
-        #     )]
+        guild_ids=[SERVER_ID],
+        permissions=[Permission(
+            823929718717677568,
+            1,
+            True
+        )],
+        default_permission=False
     )
 
     @roles.command(name="one")
