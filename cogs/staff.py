@@ -30,12 +30,13 @@ class Staff(commands.Cog):
     suggestion = discord.SlashCommandGroup(
         "suggestion",
         "Managing suggestions",
-        [SERVER_ID],
-        # default_permission=False,
-        # permissions=[
-        #     Permission(
-        #         823929718717677568, 1, True
-        #     )]
+        guild_ids=[SERVER_ID],
+        permissions=[Permission(
+            823929718717677568,
+            1,
+            True
+        )],
+        default_permission=False
     )
 
     @suggestion.command()
