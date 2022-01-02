@@ -26,13 +26,6 @@ dataparser==0.0.2
 dateparser==1.0.0
 deep-translator==1.5.5
 git+https://github.com/Rapptz/discord-ext-menus@fbb8803779373357e274e1540b368365fd9d8074
-django-classy-tags==2.0.0
-django-cms==3.9.0
-django-formtools==2.3
-django-sekizai==2.0.0
-django-treebeard==4.5.1
-Django==3.2.8
-djangocms-admin-style==2.0.2
 docopt==0.6.2
 ffmpeg-python==0.2.0
 ffmpeg==1.4
@@ -41,8 +34,6 @@ future==0.18.2
 fuzzywuzzy==0.18.0
 googletrans==3.0.0
 greenlet==1.1.2
-gspread-asyncio==1.4.0
-gspread==3.7.0
 h11==0.9.0
 h2==3.2.0
 hpack==3.0.0
