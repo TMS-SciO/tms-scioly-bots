@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import discord
@@ -7,14 +8,12 @@ from utils.variables import *
 """
 Relevant views.
 """
-
 # CREDIT - https://github.com/cbrxyz/pi-bot
-
 
 class IgnoreButton(discord.ui.Button):
     """
-    A button to mark the report as ignored.
-    This causes the report message to be deleted, an informational message to be posted in closed-reports, and the report database to be updated
+    A button to mark the report as ignored. This causes the report message to be deleted, an informational message to
+    be posted in closed-reports, and the report database to be updated
     """
 
     view = None
@@ -34,13 +33,14 @@ class IgnoreButton(discord.ui.Button):
         # Send an informational message about the report being ignored
         closed_reports = discord.utils.get(interaction.guild.text_channels, id=CHANNEL_CLOSED_REPORTS)
         await closed_reports.send(
-            f"**Report was ignored** by {interaction.user.mention} - {self.view.member.mention} had the innapropriate username `{self.view.offending_username}`, but the report was ignored.")
+            f"**Report was ignored** by {interaction.user.mention} - {self.view.member.mention} had the inappropriate "
+            f"username `{self.view.offending_username}`, but the report was ignored.")
 
 
 class ChangeInappropriateUsername(discord.ui.Button):
     """
-    A button that changes the username of a user.
-    This caues the report message to be deleted, an informational message to be posted in closed-reports, and the report database to be updated.
+    A button that changes the username of a user. This causes the report message to be deleted, an informational
+    message to be posted in closed-reports, and the report database to be updated.
     """
 
     view = None
@@ -63,14 +63,18 @@ class ChangeInappropriateUsername(discord.ui.Button):
         closed_reports = discord.utils.get(interaction.guild.text_channels, id=CHANNEL_CLOSED_REPORTS)
         if member_still_here:
             await closed_reports.send(
-                f"**Member's username was changed** by {interaction.user.mention} - {self.view.member.mention} had the innapropriate username `{self.view.offending_username}`, and their username was changed to `boomilever`.")
+                f"**Member's username was changed** by {interaction.user.mention} - {self.view.member.mention} had "
+                f"the inappropriate username `{self.view.offending_username}`, and their username was changed to "
+                f"`Scientist`.")
 
             # Change the user's username
             await self.view.member.edit(nick="Scientist")
 
         else:
             await closed_reports.send(
-                f"**Member's username was attempted to be changed** by {interaction.user.mention} - {self.view.member.mention} had the innapropriate username `{self.view.offending_username}`, and their username was attempted to be changed to `boomilever`, however, the user had left the server.")
+                f"**Member's username was attempted to be changed** by {interaction.user.mention} - "
+                f"{self.view.member.mention} had the inappropriate username `{self.view.offending_username}`, and "
+                f"their username was attempted to be changed to `Scientist`, however, the user had left the server.")
 
 
 class KickUserButton(discord.ui.Button):
@@ -81,6 +85,7 @@ class KickUserButton(discord.ui.Button):
         super().__init__(style=discord.ButtonStyle.red, label="Kick User", custom_id=f"{view.report_id}:kick")
 
     async def callback(self, interaction: discord.Interaction):
+
         # Delete the original message
         await interaction.message.delete()
 
@@ -91,17 +96,20 @@ class KickUserButton(discord.ui.Button):
         closed_reports = discord.utils.get(interaction.guild.text_channels, id=CHANNEL_CLOSED_REPORTS)
         if member_still_here:
             await closed_reports.send(
-                f"**Member was kicked** by {interaction.user.mention} - {self.view.member.mention} had the innapropriate username `{self.view.offending_username}`, and the user was kicked from the server.")
+                f"**Member was kicked** by {interaction.user.mention} - {self.view.member.mention} had the "
+                f"inappropriate username `{self.view.offending_username}`, and the user was kicked from the server.")
 
             # Kick the user
             await self.view.member.kick()
 
         else:
             await closed_reports.send(
-                f"**Attemped to kick member* by {interaction.user.mention} - {self.view.member.mention} had the innapropriate username `{self.view.offending_username}` and a kick was attempted on the user, however, the user had left the server.")
+                f"**Attempted to kick member* by {interaction.user.mention} - {self.view.member.mention} had the "
+                f"inappropriate username `{self.view.offending_username}` and a kick was attempted on the user, "
+                f"however, the user had left the server.")
 
 
-class InnapropriateUsername(discord.ui.View):
+class InappropriateUsername(discord.ui.View):
     member: discord.Member
     offending_username: str
     report_id: int
@@ -135,7 +143,7 @@ class Reporter(commands.Cog):
 
         # Assemble relevant embed
         embed = discord.Embed(
-            title="Innapropriate Username Detected",
+            title="Inappropriate Username Detected",
             color=discord.Color.brand_red(),
             description=f"""{member.mention} was found to have the offending username: `{offending_username}`.
             You can take some action by using the buttons below.
@@ -147,10 +155,33 @@ class Reporter(commands.Cog):
             report_id = int(data["report_id"])
             report_id += 1
 
-        await reports_channel.send(embed=embed, view=InnapropriateUsername(member, report_id, offending_username))
+        await reports_channel.send(embed=embed, view=InappropriateUsername(member, report_id, offending_username))
         data["report_id"] = int(report_id)
         with open("data.json", 'w') as f:
             json.dump(data, f)
+
+    async def create_cron_task_report(self, task: dict):
+        guild = self.bot.get_guild(SERVER_ID)
+        reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
+
+        # Serialize values
+        task['_id'] = str(task['_id'])  # ObjectID is not serializable by default
+        if 'time' in task:
+            task['time'] = datetime.datetime.strftime(task['time'],
+                                                      "%m/%d/%Y, %H:%M:%S")  # datetime.datetime is not serializable
+            # by default
+
+        # Assemble the embed
+        embed = discord.Embed(
+            title="Error with CRON Task",
+            description=f"""
+               There was an error with the following CRON task:
+               ```py
+               {json.dumps(task, indent=4)} ``` Because this likely a development error, no actions can immediately 
+               be taken. Please contact a developer to learn more. """,
+            color=discord.Color.brand_red()
+        )
+        await reports_channel.send(embed=embed)
 
 
 def setup(bot):

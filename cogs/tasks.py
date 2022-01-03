@@ -2,6 +2,7 @@ from discord.ext import tasks, commands
 import discord
 from utils.variables import *
 import datetime
+from typing import Union
 
 
 class CronTasks(commands.Cog):
@@ -15,9 +16,10 @@ class CronTasks(commands.Cog):
     @tasks.loop(minutes=1)
     async def cron(self):
         print("Executed cron.")
-        cron_list = CRON_LIST
+        cron_list: list[dict[str, Union[datetime.datetime, Union[str, discord.User.id]]]] = CRON_LIST
+
         for task in cron_list:
-            if datetime.datetime.utcnow() > task['time']:
+            if datetime.datetime.now() > task['time']:
                 try:
                     if task['type'] == "UNBAN":
                         server = self.bot.get_guild(SERVER_ID)
@@ -41,27 +43,15 @@ class CronTasks(commands.Cog):
                         print(f"Un-stealcandybanneded user ID: {task['user']}")
 
                     else:
-                        guild = self.bot.get_guild(SERVER_ID)
-                        reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
-                        embed = discord.Embed(
-                            title="Error with CRON TASK",
-                            description=f"Task: {task}",
-                            timestamp=discord.utils.utcnow(),
-                            color=discord.Color.yellow()
-                        )
-                        await reports_channel.send(embed=embed)
-                except Exception as e:
-                    guild = self.bot.get_guild(SERVER_ID)
-                    reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
-                    embed = discord.Embed(
-                        title="Error with CRON TASK",
-                        description=f"Task: {task} \n \nError: {e}",
-                        timestamp=discord.utils.utcnow(),
-                        color=discord.Color.yellow()
-                    )
-                    await reports_channel.send(embed=embed)
+                        print("ERROR:")
+                        reporter_cog = self.bot.get_cog('Reporter')
+                        await reporter_cog.create_cron_task_report(task)
+                except Exception:
+                    reporter_cog = self.bot.get_cog('Reporter')
+                    await reporter_cog.create_cron_task_report(task)
 
-    async def add_to_cron(self, item_dict: dict):
+    @staticmethod
+    async def add_to_cron(item_dict: dict):
         """
         Adds the given document to the CRON list.
         """

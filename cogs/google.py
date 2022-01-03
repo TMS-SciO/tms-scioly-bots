@@ -1,4 +1,6 @@
 import asyncio
+import os
+
 import discord
 import functools
 import re
@@ -14,8 +16,6 @@ from html2text import html2text as h2t
 
 from utils.variables import SERVER_ID
 from utils.paginate import Pages, Source
-
-# CREDIT - https://github.com/npc203/npc-cogs/tree/main/google
 
 s = namedtuple("searchres", "url title desc")
 
@@ -327,7 +327,7 @@ class Google(commands.Cog):
         You can read more on that in detail over at:
         https://developers.google.com/books/docs/v1/using#PerformingSearch
         """
-        api_key = ("AIzaSyAEon8wvGPb384KiHiTNybUj62-QhIqlDg")
+        api_key = os.getenv("GOOGLE_API_KEY")
 
         await ctx.defer()
         base_url = "https://www.googleapis.com/books/v1/volumes"
