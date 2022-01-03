@@ -1,4 +1,6 @@
 import asyncio
+import os
+
 import discord
 import functools
 import re
@@ -325,7 +327,7 @@ class Google(commands.Cog):
         You can read more on that in detail over at:
         https://developers.google.com/books/docs/v1/using#PerformingSearch
         """
-        api_key = "API KEY"
+        api_key = os.getenv("GOOGLE_API_KEY")
 
         await ctx.defer()
         base_url = "https://www.googleapis.com/books/v1/volumes"
