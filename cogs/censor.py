@@ -3,25 +3,8 @@ import re
 import discord
 
 CENSORED = {
-    "words": ["BAD WORDS"]
+    "words": ["BAD_WORDS"]
 }
-
-
-async def censor(message):
-    """Constructs Pi-Bot's censor."""
-    channel = message.channel
-    ava = message.author.avatar
-    wh = await channel.create_webhook(name="Censor (Automated)")
-    content = message.content
-    for word in CENSORED["words"]:
-        content = re.sub(fr'\b({word})\b', "<censored>", content, flags=re.IGNORECASE)
-    author_nickname = message.author.nick
-    if author_nickname is None:
-        author_nickname = message.author.name
-    # Make sure pinging through @everyone, @here, or any role can not happen
-    mention_perms = discord.AllowedMentions(everyone=False, users=True, roles=False)
-    await wh.send(content, username=(author_nickname + " (Auto-Censor)"), avatar_url=ava, allowed_mentions=mention_perms)
-    await wh.delete()
 
 
 class Censor(commands.Cog):
@@ -30,7 +13,8 @@ class Censor(commands.Cog):
 
     print("Censor Cog Loaded")
 
-    def censor_needed(self, content: str) -> bool:
+    @staticmethod
+    def censor_needed(content: str) -> bool:
         """
         Determines whether the message has content that needs to be censored.
         """
@@ -38,6 +22,24 @@ class Censor(commands.Cog):
             if len(re.findall(fr"\b({word})\b", content, re.I)):
                 return True
         return False
+
+    @staticmethod
+    async def censor(message):
+        """Constructs Pi-Bot's censor."""
+        channel = message.channel
+        ava = message.author.avatar
+        wh = await channel.create_webhook(name="Censor (Automated)")
+        content = message.content
+        for word in CENSORED["words"]:
+            content = re.sub(fr'\b({word})\b', "<censored>", content, flags=re.IGNORECASE)
+        author_nickname = message.author.nick
+        if author_nickname is None:
+            author_nickname = message.author.name
+        # Make sure pinging through @everyone, @here, or any role can not happen
+        mention_perms = discord.AllowedMentions(everyone=False, users=True, roles=False)
+        await wh.send(content, username=(author_nickname + " (Auto-Censor)"), avatar_url=ava,
+                      allowed_mentions=mention_perms)
+        await wh.delete()
 
     async def on_message(self, message):
         """
@@ -59,7 +61,7 @@ class Censor(commands.Cog):
             if len(re.findall(fr"\b({word})\b", content, re.I)):
                 print(f"Censoring message by {message.author} because of the word: `{word}`")
                 await message.delete()
-                return await censor(message)
+                return await self.censor(message)
         return await self.bot.process_commands(message)
 
 
