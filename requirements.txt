@@ -27,8 +27,7 @@ contextlib2==21.6.0
 dataparser==0.0.2
 dateparser==1.1.0
 deep-translator==1.6.0
-discord-ext-menus==1.0.0a31+gfbb8803
-discord-py-slash-command==3.0.0
+git+https://github.com/Rapptz/discord-ext-menus@fbb8803779373357e274e1540b368365fd9d8074
 django-classy-tags==2.0.0
 django-cms==3.9.0
 django-formtools==2.3
@@ -42,12 +41,8 @@ ffmpeg==1.4
 frozenlist==1.2.0
 future==0.18.2
 fuzzywuzzy==0.18.0
-google-auth-oauthlib==0.4.5
-google-auth==1.34.0
 googletrans==3.0.0
 greenlet==1.1.2
-gspread-asyncio==1.4.0
-gspread==3.7.0
 h11==0.9.0
 h2==3.2.0
 hpack==3.0.0
@@ -73,7 +68,7 @@ parsedatetime==2.6
 pip==21.3.1
 pipreqs==0.4.11
 psutil==5.9.0
-py-cord==2.0.0a4732+g640c73ad
+git+https://github.com/Pycord-Development/pycord@master
 pyasn1-modules==0.2.8
 pyasn1==0.4.8
 pycord==0.1.1
@@ -89,7 +84,6 @@ python-Levenshtein-wheels==0.13.2
 pytz-deprecation-shim==0.1.0.post0
 pytz==2021.3
 PyYAML==6.0
-Red-Lavalink==0.8.1
 regex==2021.11.10
 requests-oauthlib==1.3.0
 requests==2.26.0
@@ -117,4 +111,3 @@ wheel==0.37.1
 wikipedia==1.4.0
 yarg==0.1.9
 yarl==1.7.2
-youtube-dl==2021.6.6
