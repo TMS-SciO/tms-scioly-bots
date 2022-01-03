@@ -1,5 +1,4 @@
-aiohttp-json-rpc==0.13.3
-aiohttp==3.8.1
+aiohttp
 aioify==0.4.0
 aiosignal==1.2.0
 aiosqlite==0.17.0
