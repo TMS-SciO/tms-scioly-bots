@@ -3,7 +3,7 @@ import datetime
 import json
 
 import discord
-from discord import ApplicationContext, Permission
+from discord import ApplicationContext, CommandPermission
 from discord.commands import slash_command, permissions
 from discord.commands.commands import Option
 from discord.ext import commands
@@ -29,6 +29,11 @@ class Moderation(commands.Cog):
     @property
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='mod_badge', id=900488706748731472)
+
+    @staticmethod
+    async def send_closed_report(ctx, embed: discord.Embed):
+        closed_reports = discord.utils.get(ctx.guild.channels, id=CHANNEL_CLOSED_REPORTS)
+        await closed_reports.send(embed=embed)
 
     @slash_command(guild_ids=[SERVER_ID])
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
@@ -66,7 +71,7 @@ class Moderation(commands.Cog):
         "censor",
         "Managing the bot's censor system",
         guild_ids=[SERVER_ID],
-        permissions=[Permission(
+        permissions=[CommandPermission(
             823929718717677568,
             1,
             True
@@ -236,7 +241,7 @@ class Moderation(commands.Cog):
                     embed=None, view=None)
         else:
             original_shown_embed.colour = discord.Colour.brand_green()
-            original_shown_embed.description = "f`{member.name}` was not banned"
+            original_shown_embed.description = f"`{member.name}` was not banned"
             original_shown_embed.title = "Ban Cancelled"
             await ctx.respond(embed=original_shown_embed, view=None, content=None)
 
@@ -367,6 +372,15 @@ class Moderation(commands.Cog):
             original_shown_embed.description = f"{user.name} was successfully muted"
             original_shown_embed.timestamp = discord.utils.utcnow()
             await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
+            close_embed = discord.Embed(
+                title=f"Successfully Muted {user}",
+                description=f"{user.mention} was successfully muted until "
+                            f"{discord.utils.format_dt(times[mute_length], 'F')} \n\n"
+                            f"Use `/cron` to modify this mute.",
+                timestamp=discord.utils.utcnow(),
+                color=discord.Color.brand_green()
+            )
+            await self.send_closed_report(ctx, close_embed)
 
         else:
             original_shown_embed.colour = discord.Colour.brand_green()
@@ -374,30 +388,6 @@ class Moderation(commands.Cog):
             original_shown_embed.description = f"Mute of `{user.name}` was canceled"
             original_shown_embed.timestamp = discord.utils.utcnow()
             await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
-
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def unmute(self, ctx, user: discord.Member):
-        view = Confirm(ctx)
-        await ctx.respond(f"Are you sure you want to unmute `{user}`?", view=view)
-        await view.wait()
-        if view.value is False:
-            return await ctx.interaction.edit_original_message('Unmute Canceled')
-        else:
-            role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
-            await user.remove_roles(role)
-            em5 = discord.Embed(title="",
-                                description=f"Successfully unmuted {user.mention}.",
-                                color=discord.Color.brand_green())
-            em5.timestamp = discord.utils.utcnow()
-            server = self.bot.get_guild(SERVER_ID)
-            reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
-            await reports_channel.send(embed=em5)
-            await ctx.interaction.edit_original_message(embed=em5, view=None, content=None)
-            for obj in CRON_LIST[:]:
-                if obj['do'] == f'unmute {user.id}':
-                    CRON_LIST.remove(obj)
-        return view.value
 
     @slash_command(guild_ids=[SERVER_ID])
     @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
