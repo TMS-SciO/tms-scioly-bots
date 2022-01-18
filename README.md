@@ -3,6 +3,7 @@
    
 
 ### A Bot for the TMS SciOly Discord
+#### Modified Instance of [Pi-Bot](https://github.com/cbrxyz/pi-bot)
 ***
 
 ### Credits
