@@ -1,18 +1,24 @@
+from __future__ import annotations
+
 import discord
 from discord.ext import commands
 from utils.paginate import Pages, Source
 import aiohttp
 import re
-from typing import List
-from discord import slash_command
+from typing import List, TYPE_CHECKING
+from discord.app_commands import command, guilds
 from utils.variables import *
 from dateutil.parser import isoparse
 
+if TYPE_CHECKING:
+    from bot import TMS
 
-# CREDIT https://github.com/PhasecoreX/PCXCogs/tree/master/wikipedia
 
 class Wikipedia(commands.Cog):
     """Look up stuff on Wikipedia."""
+
+    def __init__(self, bot: TMS):
+        self.bot = bot
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
@@ -22,25 +28,26 @@ class Wikipedia(commands.Cog):
     WHITESPACE = re.compile(r"[\n\s]{4,}")
     NEWLINES = re.compile(r"\n+")
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def wikipedia(self, ctx: discord.ApplicationContext, query: str):
+    @command()
+    @guilds(SERVER_ID)
+    async def wikipedia(self, interaction: discord.Interaction, query: str):
         """Get information from Wikipedia."""
-        await ctx.defer()
         embeds, url = await self.perform_search(query)
 
         if not embeds:
-            await ctx.send(f"I'm sorry, I couldn't find \"{query}\" on Wikipedia")
-            await ctx.send(embed=embeds[0])
-            await ctx.send(embed=embeds[0])
+            return await interaction.response.send_message(
+                f"I'm sorry, I couldn't find \"{query}\" on Wikipedia",
+                embed=embeds[0]
+            )
         elif len(embeds) == 1:
             embeds[0].set_author(name="Result 1 of 1")
-            await ctx.send(embed=embeds[0])
+            return await interaction.response.send_message(embed=embeds[0])
         else:
             count = 0
             for embed in embeds:
                 count += 1
                 embed.set_author(name=f"Result {count} of {len(embeds)}")
-            menu = Pages(ctx=ctx, source=Source(embeds, per_page=1), compact=True)
+            menu = Pages(interaction=interaction, source=Source(embeds, per_page=1), compact=True, bot=self.bot)
             await menu.start()
 
     #
@@ -158,5 +165,5 @@ class Wikipedia(commands.Cog):
         return embed
 
 
-def setup(bot):
-    bot.add_cog(Wikipedia(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(Wikipedia(bot))
