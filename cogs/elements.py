@@ -1,34 +1,36 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 from discord.ext import commands
-from discord.ext.commands.errors import BadArgument
-from discord import slash_command
-from utils.element_info import LATTICES, IMAGES
+from discord.app_commands import command, guilds
 from mendeleev import element as ELEMENTS
-from utils.paginate import Pages, Source
-from utils.variables import SERVER_ID
+from utils import SERVER_ID, Pages, Source, LATTICES, IMAGES
 
-# CREDIT -> https://github.com/TrustyJAID/Trusty-cogs/tree/master/elements
+if TYPE_CHECKING:
+    from bot import TMS
 
 
 async def convert(argument: str) -> ELEMENTS:
     if argument.isdigit():
         if int(argument) > 118 or int(argument) < 1:
-            raise BadArgument("`{}` is not a valid element!".format(argument))
+            raise commands.BadArgument("`{}` is not a valid element!".format(argument))
         result = ELEMENTS(int(argument))
     else:
         try:
             result = ELEMENTS(argument.title())
         except Exception:
-            raise BadArgument("`{}` is not a valid element!".format(argument))
+            raise commands.BadArgument("`{}` is not a valid element!".format(argument))
     if not result:
-        raise BadArgument("`{}` is not a valid element!".format(argument))
+        raise commands.BadArgument("`{}` is not a valid element!".format(argument))
     return result
 
 
 class Elements(commands.Cog):
     """Display information from the periodic table of elements"""
 
-    def __init__(self, bot):
+    def __init__(self, bot: TMS):
         self.bot = bot
 
     @property
@@ -76,29 +78,30 @@ class Elements(commands.Cog):
         extra_3 = "Lβ {:.2}".format(lb) if lb else ""
         return ", ".join(x for x in [data, extra_1, extra_2, extra_3] if x)
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @command()
+    @guilds(SERVER_ID)
     async def element(
             self,
-            ctx: discord.ApplicationContext,
+            interaction: discord.Interaction,
             element: str,
-    ) -> discord.InteractionResponse:
+    ) -> None:
         """
         Display information about an element
         `element` can be the name, symbol or atomic number of the element
         """
-        await ctx.defer()
         element = await convert(argument=element)
-        return await ctx.respond(embed=await self.element_embed(element))
+        await interaction.response.send_message(embed=await self.element_embed(element))
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @command()
+    @guilds(SERVER_ID)
     async def periodictable(
             self,
-            ctx: discord.ApplicationContext
+            interaction: discord.Interaction
     ) -> None:
         """Display a menu of all elements"""
-        await ctx.defer()
+        await interaction.response.defer(thinking=True)
         embeds = [await self.element_embed(ELEMENTS(e)) for e in range(1, 119)]
-        menu = Pages(ctx=ctx, source=Source(embeds, per_page=1), compact=True)
+        menu = Pages(bot=self.bot, interaction=interaction, source=Source(embeds, per_page=1), compact=True)
         await menu.start()
 
     async def element_embed(self, element: ELEMENTS) -> discord.Embed:
@@ -140,5 +143,5 @@ class Elements(commands.Cog):
         return embed
 
 
-def setup(bot):
-    bot.add_cog(Elements(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(Elements(bot))
