@@ -10,12 +10,17 @@ from textwrap import shorten
 from urllib.parse import quote_plus
 
 from bs4 import BeautifulSoup
-from discord.commands import slash_command
+from discord.app_commands import command, guilds
 from discord.ext import commands
 from html2text import html2text as h2t
 
 from utils.variables import SERVER_ID
 from utils.paginate import Pages, Source
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bot import TMS
+
 
 s = namedtuple("searchres", "url title desc")
 
@@ -25,7 +30,7 @@ class Google(commands.Cog):
     Google Related Commands
     '''
 
-    def __init__(self, bot):
+    def __init__(self, bot: TMS):
         self.nsfwcheck = lambda ctx: (not ctx.guild) or ctx.channel.is_nsfw()
         self.bot = bot
         self.options = {
@@ -98,14 +103,14 @@ class Google(commands.Cog):
         kwargs["redir"] = redir
         return fin, kwargs
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def google(self, ctx: discord.ApplicationContext, *, query: str):
+    @command()
+    @guilds(SERVER_ID)
+    async def google(self, interaction: discord.Interaction, *, query: str):
         """Google search your query from Discord channel."""
         if not query:
-            return await ctx.send("Please enter something to search")
+            return await interaction.response.send_message("Please enter something to search")
 
-        isnsfw = self.nsfwcheck(ctx)
-        await ctx.defer()
+        isnsfw = self.nsfwcheck(interaction)
         response, kwargs = await self.get_result(query, nsfw=isnsfw)
         pages = []
         groups = [response[n: n + 3] for n in range(0, len(response), 3)]
@@ -141,10 +146,10 @@ class Google(commands.Cog):
                 emb.set_image(url=kwargs["image"])
             pages.append(emb)
         if pages:
-            menu = Pages(ctx=ctx, source=Source(pages, per_page=1), compact=True)
+            menu = Pages(interaction=interaction, source=Source(pages, per_page=1), compact=True, bot=self.bot)
             await menu.start()
         else:
-            await ctx.respond("No results.")
+            await interaction.response.send_message("No results.")
 
     def get_card(self, soup, final, kwargs):
         """Getting cards if present, here started the pain"""
@@ -317,8 +322,9 @@ class Google(commands.Cog):
             final.append(s(None, "Single Answer Card:", card.text))
             return
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def book(self, ctx: discord.ApplicationContext, *, query: str):
+    @command()
+    @guilds(SERVER_ID)
+    async def book(self, interaction: discord.Interaction, *, query: str):
         """Search for a book or magazine on Google Books.
         This command requires an API key. If you are the bot owner,
         you can follow instructions on below link for how to get one:
@@ -327,9 +333,8 @@ class Google(commands.Cog):
         You can read more on that in detail over at:
         https://developers.google.com/books/docs/v1/using#PerformingSearch
         """
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("GOOGLE")
 
-        await ctx.defer()
         base_url = "https://www.googleapis.com/books/v1/volumes"
         params = {
             "apiKey": api_key,
@@ -341,13 +346,13 @@ class Google(commands.Cog):
         try:
             async with self.bot.session.get(base_url, params=params) as response:
                 if response.status != 200:
-                    return await ctx.send(f"https://http.cat/{response.status}")
+                    return await interaction.response.send_message(f"https://http.cat/{response.status}")
                 data = await response.json()
         except asyncio.TimeoutError:
-            return await ctx.send("Operation timed out.")
+            return await interaction.response.send_message("Operation timed out.")
 
         if len(data.get("items")) == 0:
-            return await ctx.send("No results.")
+            return await interaction.response.send_message("No results.")
 
         pages = []
         for i, info in enumerate(data.get("items")):
@@ -428,11 +433,11 @@ class Google(commands.Cog):
             pages.append(embed)
 
         if len(pages) == 1:
-            await ctx.respond(embed=pages[0])
+            await interaction.response.send_message(embed=pages[0])
         else:
-            menu = Pages(ctx=ctx, source=Source(pages, per_page=1), compact=True)
+            menu = Pages(interaction=interaction, source=Source(pages, per_page=1), compact=True, bot=self.bot)
             await menu.start()
 
 
-def setup(bot):
-    bot.add_cog(Google(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(Google(bot))
