@@ -1,26 +1,3 @@
-from discord.ext import commands
-
-
-class AutoCompleteCog(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        '''Loaded Autocomplete'''
-
-    def bot_command_list(self):
-        commands_list = self.bot.commands
-        return commands_list
-
-    async def commands_list_autocomplete(self, interaction, value):
-        return [x for x in self.bot_command_list() if x.startswith(value.lower())]
-
-    async def language_autocomplete(self, interaction, value):
-        return [x for x in GOOGLE_LANGUAGES if x.startswith(value.lower())]
-
-
-def setup(bot):
-    bot.add_cog(AutoCompleteCog(bot))
-
-
 GOOGLE_LANGUAGES = ['afrikaans',
                     'albanian',
                     'amharic',
