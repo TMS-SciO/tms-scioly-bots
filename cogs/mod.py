@@ -1,43 +1,98 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import json
+import mongo
 
 import discord
-from discord import ApplicationContext, CommandPermission
-from discord.commands import slash_command, permissions
-from discord.commands.commands import Option
+from discord.app_commands import Group, command, guilds, describe, checks
 from discord.ext import commands
 
-from cogs.censor import CENSORED
 from utils.checks import is_staff
 from utils.variables import *
 from utils.views import Confirm, CronView, ReportView, Nuke
 
+from typing import Literal, Optional, TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from bot import TMS
+
 STOPNUKE = datetime.datetime.utcnow()
+
+
+class CensorGroup(Group):
+    def __init__(self, bot: TMS):
+        self.bot = bot
+        super().__init__(name="censor")
+
+    @property
+    def cog(self) -> commands.Cog:
+        return self.bot.get_cog("Moderation")
+
+    @command()
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(phrase="The word/phrase to add to the censor list")
+    @guilds
+    async def add(
+            self,
+            interaction: discord.Interaction,
+            phrase: str
+    ):
+        '''Adds a word to the censor'''
+        from cogs.censor import CENSORED
+        phrase = phrase.lower()
+        if phrase in CENSORED['words']:
+            return await interaction.response.send_message(
+                f"`{phrase}` is already in the censored words list. Operation cancelled.")
+        else:
+            CENSORED['words'].append(phrase)
+            await mongo.update("bot", "censor", CENSORED['_id'], {"$push": {"words": phrase}})
+            return await interaction.response.send_message(f"Added Word to censored list")
+
+    @command()
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(phrase="The word/phrase to remove from the censor list")
+    async def remove(
+            self,
+            interaction: discord.Interaction,
+            phrase: str
+    ):
+        '''Removes a word from the censor'''
+        from cogs.censor import CENSORED
+        phrase = phrase.lower()
+        if phrase not in CENSORED["words"]:
+            return await interaction.response.send_message(f"`{phrase}` is not in the list of censored words.")
+        else:
+            CENSORED["words"].remove(phrase)
+            await mongo.update("bot", "censor", CENSORED['_id'], {"$pull": {"words": phrase}})
+            return await interaction.response.send_message(f"Removed {phrase} from list of censored words")
 
 
 class Moderation(commands.Cog):
     """Commands used for moderation"""
     print('Moderation Cog Loaded')
 
-    def __init__(self, bot):
+    def __init__(self, bot: TMS):
         self.bot = bot
+        self.__cog_app_commands__.append(CensorGroup(bot))
 
-    async def cog_check(self, ctx):
-        return await is_staff(ctx)
+    async def cog_check(self, interaction: commands.Context):
+        return await is_staff(interaction)
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='mod_badge', id=900488706748731472)
 
     @staticmethod
-    async def send_closed_report(ctx, embed: discord.Embed):
-        closed_reports = discord.utils.get(ctx.guild.channels, id=CHANNEL_CLOSED_REPORTS)
+    async def send_closed_report(interaction: discord.Interaction, embed: discord.Embed):
+        closed_reports: discord.abc.MessageableChannel = interaction.guild.get_channel(Channel.CLOSED_REPORTS)
         await closed_reports.send(embed=embed)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def cron(self, ctx):
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    async def cron(self, interaction: discord.Interaction):
         """
         Allows staff to manipulate the CRON list.
         Steps:
@@ -46,9 +101,9 @@ class Moderation(commands.Cog):
             3. Perform steps as staff request.
         """
 
-        cron_list = CRON_LIST
-        if len(CRON_LIST) == 0:
-            return await ctx.respond("No items currently in CRON_LIST")
+        cron_list = await mongo.get_cron()
+        if len(cron_list) == 0:
+            return await interaction.response.send_message("No items currently in CRON list")
 
         cron_embed = discord.Embed(
             title="Managing the CRON list",
@@ -63,100 +118,55 @@ class Moderation(commands.Cog):
                         'select the CRON entry from the dropdown and select *Remove*!'
         )
 
-        await ctx.respond("See information below for how to manage the CRON list.",
-                          view=CronView(cron_list, self.bot, ctx),
-                          embed=cron_embed)
+        await interaction.response.send_message(
+            "See information below for how to manage the CRON list.",
+            view=CronView(cron_list, self.bot, interaction),
+            embed=cron_embed
+        )
 
-    censor = discord.SlashCommandGroup(
-        "censor",
-        "Managing the bot's censor system",
-        guild_ids=[SERVER_ID],
-        permissions=[CommandPermission(
-            823929718717677568,
-            1,
-            True
-        )],
-        default_permission=False
-    )
-
-    @censor.command()
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def add(
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(delay="Slowmode delay in seconds")
+    async def slowmode(
             self,
-            ctx,
-            phrase: Option(str, description="The new word to add. For the new word, type the word")
+            interaction: discord.Interaction,
+            mode: Literal["remove", "set"],
+            delay: int,
+            channel: Optional[discord.TextChannel]
     ):
-        '''Adds a word to the censor'''
-        phrase = phrase.lower()
-        if phrase in CENSORED['words']:
-            return await ctx.respond(f"`{phrase}` is already in the censored words list. Operation cancelled.")
-        else:
-            CENSORED['words'].append(phrase)
-            self.bot.reload_extension("cogs.censor")
-            return await ctx.respond(f"Added Word to censored list")
-
-    @censor.command()
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def remove(
-            self,
-            ctx,
-            phrase: Option(str, description="The word to remove from the censor list.")
-    ):
-        '''Removes a word from the censor'''
-        phrase = phrase.lower()
-        if phrase not in CENSORED["words"]:
-            return await ctx.respond(f"`{phrase}` is not in the list of censored words.")
-        else:
-            CENSORED["words"].remove(phrase)
-            self.bot.reload_extension("cogs.censor")
-            return await ctx.respond(f"Removed {phrase} from list of censored words")
-
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def slowmode(self,
-                       ctx: ApplicationContext,
-                       mode: Option(str,
-                                    choices=["remove", "set"],
-                                    description="How to change the slowmode in the channel."),
-                       delay: Option(int,
-                                     description="Slowmode delay in seconds"),
-                       channel: Option(discord.TextChannel,
-                                       description="The channel to edit slowmode",
-                                       required=False)
-                       ):
-        true_channel = channel or ctx.channel
+        true_channel = channel or interaction.channel
         if mode == "remove":
             await true_channel.edit(slowmode_delay=0)
-            await ctx.respond("The slowmode was removed.")
+            await interaction.response.send_message("The slowmode was removed.")
         elif mode == "set":
             await true_channel.edit(slowmode_delay=delay)
-            await ctx.respond(f"Enabled a slowmode delay of {delay} seconds.")
+            await interaction.response.send_message(f"Enabled a slowmode delay of {delay} seconds.")
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def ban(self,
-                  ctx,
-                  member: Option(discord.User, description='the member to ban'),
-                  reason: Option(str, description='the reason to ban this member'),
-                  ban_length: Option(str, choices=["10 minutes",
-                                                   "30 minutes",
-                                                   "1 hour",
-                                                   "2 hours",
-                                                   "8 hours",
-                                                   "1 day",
-                                                   "4 days",
-                                                   "7 days",
-                                                   "1 month",
-                                                   "1 year",
-                                                   "Indefinitely"
-                                                   ],
-                                     description='the amount of time banned'),
-                  delete_message_days: Option(str,
-                                              description="The number of days of messages the user has sent to be "
-                                                          "deleted",
-                                              choices=["Previous 24 hours", "Previous 7 days", "None"]
-                                              )
-                  ):
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(
+        member="The user to ban",
+        reason="Why you are banning this user",
+        ban_length="The amount of time the user is banned",
+        delete_message_days="The number of days of messages the user has sent to be deleted"
+    )
+    async def ban(
+            self,
+            interaction: discord.Interaction,
+            member: discord.User,
+            reason: str,
+            ban_length: Literal[
+                "10 minutes", "30 minutes",
+                "1 hour", "2 hours",
+                "8 hours", "1 day",
+                "4 days", "7 days",
+                "1 month", "1 year",
+                "Indefinitely"
+            ],
+            delete_message_days: Literal["Previous 24 hours", "Previous 7 days", "None"]
+    ):
         """Bans a user."""
         times = {
             "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
@@ -192,23 +202,21 @@ class Moderation(commands.Cog):
                     """
         )
 
-        view = Confirm(ctx)
-        await ctx.respond("Please confirm that you would like to ban this user.", view=view,
-                          embed=original_shown_embed,
-                          ephemeral=False)
+        view = Confirm(interaction)
+        await interaction.response.send_message("Please confirm that you would like to ban this user.", view=view,
+                                                embed=original_shown_embed,
+                                                ephemeral=False)
 
         message = f"""
         You have been banned from the TMS Scioly Discord server for {reason}. \n
-        If you would like to appeal please DM `pandabear#0001`
+        If you would like to appeal please DM `pandabear#8652`
         """
 
-        guild = ctx.author.guild
-        server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
+        reports_channel = interaction.guild.get_channel(Channel.REPORTS)
 
         await view.wait()
         if view.value is True:
-            if member in guild.members:
+            if member in interaction.guild.members:
                 original_shown_embed.colour = discord.Color.brand_green()
                 original_shown_embed.title = "Successfully Banned"
                 original_shown_embed.description = f"member: `{member}` \n id: `{member.id}`\n\n was successfully banned"
@@ -217,110 +225,95 @@ class Moderation(commands.Cog):
                 embed.colour = discord.Color.brand_red()
 
                 await member.send(embed=embed)
-                await ctx.guild.ban(member, reason=reason, delete_message_days=delete_message)
-                await ctx.interaction.edit_original_message(embed=original_shown_embed, content=None)
+                await interaction.guild.ban(member, reason=reason, delete_message_days=delete_message)
+                await interaction.edit_original_message(embed=original_shown_embed, content=None)
                 await reports_channel.send(embed=original_shown_embed)
                 if ban_length != "Indefinitely":
                     cron_cog = self.bot.get_cog("CronTasks")
                     await cron_cog.schedule_unban(member, times[ban_length])
 
-            elif member not in guild.members:
+            elif member not in interaction.guild.members:
                 original_shown_embed.colour = discord.Color.brand_green()
                 original_shown_embed.title = "Successfully Banned"
                 original_shown_embed.description = f"member: `{member}` \n id: `{member.id}`\n\n was successfully banned"
                 original_shown_embed.timestamp = discord.utils.utcnow()
-                await ctx.interaction.edit_original_message(embed=original_shown_embed, content=None)
+                await interaction.edit_original_message(embed=original_shown_embed, content=None)
                 await reports_channel.send(embed=original_shown_embed)
-                await ctx.guild.ban(member, reason=reason, delete_message_days=delete_message)
+                await interaction.guild.ban(member, reason=reason, delete_message_days=delete_message)
                 if ban_length != "Indefinitely":
                     cron_cog = self.bot.get_cog("CronTasks")
                     await cron_cog.schedule_unban(member, times[ban_length])
             else:
-                await ctx.interaction.edit_original_message(
+                await interaction.edit_original_message(
                     content="The user was not successfully banned because of an error. They remain in the server.",
                     embed=None, view=None)
         else:
             original_shown_embed.colour = discord.Colour.brand_green()
             original_shown_embed.description = f"`{member.name}` was not banned"
             original_shown_embed.title = "Ban Cancelled"
-            await ctx.respond(embed=original_shown_embed, view=None, content=None)
+            await interaction.response.send_message(embed=original_shown_embed, view=None, content=None)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def dm(self, ctx,
-                 member: Option(discord.Member, description="The member you want to send the message to"),
-                 message: Option(str, description="The message you wish to send to the member")):
-        em1 = discord.Embed(title=f" ",
-                            description=f"> {message}",
-                            color=0x2F3136)
-        em1.set_author(name=f"Message from {ctx.author}", icon_url=ctx.author.avatar)
-        await ctx.respond(f"Message sent to `{member}`")
-        await member.send(embed=em1)
-
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def sync(self, ctx,
-                   channel: Option(discord.TextChannel, description="The channel to sync permissions with",
-                                   required=False)):
-        '''Syncs permmissions to channel category'''
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(channel="The channel to sync permissions with")
+    async def sync(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        """Syncs permissions to channel category"""
 
         if channel is None:
-            await ctx.channel.edit(sync_permissions=True)
-            await ctx.respond(f'Permissions for {ctx.channel.mention} synced with {ctx.channel.category}')
+            await interaction.channel.edit(sync_permissions=True)
+            await interaction.response.send_message(
+                f'Permissions for {interaction.channel.mention} synced with {interaction.channel.category}')
         else:
             await channel.edit(sync_permissions=True)
-            await ctx.respond(f'Permissions for {channel.mention} synced with {channel.category}')
+            await interaction.response.send_message(f'Permissions for {channel.mention} synced with {channel.category}')
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def kick(
             self,
-            ctx,
-            member: Option(discord.Member, description="Which user to kick"),
-            reason: Option(str, description="Why you're kicking this user")
+            interaction: discord.Interaction,
+            member: discord.Member,
+            reason: str
     ):
-        view = Confirm(ctx)
+        view = Confirm(interaction)
 
-        await ctx.respond(f"Are you sure you want to kick `{member}` for `{reason}`", view=view)
+        await interaction.response.send_message(f"Are you sure you want to kick `{member}` for `{reason}`", view=view)
         await view.wait()
         if view.value is False:
-            await ctx.respond('Aborting...')
+            await interaction.response.send_message('Aborting...')
         if view.value is True:
 
             if reason is None:
-                await ctx.respond("Please specify a reason why you want to kick this user!")
+                await interaction.response.send_message("Please specify a reason why you want to kick this user!")
             if member.id in TMS_BOT_IDS:
-                return await ctx.respond("Hey! You can't kick me!!")
+                return await interaction.response.send_message("Hey! You can't kick me!!")
             await member.kick(reason=reason)
 
             em6 = discord.Embed(title="",
                                 description=f"{member.mention} was kicked for {reason}.",
                                 color=0xFF0000)
 
-            await ctx.respond(embed=em6)
+            await interaction.response.send_message(embed=em6)
         return view.value
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(user="The user to mute", reason="Reason for muting this user",
+              mute_length="How long to mute the user for")
     async def mute(
             self,
-            ctx,
-            user: Option(discord.Member, description="The user to mute."),
-            reason: Option(str, description="The reason to mute the user."),
-            mute_length: Option(str, description="How long to mute the user for.",
-                                choices=[
-                                    "10 minutes",
-                                    "30 minutes",
-                                    "1 hour",
-                                    "2 hours",
-                                    "8 hours",
-                                    "1 day",
-                                    "4 days",
-                                    "7 days",
-                                    "1 month",
-                                    "1 year",
-                                    "Indefinitely"
-                                ])
+            interaction: discord.Interaction,
+            user: discord.Member,
+            reason: str,
+            mute_length: Literal[
+                "10 minutes", "30 minutes", "1 hour",
+                "2 hours", "8 hours", "1 day",
+                "4 days", "7 days", "1 month",
+                "1 year", "Indefinitely"
+            ]
     ):
 
         times = {
@@ -352,14 +345,14 @@ class Moderation(commands.Cog):
             """
         )
 
-        view = Confirm(ctx)
-        await ctx.respond("Please confirm that you would like to mute this user.", view=view,
-                          embed=original_shown_embed)
+        view = Confirm(interaction)
+        await interaction.response.send_message("Please confirm that you would like to mute this user.", view=view,
+                                                embed=original_shown_embed)
 
         message = f"You have been muted from the TMS Scioly Discord server for {reason}."
 
         await view.wait()
-        role = discord.utils.get(user.guild.roles, name=ROLE_MUTED)
+        role = interaction.guild.get_role(Role.MUTED)
         if view.value is True:
             await user.add_roles(role)
             await user.send(message)
@@ -371,7 +364,7 @@ class Moderation(commands.Cog):
             original_shown_embed.title = "Successfully Muted"
             original_shown_embed.description = f"{user.name} was successfully muted"
             original_shown_embed.timestamp = discord.utils.utcnow()
-            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
+            await interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
             close_embed = discord.Embed(
                 title=f"Successfully Muted {user}",
                 description=f"{user.mention} was successfully muted until "
@@ -380,24 +373,26 @@ class Moderation(commands.Cog):
                 timestamp=discord.utils.utcnow(),
                 color=discord.Color.brand_green()
             )
-            await self.send_closed_report(ctx, close_embed)
+            await self.send_closed_report(interaction, close_embed)
 
         else:
             original_shown_embed.colour = discord.Colour.brand_green()
             original_shown_embed.title = "Mute Canceled"
             original_shown_embed.description = f"Mute of `{user.name}` was canceled"
             original_shown_embed.timestamp = discord.utils.utcnow()
-            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
+            await interaction.edit_original_message(embed=original_shown_embed, view=None, content=None)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def nuke(self, ctx, count: Option(int, description="The amount of messages to delete")):
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(count="The amount of messages to delete")
+    async def nuke(self, interaction: discord.Interaction, count: int):
         """Nukes (deletes) a specified amount of messages."""
         global STOPNUKE
-        MAX_DELETE = 100
-        if int(count) > MAX_DELETE:
-            return await ctx.respond("Chill. No more than deleting 100 messages at a time.")
-        channel = ctx.channel
+        max_delete = 100
+        if int(count) > max_delete:
+            return await interaction.response.send_message("Chill. No more than deleting 100 messages at a time.")
+        channel = interaction.channel
         if int(count) < 0:
             history = await channel.history(limit=105).flatten()
             message_count = len(history)
@@ -406,7 +401,7 @@ class Moderation(commands.Cog):
             else:
                 count = message_count + int(count) - 1
             if count <= 0:
-                return await ctx.respond(
+                return await interaction.response.send_message(
                     "Sorry, you can not delete a negative amount of messages. This is likely because you are asking "
                     "to save more messages than there are in the channel.")
 
@@ -418,8 +413,8 @@ class Moderation(commands.Cog):
             To stop this nuke, press the red button below!
             """
         )
-        view = Nuke(ctx)
-        await ctx.respond(embed=original_shown_embed, view=view)
+        view = Nuke(interaction)
+        await interaction.response.send_message(embed=original_shown_embed, view=view)
         await asyncio.sleep(1)
 
         for i in range(9, 0, -1):
@@ -429,14 +424,14 @@ class Moderation(commands.Cog):
             {count} messages will be deleted from {channel.mention} in `{i}` seconds...
             To stop this nuke, press the red button below!
             """
-            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=view)
+            await interaction.edit_original_message(embed=original_shown_embed, view=view)
             await asyncio.sleep(1)
 
         if not view.stopped:
             original_shown_embed.description = f"""
             Now nuking {count} messages from the channel...
             """
-            await ctx.interaction.edit_original_message(embed=original_shown_embed, view=None)
+            await interaction.edit_original_message(embed=original_shown_embed, view=None)
 
             # Nuke has not been stopped, proceed with deleting messages
             def nuke_check(msgs: discord.Message) -> bool:
@@ -453,70 +448,73 @@ class Moderation(commands.Cog):
             await channel.purge(limit=count + 3, check=nuke_check)
             await channel.send(embed=new_embed)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def lock(self,
-                   ctx,
-                   channel: Option(discord.TextChannel, description="The channel you want to lock")):
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(channel="The channel you want to lock")
+    async def lock(self, interaction: discord.Interaction, channel: discord.TextChannel):
         """
         Locks a channel to Member access.
         """
-        member = ctx.author
+        member = interaction.user
         if channel is None:
-            member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
-            await ctx.channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
-            SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-            await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.respond(f"Locked :lock: {ctx.channel.mention} to Member access.")
+            member_role = interaction.guild.get_role(Role.M)
+            await interaction.channel.set_permissions(member_role, add_reactions=False, send_messages=False,
+                                                      read_messages=True)
+            SL = interaction.guild.get_role(Role.SERVERLEADER)
+            await interaction.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
+            await interaction.response.send_message(f"Locked :lock: {interaction.channel.mention} to Member access.")
         else:
-            member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
+            member_role = interaction.guild.get_role(Role.M)
             await channel.set_permissions(member_role, add_reactions=False, send_messages=False, read_messages=True)
-            SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
+            SL = interaction.guild.get_role(Role.SERVERLEADER)
             await channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.respond(f"Locked :lock: {channel.mention} to Member access.")
+            await interaction.response.send_message(f"Locked :lock: {channel.mention} to Member access.")
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(channel="The channel to unlock")
     async def unlock(
             self,
-            ctx,
-            channel: Option(discord.TextChannel, description="The channel to unlock", required=False)
+            interaction: discord.Interaction,
+            channel: Optional[discord.TextChannel]
     ):
         """Unlocks a channel to Member access."""
-        member = ctx.author
+        member = interaction.user
         if channel is None:
-            member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
-            await ctx.channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
-            SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
-            await ctx.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.respond(
-                f"Unlocked :unlock: {ctx.channel.mention} to Member access. Please check if permissions need to be synced.")
+            member_role = interaction.guild.get_role(Role.M)
+            await interaction.channel.set_permissions(member_role, add_reactions=True, send_messages=True,
+                                                      read_messages=True)
+            SL = interaction.guild.get_role(Role.SERVERLEADER)
+            await interaction.channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
+            await interaction.response.send_message(
+                f"Unlocked :unlock: {interaction.channel.mention} to Member access. Please check if permissions need to be synced.")
         else:
-            member_role = discord.utils.get(member.guild.roles, name=ROLE_MR)
+            member_role = interaction.guild.get_role(Role.M)
             await channel.set_permissions(member_role, add_reactions=True, send_messages=True, read_messages=True)
-            SL = discord.utils.get(member.guild.roles, name=ROLE_SERVERLEADER)
+            SL = interaction.guild.get_role(Role.SERVERLEADER)
             await channel.set_permissions(SL, add_reactions=True, send_messages=True, read_messages=True)
-            await ctx.respond(
+            await interaction.response.send_message(
                 f"Unlocked :unlock: {channel.mention} to Member access. Please check if permissions need to be synced.")
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def warn(self,
-                   ctx,
-                   member: Option(discord.Member, description="Which user to warn"),
-                   reason: Option(str, description="Why you are warning this user")
-                   ):
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(reason="The reason you are warning this user", member="The user you are warning")
+    async def warn(self, interaction: discord.Interaction, member: discord.Member, reason: str):
         '''Warns a user'''
         server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
-        mod = ctx.author
+        reports_channel = interaction.guild.get_channel(Channel.REPORTS)
+        mod = interaction.user
         avatar = mod.avatar
         avatar1 = member.avatar.url
 
-        if member is ctx.author:
-            return await ctx.respond("You cannot warn yourself :rolling_eyes:")
+        if member is interaction.user:
+            return await interaction.response.send_message("You cannot warn yourself :rolling_eyes:")
         if member.id in TMS_BOT_IDS:
-            return await ctx.respond(f"Hey {ctx.author.mention}! You can't warn {member.mention}")
+            return await interaction.response.send_message(
+                f"Hey {interaction.user.mention}! You can't warn {member.mention}")
         embed = discord.Embed(title="Warning Given",
                               description=f"Warning issued to {member.mention} \n id: `{member.id}`",
                               color=0xFF0000)
@@ -534,33 +532,35 @@ class Moderation(commands.Cog):
                           icon_url=avatar)
 
         await reports_channel.send(embed=embed, view=ReportView())
-        await ctx.respond(embed=embed1)
+        await interaction.response.send_message(embed=embed1)
         await member.send(embed=embed2)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def blacklist(self, ctx,
-                        member: Option(discord.Member,
-                                       description="The member you want to blacklist from using commands")):
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    @describe(member="The member you want to blacklist from using commands")
+    async def blacklist(self, interaction: discord.Interaction, member: discord.Member):
         '''Blacklist a user from using commands'''
         if member.id == self.bot.owner_id:
-            return await ctx.respond("You can't blacklist the owner of the bot :rolling_eyes:")
+            return await interaction.response.send_message("You can't blacklist the owner of the bot :rolling_eyes:")
         try:
             with open("blacklist.json") as f:
                 data = json.load(f)
             if member.id in data['blacklisted_ids']:
-                return await ctx.respond(f'{member.mention} is already blacklisted from using commands!')
+                return await interaction.response.send_message(
+                    f'{member.mention} is already blacklisted from using commands!')
             else:
                 data["blacklisted_ids"].append(member.id)
                 with open("blacklist.json", 'w') as f:
                     json.dump(data, f)
-                await ctx.respond(f'Blacklisted {member.mention} from using commands!')
+                await interaction.response.send_message(f'Blacklisted {member.mention} from using commands!')
         except Exception:
-            await ctx.respond(f'Failed to blacklist {member.mention}!')
+            await interaction.response.send_message(f'Failed to blacklist {member.mention}!')
 
-    @slash_command(guild_ids=[SERVER_ID])
-    @permissions.has_any_role(ROLE_SERVERLEADER, guild_id=SERVER_ID)
-    async def unblacklist(self, ctx, member: discord.Member):
+    @command()
+    @guilds(SERVER_ID)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
+    async def unblacklist(self, interaction: discord.Interaction, member: discord.Member):
         '''Un-Blacklist a user from using commands'''
         id = member.id
         with open("blacklist.json") as f:
@@ -572,13 +572,13 @@ class Moderation(commands.Cog):
             with open('blacklist.json', 'w') as f:
                 json.dump(data, f)
 
-                await ctx.respond(f"Successfully removed command blacklist from {member.mention}")
+                await interaction.response.send_message(f"Successfully removed command blacklist from {member.mention}")
             #
             # except Exception:
-            #     await ctx.respond(f"Couldn't remove command blacklist from {member.mention}", ephemeral=True)
+            #     await interaction.response.send_message(f"Couldn't remove command blacklist from {member.mention}", ephemeral=True)
         else:
-            await ctx.respond(f"{member.mention} is not blacklisted from using commands")
+            await interaction.response.send_message(f"{member.mention} is not blacklisted from using commands")
 
 
-def setup(bot):
-    bot.add_cog(Moderation(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(Moderation(bot))
