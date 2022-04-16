@@ -1,14 +1,16 @@
-import json
+from __future__ import annotations
+
+import asyncio
 import os
-from abc import ABC
+from typing import TYPE_CHECKING
 
 import aiohttp
 import discord
+from discord import app_commands
 from discord.ext import commands
 
-from utils.functions import send_to_dm_log
 from utils.views import ReportView, Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Allevents
-from utils.variables import *
+from utils.variables import TMS_BOT_IDS
 
 import sys
 import traceback
@@ -19,6 +21,7 @@ INITIAL_EXTENSIONS = [
     "cogs.general",
     "cogs.tasks",
     "cogs.meta",
+    "cogs.embed",
     "cogs.base",
     "cogs.github",
     "cogs.google",
@@ -31,27 +34,36 @@ INITIAL_EXTENSIONS = [
     "cogs.wikipedia",
     "cogs.config",
     "cogs.staff",
+    "cogs.medals",
     "jishaku"
 ]
 
 
-class TMS(commands.Bot, ABC):
+class TmsBotTree(app_commands.CommandTree):
+    def __init__(self, client: 'TMS'):
+        super().__init__(client)
+
+
+class TMS(commands.Bot):
     def __init__(self):
         intents = discord.Intents.all()
         super().__init__(
-            command_prefix=commands.when_mentioned_or("!"),
+            command_prefix=commands.when_mentioned_or("!", ),
             case_insensitive=True,
             slash_commands=True,
             intents=intents,
-            status=discord.Status.dnd
+            status=discord.Status.dnd,
+            tree_cls=TmsBotTree
         )
         self.persistent_views_added = False
         self.session = aiohttp.ClientSession(loop=self.loop)
         self.owner_id = 747126643587416174
+        self.help_command = commands.DefaultHelpCommand()
+        self.enable_debug_events = True
 
         for extension in INITIAL_EXTENSIONS:
             try:
-                self.load_extension(extension)
+                await self.load_extension(extension)
             except all:
                 print(f'Failed to load extension {extension}', file=sys.stderr)
                 traceback.print_exc()
@@ -73,38 +85,12 @@ class TMS(commands.Bot, ABC):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         print("discord.py v" + discord.__version__)
 
-    async def on_error(
-            self, event, *args, **kwargs
-    ) -> None:
-        print(traceback.format_exc())
-
-    async def on_application_command_error(
-            self, ctx: discord.ApplicationContext, exception: discord.DiscordException
-    ) -> None:
-        print(exception)
-        try:
-            await ctx.defer()
-            await ctx.respond(exception)
-        except all:
-            pass
-
-    async def on_interaction(
-            self,  interaction
-    ) -> None:
-        ctx = await self.get_application_context(interaction)
-        member = ctx.author.id
-        f = open('blacklist.json')
-        data = json.load(f)
-        if member in data['blacklisted_ids']:
-            return await ctx.respond("You have been blacklisted from using commands", ephemeral=True)
-        else:
-            await self.process_application_commands(interaction)
-
     async def on_message(
             self, message
-    ):
+    ) -> None:
         if type(message.channel) == discord.DMChannel:
-            await send_to_dm_log(bot, message)
+            log = bot.get_cog("Listeners")
+            return await log.send_to_dm_log(bot, message)
 
         if message.author.id in TMS_BOT_IDS:
             return
@@ -115,8 +101,14 @@ class TMS(commands.Bot, ABC):
         spam = bot.get_cog("SpamManager")  # Spamming
         await spam.store_and_validate(message)
 
+        listener_for_embed = bot.get_cog("Embeds")
+        await listener_for_embed.on_message(message)
+
     def run(self):
-        super().run(os.environ['TOKEN'], reconnect=True)
+        super().run(
+            os.getenv("TOKEN"),
+            reconnect=True
+        )
 
     async def close(self):
         await self.session.close()
@@ -126,9 +118,10 @@ class TMS(commands.Bot, ABC):
 bot = TMS()
 
 
-def main():
-    bot.run()
+async def main() -> None:
+    async with bot:
+        bot.run()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run((main()))
