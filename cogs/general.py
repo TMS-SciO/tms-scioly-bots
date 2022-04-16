@@ -1,23 +1,201 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import os
 from collections import Counter
-from fractions import Fraction
-from math import sqrt
-from typing import Optional
+from typing import Literal, Optional, TYPE_CHECKING
+import mongo
 
 import discord
 import pkg_resources
 import psutil
-from discord.commands.commands import Option, slash_command
+from discord.app_commands import command, guilds, describe, Group
 from discord.ext import commands
 
-from cogs.github import Github
 from utils import times
 from utils.checks import is_not_blacklisted
+from utils.views import Confirm
 from utils.rules import RULES
 from utils.variables import *
 from utils.views import ReportView
+
+if TYPE_CHECKING:
+    from bot import TMS
+
+
+class BotGroup(Group):
+    def __init__(self, bot: TMS):
+        self.bot = bot
+        self.process = psutil.Process()
+        self.launch_time = datetime.datetime.utcnow()
+        super().__init__(name="bot", guild_ids=[SERVER_ID])
+
+    @property
+    def cog(self) -> commands.Cog:
+        return self.bot.get_cog("General")
+
+    @staticmethod
+    async def say_permissions(interaction: discord.Interaction, member, channel):
+        permissions = channel.permissions_for(member)
+        e = discord.Embed(colour=member.colour)
+        avatar = member.display_avatar.with_static_format('png')
+        e.set_author(name=str(member), url=avatar)
+        allowed, denied = [], []
+        for name, value in permissions:
+            name = name.replace('_', ' ').replace('guild', 'server').title()
+            if value:
+                allowed.append(name)
+            else:
+                denied.append(name)
+
+        e.add_field(name='Allowed', value='\n'.join(allowed))
+        e.add_field(name='Denied', value='\n'.join(denied))
+        await interaction.response.send_message(embed=e)
+
+    def get_bot_uptime(self) -> str:
+        delta_uptime = datetime.datetime.utcnow() - self.launch_time
+        hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        days, hours = divmod(hours, 24)
+        uptime = f"{days} Days, {hours} Hours, {minutes} Minutes, {seconds} Seconds"
+        return uptime
+
+    @command(name="permissions")
+    async def _permissions(
+            self,
+            interaction: discord.Interaction,
+            channel: Optional[discord.TextChannel]
+    ):
+        """Shows the bot's permissions in a specific channel.
+        If no channel is given then it uses the current one.
+        This is a good way of checking if the bot has the permissions needed
+        to execute the commands it wants to execute.
+        To execute this command you must have Manage Roles permission.
+        You cannot use this in private messages.
+        """
+        channel = channel or interaction.channel
+        member = interaction.guild.me
+        await self.say_permissions(interaction, member, channel)
+
+    @command()
+    async def uptime(self, interaction: discord.Interaction):
+        '''Sends how long the bot has been online'''
+        uptime = self.get_bot_uptime()
+        await interaction.response.send_message(f"**{uptime}**")
+
+    #
+    # @_bot.command()
+    # async def socketstats(self, interaction):
+    #     delta = discord.utils.utcnow() - self.bot.uptime
+    #     minutes = delta.total_seconds() / 60
+    #     total = sum(self.bot.socket_stats.values())
+    #     cpm = total / minutes
+
+    #     await interaction.response.send_message(f'{total} socket events observed ({cpm:.2f}/minute):\n{self.bot.socket_stats}')
+    @command()
+    async def about(self, interaction: discord.Interaction):
+        """Tells you information about the bot itself."""
+
+        # revision = Github.get_last_commits(self, count=5)
+        embed = discord.Embed()  # description='Latest Changes:\n' + revision)
+        # embed = discord.Embed(description='Latest Changes:\n')
+        embed.colour = discord.Colour.blurple()
+
+        # To properly cache myself, I need to use the bot support server.
+        support_guild = self.bot.get_guild(816806329925894217)
+        owner = await support_guild.fetch_member(747126643587416174)
+        name = str(owner)
+        embed.set_author(name=name, icon_url=owner.display_avatar.url, url='https://github.com/pandabear189')
+
+        # statistics
+        total_members = 0
+        total_unique = len(self.bot.users)
+
+        text = 0
+        voice = 0
+        guilds = 0
+        for guild in self.bot.guilds:
+            guilds += 1
+            if guild.unavailable:
+                continue
+
+            total_members += guild.member_count
+            for channel in guild.channels:
+                if isinstance(channel, discord.TextChannel):
+                    text += 1
+                elif isinstance(channel, discord.VoiceChannel):
+                    voice += 1
+
+        embed.add_field(name='Members', value=f'{total_members} total\n{total_unique} unique')
+        embed.add_field(name='Channels', value=f'{text + voice} total\n{text} text\n{voice} voice')
+
+        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
+        cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
+        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU')
+
+        dpyversion = pkg_resources.get_distribution('py-cord').version
+        embed.add_field(name='Guilds', value=guilds)
+        embed.add_field(name='Number of Commands', value=(len(self.bot.commands) + len(self.bot.tree.get_commands())))
+        uptime = self.get_bot_uptime()
+        embed.add_field(name="Uptime", value=uptime)
+        embed.set_footer(text=f'Made with discord.py v{dpyversion}', icon_url='https://i.imgur.com/RPrw70n.png')
+        embed.timestamp = discord.utils.utcnow()
+        await interaction.response.send_message(embed=embed)
+
+    @command(name="health")
+    async def _health(self, interaction: discord.Interaction):
+        """Various bot health monitoring tools."""
+
+        # This uses a lot of private methods because there is no
+        # clean way of doing this otherwise.
+
+        HEALTHY = discord.Colour.brand_green()
+        UNHEALTHY = discord.Colour.brand_red()
+
+        total_warnings = 0
+
+        embed = discord.Embed(title='Bot Health Report', colour=HEALTHY)
+
+        description = [
+        ]
+
+        task_retriever = asyncio.all_tasks
+        all_tasks = task_retriever(loop=self.bot.loop)
+
+        event_tasks = [
+            t for t in all_tasks
+            if 'Client._run_event' in repr(t) and not t.done()
+        ]
+
+        cogs_directory = os.path.dirname(__file__)
+        tasks_directory = os.path.join('discord', 'ext', 'tasks', '__init__.py')
+        inner_tasks = [
+            t for t in all_tasks
+            if cogs_directory in repr(t) or tasks_directory in repr(t)
+        ]
+
+        bad_inner_tasks = ", ".join(hex(id(t)) for t in inner_tasks if t.done() and t._exception is not None)
+        total_warnings += bool(bad_inner_tasks)
+        embed.add_field(name='Inner Tasks', value=f'Total: {len(inner_tasks)}\nFailed: {bad_inner_tasks or "None"}')
+        embed.add_field(name='Events Waiting', value=f'Total: {len(event_tasks)}', inline=False)
+
+        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
+        cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
+        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', inline=False)
+
+        ws_rate_limit = self.bot.is_ws_ratelimited()
+        description.append(f'Websocket Rate Limit: {ws_rate_limit}')
+
+        global_rate_limit = self.bot.http._global_over.set()
+        description.append(f'Global Rate Limit: {global_rate_limit}')
+
+        if ws_rate_limit or total_warnings >= 3 or len(event_tasks) >= 4:
+            embed.colour = UNHEALTHY
+
+        embed.set_footer(text=f'{total_warnings} warning(s)')
+        embed.description = '\n'.join(description)
+        await interaction.response.send_message(embed=embed)
 
 
 class General(commands.Cog):
@@ -25,53 +203,44 @@ class General(commands.Cog):
 
     print('GeneralCommands Cog Loaded')
 
-    def __init__(self, bot):
+    def __init__(self, bot: TMS):
         self.bot = bot
-        self.process = psutil.Process()
-        self.bot.launch_time = datetime.datetime.utcnow()
+        self.__cog_app_commands__.append(BotGroup(bot))
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='\U0001f62f')
 
-    async def cog_check(self, ctx) -> bool:
-        return await is_not_blacklisted(ctx)
+    async def cog_check(self, interaction) -> bool:
+        return await is_not_blacklisted(interaction)
 
     def cog_unload(self) -> None:
         pass
 
-    def get_bot_uptime(self) -> str:
-        delta_uptime = datetime.datetime.utcnow() - self.bot.launch_time
-        hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        days, hours = divmod(hours, 24)
-        uptime = f"{days} Days, {hours} Hours, {minutes} Minutes, {seconds} Seconds"
-        return uptime
-
     @staticmethod
-    async def _basic_cleanup_strategy(ctx, search):
+    async def _basic_cleanup_strategy(interaction: discord.Interaction, search):
         count = 0
-        async for msg in ctx.history(limit=search, before=ctx.message):
-            if msg.author == ctx.me and not (msg.mentions or msg.role_mentions):
+        async for msg in interaction.channel.history(limit=search, before=interaction.message):
+            if msg.author == interaction.guild.me and not (msg.mentions or msg.role_mentions):
                 await msg.delete()
                 count += 1
         return {'Bot': count}
 
     @staticmethod
-    async def _complex_cleanup_strategy(ctx, search):
+    async def _complex_cleanup_strategy(interaction: discord.Interaction, search):
 
         def check(m):
-            return m.author == ctx.me or m.content.startswith("!" or "?")
+            return m.author == interaction.guild.me or m.content.startswith("!" or "?")
 
-        deleted = await ctx.channel.purge(limit=search, check=check, before=ctx.message)
+        deleted = await interaction.channel.purge(limit=search, check=check, before=interaction.message)
         return Counter(m.author.display_name for m in deleted)
 
     @staticmethod
-    async def _regular_user_cleanup_strategy(ctx, search):
+    async def _regular_user_cleanup_strategy(interaction: discord.Interaction, search):
         def check(m):
-            return (m.author == ctx.me or m.content.startswith("!" or "?")) and not (m.mentions or m.role_mentions)
+            return (m.author == interaction.guild.me or m.content.startswith("!" or "?")) and not (m.mentions or m.role_mentions)
 
-        deleted = await ctx.channel.purge(limit=search, check=check, before=ctx.message)
+        deleted = await interaction.channel.purge(limit=search, check=check, before=interaction.message)
         return Counter(m.author.display_name for m in deleted)
 
     @staticmethod
@@ -85,37 +254,36 @@ class General(commands.Cog):
         offset = times.format_relative(commit_time.astimezone(datetime.timezone.utc))
         return f'[`{short_sha2}`](https://github.com/pandabear189/tms-scioly-bots/commit/{commit.hex}) {short} ({offset})'
 
-    @slash_command(guild_ids=[SERVER_ID])
+    @command()
+    @guilds(SERVER_ID)
     async def rule(
             self,
-            ctx,
-            number: Option(str,
-                           description="Which rule to display",
-                           choices=["1", "2", "3", "4", "5", "6"])
+            interaction: discord.Interaction,
+            number: Literal["1", "2", "3", "4", "5", "6"]
     ):
         """Gets a specified rule."""
         rule = RULES[int(number) - 1]
         embed = discord.Embed(title="",
                               description=f"**Rule {number}:**\n> {rule}",
                               color=0xff008c)
-        await ctx.respond(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def report(self, ctx, reason):
+    @command()
+    @guilds(SERVER_ID)
+    async def report(self, interaction: discord.Interaction, reason: str):
         """Creates a report that is sent to staff members."""
-        server = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
-        ava = ctx.author.avatar
+        reports_channel = interaction.guild.get_channel(Channel.REPORTS)
+        ava = interaction.user.avatar
         if ava is None:
             ava = ""
 
         message = reason
         embed = discord.Embed(title="Report received", description=" ", color=0xFF0000)
-        embed.add_field(name="User:", value=f"{ctx.author.mention} \n id: `{ctx.author.id}`")
+        embed.add_field(name="User:", value=f"{interaction.user.mention} \n id: `{interaction.author.id}`")
         embed.add_field(name="Report:", value=f"`{message}`")
-        embed.set_author(name=f"{ctx.author}", icon_url=ava)
+        embed.set_author(name=f"{interaction.user}", icon_url=ava)
         await reports_channel.send(embed=embed, view=ReportView())
-        await ctx.respond("Thanks, report created.")
+        await interaction.response.send_message("Thanks, report created.")
 
     @staticmethod
     def tick(opt, label=None):
@@ -129,22 +297,21 @@ class General(commands.Cog):
             return f'{emoji}: {label}'
         return emoji
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def serverinfo(self, ctx, *, guild_id: int = None):
+    @command()
+    @guilds(SERVER_ID)
+    async def serverinfo(self, interaction: discord.Interaction, *, guild_id: int = None):
         """Shows info about the current server."""
-
-        if guild_id is not None and await self.bot.is_owner(ctx.author):
+        if guild_id is not None and await self.bot.is_owner(interaction.user):
             guild = self.bot.get_guild(guild_id)
             if guild is None:
-                return await ctx.respond(f'Invalid Guild ID given.')
+                return await interaction.response.send_message(f'Invalid Guild ID given.')
         else:
-            guild = ctx.guild
+            guild = interaction.guild
 
         roles = [role.name.replace('@', '@\u200b') for role in guild.roles]
 
         if not guild.chunked:
-            async with ctx.typing():
-                await guild.chunk(cache=True)
+            await guild.chunk(cache=True)
 
         # figure out what channels are 'secret'
         everyone = guild.default_role
@@ -244,10 +411,14 @@ class General(commands.Cog):
         fmt = f'{fmt}Total Emoji: {len(guild.emojis)}/{guild.emoji_limit * 2}'
         e.add_field(name='Emoji', value=fmt, inline=False)
         e.set_footer(text='Created').timestamp = guild.created_at
-        await ctx.respond(embed=e)
+        await interaction.response.send_message(embed=e)
 
     @staticmethod
-    async def say_permissions(ctx, member, channel):
+    async def say_permissions(
+            interaction: discord.Interaction,
+            member: discord.Member,
+            channel
+    ):
         permissions = channel.permissions_for(member)
         e = discord.Embed(colour=member.colour)
         avatar = member.display_avatar.with_static_format('png')
@@ -262,10 +433,11 @@ class General(commands.Cog):
 
         e.add_field(name='Allowed', value='\n'.join(allowed))
         e.add_field(name='Denied', value='\n'.join(denied))
-        await ctx.respond(embed=e)
+        await interaction.response.send_message(embed=e)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def permissions(self, ctx,
+    @command()
+    @guilds(SERVER_ID)
+    async def permissions(self, interaction: discord.Interaction,
                           member: Optional[discord.Member],
                           channel: Optional[discord.TextChannel]):
         """Shows a member's permissions in a specific channel.
@@ -273,39 +445,47 @@ class General(commands.Cog):
         You cannot use this in private messages. If no member is given then
         the info returned will be yours.
         """
-        channel = channel or ctx.channel
+        channel = channel or interaction.channel
         if member is None:
-            member = ctx.author
+            member = interaction.user
 
-        await self.say_permissions(ctx, member, channel)
+        await self.say_permissions(interaction, member, channel)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def debugpermissions(self, ctx, guild_id: int, channel_id: int, author_id: int = None):
+    @command()
+    @guilds(SERVER_ID)
+    async def debugpermissions(
+            self,
+            interaction: discord.Interaction,
+            guild_id: int,
+            channel_id: int,
+            author_id: int = None
+    ):
         """Shows permission resolution for a channel and an optional author."""
 
         guild = self.bot.get_guild(guild_id)
         if guild is None:
-            return await ctx.respond('Guild not found?')
+            return await interaction.response.send_message('Guild not found?')
 
         channel = guild.get_channel(channel_id)
         if channel is None:
-            return await ctx.respond('Channel not found?')
+            return await interaction.response.send_message('Channel not found?')
 
         if author_id is None:
             member = guild.me
         else:
-            member = await ctx.guild.get_member(author_id)
+            member = await interaction.guild.get_member(author_id)
 
         if member is None:
-            return await ctx.respond('Member not found?')
+            return await interaction.response.send_message('Member not found?')
 
-        await self.say_permissions(ctx, member, channel)
+        await self.say_permissions(interaction, member, channel)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def info(self, ctx, user: discord.User):
+    @command()
+    @guilds(SERVER_ID)
+    async def info(self, interaction: discord.Interaction, user: discord.User):
         """Shows info about a user."""
 
-        user = user or ctx.author
+        user = user or interaction.user
         e = discord.Embed()
         roles = [role.name.replace('@', '@\u200b') for role in getattr(user, 'roles', [])]
         e.set_author(name=str(user))
@@ -339,200 +519,42 @@ class General(commands.Cog):
         if isinstance(user, discord.User):
             e.set_footer(text='This member is not in this server.')
 
-        await ctx.respond(embed=e)
+        await interaction.response.send_message(embed=e)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def tag(self,
-                  ctx,
-                  tag: Option(str, description="Name of the tag")
-                  ):
-        '''Retrieves a tag'''
-        tag = tag.lower()
-        if tag == 'rules':
-            em1 = discord.Embed(title="Rules", description="Here are the rules for the 2021-22 season", color=0xff008c)
-            em1.add_field(name='Division B Rules',
-                          value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf/ \"Division B\")")
-            em1.add_field(name='Division C Rules',
-                          value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_C_2022_Rules_Manual_Web_1.pdf/ \"Division C\")")
-            await ctx.respond(embed=em1)
-
-        elif tag == 'anatomy':
-            em2 = discord.Embed(title="Anatomy & Physiology Rules",
-                                description="Participants will be assessed on their understanding of the anatomy and physiology for the human Nervous, Sense Organs, and Endocrine systems.  \n This Event may be administered as a written test or as series of lab-practical stations which can include but are not limited to experiments, scientific apparatus, models, illustrations, specimens, data collection and analysis, and problems for students to solve.",
-                                color=0xff008c)
-            em2.add_field(name='Full Anatomy Rules',
-                          value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf#page=7/ \"Anatomy\")")
-            await ctx.respond(embed=em2)
-
-        elif tag == 'bpl':
-            em3 = discord.Embed(title="Bio Process Lab Rules", color=0xff008c)
-            em3.add_field(name='Full Bio Process Lab',
-                          value="[Click Here](https://www.soinc.org/sites/default/files/2021-09/Science_Olympiad_Div_B_2022_Rules_Manual_Web_0.pdf#page=9/ \"Bio Process Lab\")")
-            await ctx.respond(embed=em3)
-
-        else:
-            await ctx.respond("Sorry I couldn't find that tag", mention_author=False)
-
-    @slash_command(guild_ids=[SERVER_ID])
-    async def invite(self, ctx):
+    @command()
+    @guilds(SERVER_ID)
+    async def invite(self, interaction: discord.Interaction):
         '''Gives you a 1 time use invite link'''
-        x = await ctx.channel.create_invite(max_uses=1)
-        await ctx.respond(x)
+        x = await interaction.channel.create_invite(max_uses=1)
+        await interaction.response.send_message(x)
 
-    _bot = discord.SlashCommandGroup(
-        "bot",
-        "Commands related to the bot itself",
-        [SERVER_ID]
-    )
-
-    @_bot.command(name="permissions")
-    async def _permissions(self, ctx, channel: Optional[discord.TextChannel]):
-        """Shows the bot's permissions in a specific channel.
-        If no channel is given then it uses the current one.
-        This is a good way of checking if the bot has the permissions needed
-        to execute the commands it wants to execute.
-        To execute this command you must have Manage Roles permission.
-        You cannot use this in private messages.
-        """
-        channel = channel or ctx.channel
-        member = ctx.guild.me
-        await self.say_permissions(ctx, member, channel)
-
-    @_bot.command()
-    async def uptime(self, ctx):
-        '''Sends how long the bot has been online'''
-        uptime = self.get_bot_uptime()
-        await ctx.respond(f"**{uptime}**")
-
-    @_bot.command()
-    async def about(self, ctx):
-        """Tells you information about the bot itself."""
-
-        revision = Github.get_last_commits(self, count=5)
-        embed = discord.Embed(description='Latest Changes:\n' + revision)
-        # embed = discord.Embed(description='Latest Changes:\n')
-        embed.colour = discord.Colour.blurple()
-
-        # To properly cache myself, I need to use the bot support server.
-        support_guild = self.bot.get_guild(816806329925894217)
-        owner = await support_guild.fetch_member(747126643587416174)
-        name = str(owner)
-        embed.set_author(name=name, icon_url=owner.display_avatar.url, url='https://github.com/pandabear189')
-
-        # statistics
-        total_members = 0
-        total_unique = len(self.bot.users)
-
-        text = 0
-        voice = 0
-        guilds = 0
-        for guild in self.bot.guilds:
-            guilds += 1
-            if guild.unavailable:
-                continue
-
-            total_members += guild.member_count
-            for channel in guild.channels:
-                if isinstance(channel, discord.TextChannel):
-                    text += 1
-                elif isinstance(channel, discord.VoiceChannel):
-                    voice += 1
-
-        embed.add_field(name='Members', value=f'{total_members} total\n{total_unique} unique')
-        embed.add_field(name='Channels', value=f'{text + voice} total\n{text} text\n{voice} voice')
-
-        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
-        cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
-        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU')
-
-        dpyversion = pkg_resources.get_distribution('py-cord').version
-        embed.add_field(name='Guilds', value=guilds)
-        embed.add_field(name='Number of Commands', value=(len(self.bot.commands) + len(self.bot.application_commands)))
-        uptime = self.get_bot_uptime()
-        embed.add_field(name="Uptime", value=uptime)
-        embed.set_footer(text=f'Made with discord.py v{dpyversion}', icon_url='https://i.imgur.com/RPrw70n.png')
-        embed.timestamp = discord.utils.utcnow()
-        await ctx.respond(embed=embed)
-
-    @_bot.command(name="health")
-    async def _health(self, ctx):
-        """Various bot health monitoring tools."""
-
-        # This uses a lot of private methods because there is no
-        # clean way of doing this otherwise.
-
-        HEALTHY = discord.Colour.brand_green()
-        UNHEALTHY = discord.Colour.brand_red()
-
-        total_warnings = 0
-
-        embed = discord.Embed(title='Bot Health Report', colour=HEALTHY)
-
-        description = [
-        ]
-
-        task_retriever = asyncio.all_tasks
-        all_tasks = task_retriever(loop=self.bot.loop)
-
-        event_tasks = [
-            t for t in all_tasks
-            if 'Client._run_event' in repr(t) and not t.done()
-        ]
-
-        cogs_directory = os.path.dirname(__file__)
-        tasks_directory = os.path.join('discord', 'ext', 'tasks', '__init__.py')
-        inner_tasks = [
-            t for t in all_tasks
-            if cogs_directory in repr(t) or tasks_directory in repr(t)
-        ]
-
-        bad_inner_tasks = ", ".join(hex(id(t)) for t in inner_tasks if t.done() and t._exception is not None)
-        total_warnings += bool(bad_inner_tasks)
-        embed.add_field(name='Inner Tasks', value=f'Total: {len(inner_tasks)}\nFailed: {bad_inner_tasks or "None"}')
-        embed.add_field(name='Events Waiting', value=f'Total: {len(event_tasks)}', inline=False)
-
-        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
-        cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
-        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', inline=False)
-
-        ws_rate_limit = self.bot.is_ws_ratelimited()
-        description.append(f'Websocket Rate Limit: {ws_rate_limit}')
-
-        global_rate_limit = self.bot.http._global_over.set()
-        description.append(f'Global Rate Limit: {global_rate_limit}')
-
-        if ws_rate_limit or total_warnings >= 3 or len(event_tasks) >= 4:
-            embed.colour = UNHEALTHY
-
-        embed.set_footer(text=f'{total_warnings} warning(s)')
-        embed.description = '\n'.join(description)
-        await ctx.respond(embed=embed)
-
-    @slash_command(guild_ids=[SERVER_ID])
-    async def suggest(self, ctx, suggestion):
+    @command()
+    @guilds(SERVER_ID)
+    async def suggest(self, interaction: discord.Interaction, suggestion: str):
         '''Make a suggestion for the server, team or bot'''
         server = self.bot.get_guild(SERVER_ID)
-        suggest_channel = discord.utils.get(server.text_channels, id=CHANNEL_SUGGESTIONS)
-        reports_channel = discord.utils.get(server.text_channels, id=CHANNEL_REPORTS)
+        suggest_channel = interaction.guild.get_channel(Channel.SUGGESTIONS)
+        reports_channel = interaction.guild.get_channel(Channel.REPORTS)
         embed = discord.Embed(title="New Suggestion", description=f"{suggestion}", color=discord.Color.blurple())
         embed.timestamp = discord.utils.utcnow()
-        name = ctx.author.nick or ctx.author
-        embed.set_author(name=name, icon_url=ctx.author.avatar)
+        name = interaction.user.nick or interaction.user
+        embed.set_author(name=name, icon_url=interaction.user.avatar)
         suggest_message = await suggest_channel.send(embed=embed)
         await suggest_message.add_reaction("\U0001f44d")
         await suggest_message.add_reaction("\U0001f44e")
         await reports_channel.send(embed=embed)
         suggest_url = suggest_message.jump_url
         embed2 = discord.Embed(title=" ", description=f"Posted! [Your Suggestion!]({suggest_url})")
-        await ctx.respond(embed=embed2)
+        await interaction.response.send_message(embed=embed2)
         suggest_id = suggest_message.id
         suggest_embed = suggest_message.embeds[0]
         copy_of_embed = suggest_embed.copy()
         copy_of_embed.add_field(name="Suggestion ID", value=f"`{suggest_id}`")
         await suggest_message.edit(embed=copy_of_embed)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def cleanup(self, ctx, search: int = 100):
+    @command()
+    @guilds(SERVER_ID)
+    async def cleanup(self, interaction: discord.Interaction, search: int = 100):
         """Cleans up the bot's messages from the channel.
         If a search number is specified, it searches that many messages to delete.
         If the bot has Manage Messages permissions then it will try to delete
@@ -545,8 +567,8 @@ class General(commands.Cog):
         """
 
         strategy = self._basic_cleanup_strategy
-        is_mod = ctx.channel.permissions_for(ctx.author).manage_messages
-        if ctx.channel.permissions_for(ctx.me).manage_messages:
+        is_mod = interaction.channel.permissions_for(interaction.user).manage_messages
+        if interaction.channel.permissions_for(interaction.guild.me).manage_messages:
             if is_mod:
                 strategy = self._complex_cleanup_strategy
             else:
@@ -557,7 +579,7 @@ class General(commands.Cog):
         else:
             search = min(max(2, search), 10)
 
-        spammers = await strategy(ctx, search)
+        spammers = await strategy(interaction, search)
         deleted = sum(spammers.values())
         messages = [f'{deleted} message{" was" if deleted == 1 else "s were"} removed.']
         if deleted:
@@ -565,20 +587,96 @@ class General(commands.Cog):
             spammers = sorted(spammers.items(), key=lambda t: t[1], reverse=True)
             messages.extend(f'- **{author}**: {count}' for author, count in spammers)
 
-        await ctx.respond('\n'.join(messages))
+        await interaction.response.send_message('\n'.join(messages))
+    #
+    # @command()
+    # @guilds(SERVER_ID)
+    # async def selfmute(self,
+    #                    interaction,
+    #                    mute_length: Option(str, "How long to mute yourself for.", choices=[
+    #                        "10 minutes",
+    #                        "30 minutes",
+    #                        "1 hour",
+    #                        "2 hours",
+    #                        "4 hours",
+    #                        "8 hours",
+    #                        "1 day",
+    #                        "4 days",
+    #                        "7 days",
+    #                        "1 month",
+    #                        "1 year"
+    #                    ], required=True)
+    #                    ):
+    #     """
+    #     Self mutes the user that invokes the command.
+    #     """
+    #     member = interaction.author
+    #
+    #     times = {
+    #         "10 minutes": discord.utils.utcnow() + datetime.timedelta(minutes=10),
+    #         "30 minutes": discord.utils.utcnow() + datetime.timedelta(minutes=30),
+    #         "1 hour": discord.utils.utcnow() + datetime.timedelta(hours=1),
+    #         "2 hours": discord.utils.utcnow() + datetime.timedelta(hours=2),
+    #         "4 hours": discord.utils.utcnow() + datetime.timedelta(hours=4),
+    #         "8 hours": discord.utils.utcnow() + datetime.timedelta(hours=8),
+    #         "1 day": discord.utils.utcnow() + datetime.timedelta(days=1),
+    #         "4 days": discord.utils.utcnow() + datetime.timedelta(days=4),
+    #         "7 days": discord.utils.utcnow() + datetime.timedelta(days=7),
+    #         "1 month": discord.utils.utcnow() + datetime.timedelta(days=30),
+    #         "1 year": discord.utils.utcnow() + datetime.timedelta(days=365),
+    #     }
+    #     selected_time = times[mute_length]
+    #     original_shown_embed = discord.Embed(
+    #         title="Mute Confirmation",
+    #         color=discord.Color.brand_red(),
+    #         description=f""" You will be muted across the entire server. You will no longer be able to communicate in
+    #         any channels you can read until {discord.utils.format_dt(selected_time)}.
+    #                                """
+    #     )
+    #     view = Confirm(interaction)
+    #     await interaction.interaction.response.send_message(
+    #         content="Please confirm that you would like to mute yourself.",
+    #         view=view,
+    #         embed=original_shown_embed,
+    #         ephemeral=True
+    #     )
+    #     await view.wait()
+    #     if view.value:
+    #         try:
+    #             role = discord.utils.get(member.guild.roles, name=ROLE_SELFMUTE)
+    #             unselfmute_channel = discord.utils.get(member.guild.text_channels, id=CHANNEL_UNSELFMUTE)
+    #             await member.add_roles(role)
+    #             await mongo.insert(
+    #                 "bot", "cron",
+    #                 {
+    #                     "type": "UNSELFMUTE",
+    #                     "user": member.id,
+    #                     "time": times[mute_length],
+    #                     "tag": str(member)
+    #                 })
+    #             return await interaction.interaction.edit_original_message(
+    #                 content=f"You have been muted. You may use the button in the {unselfmute_channel} channel to unmute.",
+    #                 embed=None, view=None)
+    #         except:
+    #             pass
+    #
+    #     await interaction.interaction.edit_original_message(
+    #         content=f"The operation was cancelled, and you can still speak throughout the server.", embed=None,
+    #         view=None)
 
-    @slash_command(guild_ids=[SERVER_ID])
-    async def newusers(self, ctx, count: int = None):
+    @command()
+    @guilds(SERVER_ID)
+    async def newusers(self, interaction: discord.Interaction, count: int = None):
         """Tells you the newest members of the server.
         This is useful to check if any suspicious members have
         joined.
         The count parameter can only be up to 25.
         """
 
-        if not ctx.guild.chunked:
-            members = await ctx.guild.chunk(cache=True)
+        if not interaction.guild.chunked:
+            members = await interaction.guild.chunk(cache=True)
         else:
-            members = sorted(ctx.guild.members, key=lambda m: m.joined_at, reverse=True)[:count]
+            members = sorted(interaction.guild.members, key=lambda m: m.joined_at, reverse=True)[:count]
 
         e = discord.Embed(title='New Members', colour=discord.Colour.green())
 
@@ -586,137 +684,9 @@ class General(commands.Cog):
             body = f'Joined {times.format_relative(member.joined_at)}\nCreated {times.format_relative(member.created_at)}'
             e.add_field(name=f'{member} (ID: {member.id})', value=body, inline=False)
 
-        await ctx.respond(embed=e)
+        await interaction.response.send_message(embed=e)
 
 
-class Math(commands.Cog):
-    """Math commands"""
 
-    print('Math Cog Loaded')
-
-    @property
-    def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\U0000270f')
-
-    def __init__(self, bot):
-        self.bot = bot
-
-    async def cog_check(self, ctx):
-        return await is_not_blacklisted(ctx)
-
-    def perfect_square(self, limit):
-        accumulation_list = [1]
-        index, increment = 0, 3
-        while accumulation_list[-1] + increment <= limit:
-            accumulation_list.append(accumulation_list[index] + increment)
-            index += 1
-            increment = 2 * index + 3
-        return accumulation_list
-
-    @slash_command(guild_ids=[SERVER_ID])
-    async def quadratic(self, ctx,
-                        a: Option(int, description=" `a` value in standard form: ax^2 + bx + c"),
-                        b: Option(int, description=' `b` value in standard form: ax^2 + bx + c'),
-                        c: Option(int, description=' `c` value in standard form: ax^2 + bx + c')
-                        ):
-        '''
-        Solves a Quadratic Function
-        `a:` represents the lead coefficient, if there is no coefficient; input 1
-        `b:` the middle term coefficient
-        `c:` the last term
-        `ax^2 + bx + c`
-        '''
-        if a <= 0:
-            return await ctx.respond('Lead coefficient of `0 or less` is **not** a quadratic!!')
-
-        w = 4 * a * c
-        square_root_value = b ** 2 - w
-        bottom = 2 * a
-
-        if square_root_value < 0:
-            if square_root_value < 0:
-                square_root_value = square_root_value * -1
-                if sqrt(square_root_value).is_integer():
-                    print(int(sqrt(square_root_value)))
-                    print("is perfect square (imaginary/complex)")
-                    p = int(-b + sqrt(square_root_value))
-                    q = int(-b - sqrt(square_root_value))
-
-                    if (p / bottom).is_integer():
-                        if (q / bottom).is_integer():
-                            if q == p:
-                                return await ctx.respond(
-                                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x=" + f"{int(p / bottom)}i" + r"}")
-                            else:
-                                return await ctx.respond(
-                                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}i" + r"\;\;" + f"x_2={int(q / bottom)}i" + r"}")
-                        else:
-                            return await ctx.respond(
-                                r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{q}" + r"}{" + f"{bottom}" + r"}}")
-                    if (q / bottom).is_integer():
-                        k, l = (p / bottom).as_integer_ratio()
-                        x = Fraction(k, l).limit_denominator()
-                        k, l = x.as_integer_ratio()
-                        return await ctx.respond(
-                            r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(q / bottom)}i" + r"\;\;" + r"x_2=\frac{" + f"{k}i" + r"}{" + f"{l}" + r"}}")
-
-                    # Find perfect squares that are factors of n
-                factors = [square for square in self.perfect_square(square_root_value / 2) if
-                           square_root_value % square == 0 and square > 1]
-                if len(factors) == 0:
-                    print('\u221A', square_root_value)
-                    i = "i"
-                    return await ctx.respond(
-                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\," + fr"{i}" + r"\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}" + "}")
-                else:
-                    x = int(sqrt(max(factors)))  # Coefficient
-                    y = int(square_root_value / max(factors))  # Argument of the square root
-                    return await ctx.respond(
-                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm{x}i\sqrt" + f"{y}" + r"}{" + f"{bottom}" + r"}" + "}")
-
-        if sqrt(square_root_value).is_integer():
-            print(int(sqrt(square_root_value)))
-            print("is perfect square")
-            p = int(-b + sqrt(square_root_value))
-            q = int(-b - sqrt(square_root_value))
-
-            if (p / bottom).is_integer():
-                if (q / bottom).is_integer():
-                    if q == p:
-                        return await ctx.respond(
-                            r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x=" + f"{int(p / bottom)}" + r"}")
-                    else:
-                        return await ctx.respond(
-                            r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}" + r"\;\;" + f"x_2={int(q / bottom)}" + r"}")
-                else:
-                    return await ctx.respond(
-                        r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(p / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{q}" + r"}{" + f"{bottom}" + r"}}")
-            if (q / bottom).is_integer():
-                k, l = (p / bottom).as_integer_ratio()
-                x = Fraction(k, l).limit_denominator()
-                k, l = x.as_integer_ratio()
-                return await ctx.respond(
-                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}x_1=" + f"{int(q / bottom)}" + r"\;\;" + r"x_2=\frac{" + f"{k}" + r"}{" + f"{l}" + r"}}")
-            else:
-                # TODO figure out what the hell to do here
-                latex = r"\frac{" + f"{-b}" + r"\pm" + f"{int(sqrt(square_root_value))}" + r"}{" + f"{int(2 * a)}" + r"}"
-                return await ctx.respond(
-                    r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + latex + "}")
-
-            # Find perfect squares that are factors of n
-        factors = [square for square in self.perfect_square(square_root_value / 2) if
-                   square_root_value % square == 0 and square > 1]
-        if len(factors) == 0:
-            print('\u221A', square_root_value)
-            return await ctx.respond(
-                r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm\sqrt" + f"{square_root_value}" + r"}{" + f"{bottom}" + r"}" + "}")
-        else:
-            x = int(sqrt(max(factors)))  # Coefficient
-            y = int(square_root_value / max(factors))  # Argument of the square root
-            return await ctx.respond(
-                r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + r"x=\frac{" + f"{-b}" + rf"\pm{x}\sqrt" + f"{y}" + r"}{" + f"{bottom}" + r"}" + "}")
-
-
-def setup(bot):
-    bot.add_cog(General(bot))
-    bot.add_cog(Math(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(General(bot))
