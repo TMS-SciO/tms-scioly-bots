@@ -1,81 +1,32 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
-from discord import ExtensionError, ExtensionNotLoaded, Permission, permissions
+from discord.app_commands import Group, command
 from discord.ext import commands
-from utils.checks import is_dev
 import io
 import textwrap
 from contextlib import redirect_stdout
 import traceback
 
-from utils.variables import SERVER_ID
+
+if TYPE_CHECKING:
+    from bot import TMS
 
 
 class Core(commands.Cog):
-    '''Bot/Module Management (requires owner)'''
-
-    print('Core Cog Loaded')
+    """Bot/Module Management (requires owner)"""
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='\U0001f4bb')
 
-    def __init__(self, bot):
+    def __init__(self, bot: TMS):
+        print("Core Cog Loaded")
         self.bot = bot
         self._last_result = None
-
-    async def cog_check(self, ctx):
-        return await is_dev(ctx)
-
-    module = discord.SlashCommandGroup(
-        "module",
-        "Manage the bot's modules",
-        [SERVER_ID],
-        permissions=[Permission(
-            747126643587416174,
-            2,
-            True
-        )],
-        default_permission=False
-    )
-
-    @module.command()
-    @permissions.is_owner()
-    async def load(self, ctx, *, module):
-        """Loads a module."""
-        try:
-            self.bot.load_extension(module)
-        except ExtensionError as e:
-            await ctx.respond(f'{e.__class__.__name__}: {e}')
-        else:
-            await ctx.respond('<:greenTick:899466945672392704> ')
-
-    @module.command()
-    @permissions.is_owner()
-    async def unload(self, ctx, *, module):
-        """Unloads a module."""
-        try:
-            self.bot.unload_extension(module)
-        except ExtensionError as e:
-            await ctx.respond(f'{e.__class__.__name__}: {e}')
-        else:
-            await ctx.respond('<:greenTick:899466945672392704>')
-
-    @module.command()
-    @permissions.is_owner()
-    async def reload(self, ctx, *, module):
-        """Reloads a module."""
-        try:
-            self.bot.reload_extension(module)
-        except ExtensionError as e:
-            await ctx.respond(f'{e.__class__.__name__}: {e}')
-        else:
-            await ctx.respond('<:greenTick:899466945672392704>')
-
-    def reload_or_load_extension(self, module):
-        try:
-            self.bot.reload_extension(module)
-        except ExtensionNotLoaded:
-            self.bot.load_extension(module)
+        self.__cog_app_commands__.append(Module(bot))
 
     @staticmethod
     def cleanup_code(content):
@@ -89,7 +40,7 @@ class Core(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def eval(self, ctx, *, body: str):
+    async def eval(self, ctx: commands.Context, *, body: str):
         """Evaluates a code"""
         env = {
             'bot': self.bot,
@@ -111,7 +62,7 @@ class Core(commands.Cog):
         try:
             exec(to_compile, env)
         except Exception as e:
-            return await ctx.respond(f'```py\n{e.__class__.__name__}: {e}\n```')
+            return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
 
         func = env['func']
         try:
@@ -119,7 +70,7 @@ class Core(commands.Cog):
                 ret = await func()
         except Exception as e:
             value = stdout.getvalue()
-            await ctx.respond(f'```py\n{value}{traceback.format_exc()}\n```')
+            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
         else:
             value = stdout.getvalue()
             try:
@@ -129,11 +80,69 @@ class Core(commands.Cog):
 
             if ret is None:
                 if value:
-                    await ctx.respond(f'```py\n{value}\n```')
+                    await ctx.send(f'```py\n{value}\n```')
             else:
                 self._last_result = ret
-                await ctx.respond(f'```py\n{value}{ret}\n```')
+                await ctx.send(f'```py\n{value}{ret}\n```')
+
+    @commands.command(name="profile")
+    async def _profile(self, ctx, user_id: discord.User):
+        await ctx.send(user_id.avatar)
 
 
-def setup(bot):
-    bot.add_cog(Core(bot))
+class Module(Group):
+    def __init__(self, bot: TMS):
+        self.bot = bot
+        super().__init__(
+            name="module",
+            description="Manages the bot's modules",
+        )
+
+    @property
+    def cog(self) -> commands.Cog:
+        return self.bot.get_cog("Core")
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if not interaction.user.id == self.bot.owner_id:
+            return False
+        return True
+
+    @command()
+    async def load(self, interaction: discord.Interaction, *, module):
+        """Loads a module."""
+        try:
+            await self.bot.load_extension(module)
+        except commands.ExtensionError as e:
+            await interaction.response.send_message(f'{e.__class__.__name__}: {e}')
+        else:
+            await interaction.response.send_message('<:greenTick:899466945672392704> ')
+
+    @command()
+    async def unload(self, interaction: discord.Interaction, *, module):
+        """Unloads a module."""
+        try:
+            await self.bot.unload_extension(module)
+        except commands.ExtensionError as e:
+            await interaction.response.send_message(f'{e.__class__.__name__}: {e}')
+        else:
+            await interaction.response.send_message('<:greenTick:899466945672392704>')
+
+    @command()
+    async def reload(self, interaction: discord.Interaction, *, module):
+        """Reloads a module."""
+        try:
+            await self.bot.reload_extension(module)
+        except commands.ExtensionError as e:
+            await interaction.response.send_message(f'{e.__class__.__name__}: {e}')
+        else:
+            await interaction.response.send_message('<:greenTick:899466945672392704>')
+
+    def _reload_or_load_extension(self, module):
+        try:
+            await self.bot.reload_extension(module)
+        except commands.ExtensionNotLoaded:
+            await self.bot.load_extension(module)
+
+
+async def setup(bot: TMS):
+    await bot.add_cog(Core(bot))
