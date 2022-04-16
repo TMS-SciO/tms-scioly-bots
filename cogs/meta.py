@@ -1,151 +1,487 @@
-from discord.ext import commands, menus
-from typing import Union, List, Any, Dict, Optional
-import discord
-import utils.times as time
-from utils.paginate import RoboPages
+from __future__ import annotations
+
+import asyncio
 import inspect
 import itertools
+from utils import SERVER_ID, times as time
+from typing import Any, Coroutine, Dict, List, Optional, Set, TYPE_CHECKING, Union
+from discord import app_commands
+import discord
+from discord.app_commands import command, describe, guilds
+from discord.ext import commands, menus
 
-from utils.variables import SERVER_ID
+if TYPE_CHECKING:
+    from bot import TMS
+
+TotalMappingDict = Dict[
+    commands.Cog,
+    Union[
+        Set[Any],
+        List[
+            Union[
+                commands.Command,
+                app_commands.Command,
+                app_commands.Group,
+                app_commands.ContextMenu,
+                Any,
+            ]
+        ],
+    ],
+]
+
+CommandsListType = Union[
+    Set,
+    List[
+        Union[
+            commands.Command,
+            commands.Group,
+            app_commands.Group,
+            app_commands.Command,
+            app_commands.ContextMenu,
+        ]
+    ],
+]
+
+
+class RoboPages(discord.ui.View):
+    def __init__(
+        self,
+        source: menus.PageSource,
+        *,
+        interaction: discord.Interaction,
+        check_embeds: bool = True,
+        compact: bool = False,
+        bot: TMS,
+    ):
+        super().__init__()
+        self.source: menus.PageSource = source
+        self.check_embeds: bool = check_embeds
+        self.interaction: discord.Interaction = interaction
+        self.message: Optional[discord.Message] = None
+        self.bot = bot
+        self.current_page: int = 0
+        self.compact: bool = compact
+        self.input_lock = asyncio.Lock()
+        self.clear_items()
+        self.fill_items()
+
+    def fill_items(self) -> None:
+        if not self.compact:
+            self.numbered_page.row = 1
+            self.stop_pages.row = 1
+
+        if self.source.is_paginating():
+            max_pages = self.source.get_max_pages()
+            use_last_and_first = max_pages is not None and max_pages >= 2
+            if use_last_and_first:
+                self.add_item(self.go_to_first_page)  # type: ignore
+            self.add_item(self.go_to_previous_page)  # type: ignore
+            if not self.compact:
+                self.add_item(self.go_to_current_page)  # type: ignore
+            self.add_item(self.go_to_next_page)  # type: ignore
+            if use_last_and_first:
+                self.add_item(self.go_to_last_page)  # type: ignore
+            if not self.compact:
+                self.add_item(self.numbered_page)  # type: ignore
+            self.add_item(self.stop_pages)  # type: ignore
+
+    async def _get_kwargs_from_page(self, page: int) -> Dict[str, Any]:
+        value = await discord.utils.maybe_coroutine(self.source.format_page, self, page)
+        if isinstance(value, dict):
+            return value
+        elif isinstance(value, str):
+            return {"content": value, "embed": None}
+        elif isinstance(value, discord.Embed):
+            return {"embed": value, "content": None}
+        else:
+            return {}
+
+    async def show_page(
+        self, interaction: discord.Interaction, page_number: int
+    ) -> None:
+        page = await self.source.get_page(page_number)
+        self.current_page = page_number
+        kwargs = await self._get_kwargs_from_page(page)
+        self._update_labels(page_number)
+        if kwargs:
+            if interaction.response.is_done():
+                if self.message:
+                    await self.message.edit(**kwargs, view=self)
+            else:
+                await interaction.response.edit_message(**kwargs, view=self)
+
+    def _update_labels(self, page_number: int) -> None:
+        self.go_to_first_page.disabled = page_number == 0
+        if self.compact:
+            max_pages = self.source.get_max_pages()
+            self.go_to_last_page.disabled = (
+                max_pages is None or (page_number + 1) >= max_pages
+            )
+            self.go_to_next_page.disabled = (
+                max_pages is not None and (page_number + 1) >= max_pages
+            )
+            self.go_to_previous_page.disabled = page_number == 0
+            return
+
+        self.go_to_current_page.label = str(page_number + 1)
+        self.go_to_previous_page.label = str(page_number)
+        self.go_to_next_page.label = str(page_number + 2)
+        self.go_to_next_page.disabled = False
+        self.go_to_previous_page.disabled = False
+        self.go_to_first_page.disabled = False
+
+        max_pages = self.source.get_max_pages()
+        if max_pages is not None:
+            self.go_to_last_page.disabled = (page_number + 1) >= max_pages
+            if (page_number + 1) >= max_pages:
+                self.go_to_next_page.disabled = True
+                self.go_to_next_page.label = "…"
+            if page_number == 0:
+                self.go_to_previous_page.disabled = True
+                self.go_to_previous_page.label = "…"
+
+    async def show_checked_page(
+        self, interaction: discord.Interaction, page_number: int
+    ) -> None:
+        max_pages = self.source.get_max_pages()
+        try:
+            if max_pages is None:
+                # If it doesn't give maximum pages, it cannot be checked
+                await self.show_page(interaction, page_number)
+            elif max_pages > page_number >= 0:
+                await self.show_page(interaction, page_number)
+        except IndexError:
+            # An error happened that can be handled, so ignore it.
+            pass
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id in (self.bot.owner_id, interaction.user.id):
+            return True
+        await interaction.response.send_message(
+            "This pagination menu cannot be controlled by you, sorry!", ephemeral=True
+        )
+        return False
+
+    async def on_timeout(self) -> None:
+        if self.message:
+            await self.message.edit(view=None)
+
+    #     async def on_error(self, error: Exception, item: discord.ui.Item, interaction: discord.Interaction) -> None:
+    #         if interaction.response.is_done():
+    #             await interaction.followup.send(f'An unknown error occurred, sorry {error}', ephemeral=True)
+    #             print(error)
+    #         else:
+    #             await interaction.response.send_message(f'An unknown error occurred, sorry {error}', ephemeral=True)
+    #             print(error)
+
+    async def start(self) -> None:
+        if (
+            self.check_embeds
+            and not self.interaction.channel.permissions_for(
+                self.interaction.guild.me
+            ).embed_links
+        ):
+            await self.interaction.response.send_message(
+                "Bot does not have embed links permission in this channel."
+            )
+            return
+
+        await self.source._prepare_once()
+        page = await self.source.get_page(0)
+        kwargs = await self._get_kwargs_from_page(page)
+        self._update_labels(0)
+        self.message = await self.interaction.response.send_message(**kwargs, view=self)
+
+    @discord.ui.button(label="≪", style=discord.ButtonStyle.grey)
+    async def go_to_first_page(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ):
+        """go to the first page"""
+        await self.show_page(interaction, 0)
+
+    @discord.ui.button(label="Back", style=discord.ButtonStyle.blurple)
+    async def go_to_previous_page(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """go to the previous page"""
+        await self.show_checked_page(interaction, self.current_page - 1)
+
+    @discord.ui.button(label="Current", style=discord.ButtonStyle.grey, disabled=True)
+    async def go_to_current_page(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        pass
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.blurple)
+    async def go_to_next_page(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ):
+        """go to the next page"""
+        await self.show_checked_page(interaction, self.current_page + 1)
+
+    @discord.ui.button(label="≫", style=discord.ButtonStyle.grey)
+    async def go_to_last_page(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ):
+        """go to the last page"""
+        # The call here is safe because it's guarded by skip_if
+        await self.show_page(interaction, self.source.get_max_pages() - 1)
+
+    @discord.ui.button(label="Skip to page...", style=discord.ButtonStyle.grey)
+    async def numbered_page(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ):
+        """lets you type a page number to go to"""
+        if self.input_lock.locked():
+            await interaction.response.send_message(
+                "Already waiting for your response...", ephemeral=True
+            )
+            return
+
+        if self.message is None:
+            return
+
+        async with self.input_lock:
+            channel = self.message.channel
+            author_id = interaction.user and interaction.user.id
+            await interaction.response.send_message(
+                "What page do you want to go to?", ephemeral=True
+            )
+
+            def message_check(m):
+                return (
+                    m.author.id == author_id
+                    and channel == m.channel
+                    and m.content.isdigit()
+                )
+
+            try:
+                msg = await self.bot.wait_for(
+                    "message", check=message_check, timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                await interaction.followup.send("Took too long.", ephemeral=True)
+                await asyncio.sleep(5)
+            else:
+                page = int(msg.content)
+                await msg.delete()
+                await self.show_checked_page(interaction, page - 1)
+
+    @discord.ui.button(label="Quit", style=discord.ButtonStyle.red)
+    async def stop_pages(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ):
+        """stops the pagination session."""
+        await interaction.response.defer()
+        await interaction.delete_original_message()
+        self.stop()
+
+
+class FieldPageSource(menus.ListPageSource):
+    """A page source that requires (field_name, field_value) tuple items."""
+
+    def __init__(self, entries, *, per_page=12):
+        super().__init__(entries, per_page=per_page)
+        self.embed = discord.Embed(colour=discord.Colour.blurple())
+
+    async def format_page(self, menu, entries):
+        self.embed.clear_fields()
+        self.embed.description = None
+
+        for key, value in entries:
+            self.embed.add_field(name=key, value=value, inline=False)
+
+        maximum = self.get_max_pages()
+        if maximum > 1:
+            text = (
+                f"Page {menu.current_page + 1}/{maximum} ({len(self.entries)} entries)"
+            )
+            self.embed.set_footer(text=text)
+
+        return self.embed
 
 
 class GroupHelpPageSource(menus.ListPageSource):
     def __init__(
-            self,
-            group: Union[discord.SlashCommand, Union[commands.Cog, discord.SlashCommandGroup]],
-            commands: List[discord.SlashCommand],
-            *,
-            prefix: str
+        self,
+        group: Union[commands.Group, commands.Cog, app_commands.Group],
+        commands_: CommandsListType,
+        *,
+        prefix: str,
     ):
-        super().__init__(
-            entries=commands,
-            per_page=6
-        )
+        super().__init__(entries=commands_, per_page=6)
         self.group = group
         self.prefix = prefix
-        self.title = f'{self.group.qualified_name} Commands'
+        self.title = f"{self.group.qualified_name} Commands"
         self.description = self.group.description
 
-    @staticmethod
-    def signature(command: Union[discord.SlashCommand, discord.SlashCommandGroup]) -> str:
-        """:class:`str`: Returns a POSIX-like signature useful for help command output."""
-        result = []
-        if isinstance(command, discord.SlashCommandGroup):
-            sub_cmds = len(command.subcommands)
-            result.append(f' [ {sub_cmds} subcommands ]')
-        else:
-            params = command.options
-            if not params:
-                return ''
+    async def format_page(
+        self,
+        menu,
+        commands_: CommandsListType,
+    ) -> discord.Embed:
 
-            for param in iter(params):
-                if param.autocomplete:
-                    signature = f"{param.name} = **Autocomplete**"
-                    if param.required:
-                        result.append(f'<{signature}>')
-                    elif not param.required:
-                        result.append(f'[{signature}]')
-                if param.choices:
-                    signature = f"{param.name} = [provided choices]"
-                    if param.required:
-                        result.append(f'<{signature}>')
-                    elif not param.required:
-                        result.append(f'[{signature}]')
-                if param.default:
-                    # We don't want None or '' to trigger the [name=value] case and instead it should
-                    # do [name] since [name=None] or [name=] are not exactly useful for the user.
-                    should_print = param.default if isinstance(param.default, str) else param.default is not None
-                    if should_print:
-                        result.append(f'[{param.name}={param.default}]')
-                    if not should_print:
-                        result.append(f'[{param.name}]')
-                if not (param.default and param.choices and param.autocomplete):
-                    if param.required:
-                        result.append(f'<{param.name}>')
-                    elif not param.required:
-                        result.append(f'[{param.name}]')
-
-        return ' '.join(result)
-
-    async def format_page(self, menu, commands: List[Union[discord.SlashCommand, discord.SlashCommandGroup]]):
-
-        embed = discord.Embed(title=self.title, description=self.description, colour=discord.Color.fuchsia())
-        for command in commands:
-            signature = f'{command.name} {self.signature(command)}'
-            embed.add_field(name=signature, value=command.description or 'No help given...', inline=False)
+        embed = discord.Embed(
+            title=self.title,
+            description=self.description,
+            colour=discord.Colour.fuchsia(),
+        )
+        for command_ in commands_:
+            if isinstance(command_, commands.Command):
+                signature = f"{command_.qualified_name} {command_.signature}"
+                embed.add_field(
+                    name=signature,
+                    value=command_.short_doc or "No help given...",
+                    inline=False,
+                )
+            elif isinstance(command_, app_commands.Command):
+                params = self.slash_param_signature(command_)
+                signature = (
+                    f"{command_.root_parent} {command_.name} {params}"
+                    if command_.root_parent
+                    else f"{command_.name} {params}"
+                )
+                embed.add_field(
+                    name=signature[:256],
+                    value=command_.description[:1024] or "No help given...",
+                    inline=False,
+                )
+            elif isinstance(command_, app_commands.Group):
+                description = (
+                    f"Use /help `{command_.name}` for subcommands help\n"
+                    + command_.description
+                    if not command_.description == "…"
+                    else f"Use /help `{command_.name}` for subcommands help\n"
+                )
+                embed.add_field(
+                    name=f"{command_.name} [subcommands]",
+                    value=description[:1024],
+                    inline=False,
+                )
+            # elif isinstance(command_, app_commands.ContextMenu)
 
         maximum = self.get_max_pages()
         if maximum > 1:
-            embed.set_author(name=f'Page {menu.current_page + 1}/{maximum} ({len(self.entries)} commands)')
+            embed.set_author(
+                name=f"Page {menu.current_page + 1}/{maximum} ({len(self.entries)} commands)"
+            )
 
         embed.set_footer(text=f'Use "/help command" for more info on a command.')
         return embed
 
+    @staticmethod
+    def slash_param_signature(
+        _command: Union[app_commands.Command, app_commands.Group]
+    ) -> str:
 
-class HelpSelectMenu(discord.ui.Select['HelpMenu']):
-    def __init__(self,
-                 commands: Dict[commands.Cog, List[Union[commands.Command, discord.commands.SlashCommand]]],
-                 bot: Union[commands.AutoShardedBot, commands.Bot]):
+        raw_sig = _command.to_dict()
+        params: List[Dict[str, Union[int, List, str]]] = raw_sig["options"]
+
+        if isinstance(_command, app_commands.Command):
+            param_list: List[str] = []
+            for param in params:
+                name = param["name"]
+                if not param["required"]:
+                    param_list.append(f"[{name}]")
+                else:
+                    param_list.append(f"<{name}>")
+
+            return " ".join(param_list)
+
+        elif isinstance(_command, app_commands.Group):
+            param_list = []
+            for param in params:
+                param_list.append(f"<{param['name']}>")
+            return " ".join(param_list)
+
+
+class HelpSelectMenu(discord.ui.Select["HelpMenu"]):
+    def __init__(
+        self,
+        _commands: TotalMappingDict,
+        bot: TMS,
+    ):
         super().__init__(
-            placeholder='Select a category...',
+            placeholder="Select a category...",
             min_values=1,
             max_values=1,
             row=0,
         )
-        self.commands = commands
+        self.commands = _commands
         self.bot = bot
         self.__fill_options()
 
     def __fill_options(self) -> None:
         self.add_option(
-            label='Index',
-            emoji='\N{WAVING HAND SIGN}',
-            value='__index',
-            description='The help page showing how to use the bot.',
+            label="Index",
+            emoji="\N{WAVING HAND SIGN}",
+            value="__index",
+            description="The help page showing how to use the bot.",
         )
-        for cog, commands in self.commands.items():
-            if not commands:
+        for cog, __commands in self.commands.items():
+            if not __commands:
                 continue
-            description = cog.description.split('\n', 1)[0] or None
-            emoji = getattr(cog, 'display_emoji', None)
-            self.add_option(label=cog.qualified_name, value=cog.qualified_name, description=description, emoji=emoji)
+            description = cog.description.split("\n", 1)[0] or None
+            emoji = getattr(cog, "display_emoji", None)
+            self.add_option(
+                label=cog.qualified_name,
+                value=cog.qualified_name,
+                description=description,
+                emoji=emoji,
+            )
 
     async def callback(self, interaction: discord.Interaction):
         assert self.view is not None
         value = self.values[0]
-        if value == '__index':
+        if value == "__index":
             await self.view.rebind(FrontPageSource(), interaction)
         else:
             cog = self.bot.get_cog(value)
             if cog is None:
-                await interaction.response.send_message('Somehow this category does not exist?', ephemeral=True)
+                await interaction.response.send_message(
+                    "Somehow this category does not exist?", ephemeral=True
+                )
                 return
 
-            commands = self.commands[cog]
+            __commands = self.commands[cog]
             if not commands:
-                await interaction.response.send_message('This category has no commands for you', ephemeral=True)
+                await interaction.response.send_message(
+                    "This category has no commands for you", ephemeral=True
+                )
                 return
 
-            source = GroupHelpPageSource(cog, commands, prefix="/")
+            source = GroupHelpPageSource(cog, __commands, prefix="/")
             await self.view.rebind(source, interaction)
 
 
 class HelpMenu(RoboPages):
-    def __init__(self, source: menus.PageSource, ctx: discord.ApplicationContext):
-        super().__init__(source, ctx=ctx, compact=True)
+    def __init__(
+        self,
+        source: menus.PageSource,
+        interaction: discord.Interaction,
+        bot: TMS,
+    ):
+        super().__init__(source, interaction=interaction, compact=True, bot=bot)
 
     def add_categories(
-            self,
-            commands: Dict[commands.Cog, List[Union[commands.Command, discord.commands.SlashCommand]]]
+        self, _commands: Dict[commands.Cog, List[commands.Command]]
     ) -> None:
         self.clear_items()
-        self.add_item(HelpSelectMenu(commands, self.ctx.bot))
+        self.add_item(HelpSelectMenu(_commands, self.bot))
         self.fill_items()
 
     async def rebind(
-            self,
-            source: menus.PageSource,
-            interaction: discord.Interaction
+        self, source: menus.PageSource, interaction: discord.Interaction
     ) -> None:
         self.source = source
         self.current_page = 0
@@ -183,12 +519,12 @@ class FrontPageSource(menus.PageSource):
         """
         )
 
-        created_at = time.format_dt(menu.ctx.bot.user.created_at, 'F')
+        created_at = time.format_dt(menu.interaction.client.user.created_at, 'F')
         if self.index == 0:
             embed.add_field(
                 name='Who are you?',
                 value=(
-                    "I'm a bot made by pandabear#0001. I've been running since "
+                    "I'm a bot made by pandabear#8652. I've been running since "
                     f'{created_at}. I have features such as moderation, fun commands, and more. You can get more '
                     'information on my commands by using the dropdown below.\n\n'
                     "I'm also open source. You can see my code on [GitHub]("
@@ -218,28 +554,28 @@ class FrontPageSource(menus.PageSource):
 
 
 class Help(commands.Cog):
-    def __init__(self, bot):
+    """
+    Help command
+    """
+
+    def __init__(self, bot: TMS):
         self.bot = bot
-        self.old_help_command = bot.help_command
-        bot.help_command.cog = self
 
-    @property
-    def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\N{WHITE QUESTION MARK ORNAMENT}')
-
-    async def filter_commands(self,
-                              commands: List[discord.SlashCommand],
-                              *,
-                              sort=False,
-                              key=None
-                              ) -> List[discord.SlashCommand]:
+    @staticmethod
+    async def _filter_commands(
+        _commands: CommandsListType,
+        interaction: discord.Interaction,
+        *,
+        sort=False,
+        key=None,
+    ) -> List[Union[app_commands.Command, commands.Command, Any]]:
         """|coro|
         Returns a filtered list of commands and optionally sorts them.
         This takes into account the :attr:`verify_checks` and :attr:`show_hidden`
         attributes.
         Parameters
         ------------
-        commands: Iterable[:class:`Command`]
+        _commands: Iterable[:class:`Command`]
             An iterable of commands that are getting filtered.
         sort: :class:`bool`
             Whether to sort the result.
@@ -254,176 +590,229 @@ class Help(commands.Cog):
         """
 
         if sort and key is None:
-            key = lambda c: c.name
+            key = (
+                lambda c: c.qualified_name
+                if isinstance(c, commands.Command)
+                else c.name
+            )
+        #
+        iterator = _commands
+        #
+        # async def predicate(
+        #         c: Union[app_commands.Command, app_commands.Group],
+        #         interaction_: discord.Interaction
+        # ):
+        #     if c.binding is not None:
+        #         try:
+        #             # Type checker does not like runtime attribute retrieval
+        #             check: AppCommandCheck = c.binding.interaction_check  # type: ignore
+        #         except AttributeError:
+        #             pass
+        #         else:
+        #             ret = await maybe_coroutine(check, interaction_)
+        #             if not ret:
+        #                 return False
+        #
+        # ret = []
+        # for cmd in [x for x in iterator if isinstance(x, (app_commands.Command, app_commands.Group))]:
+        #     valid = await predicate(cmd, interaction_=interaction)
+        #     if valid:
+        #         ret.append(cmd)
+        #
 
-        # Ignore Application Commands cause they dont have hidden/docs
-        iterator = commands
+        # TODO IMPLEMENT CHECKS
 
         return sorted(iterator, key=key) if sort else list(iterator)
 
-    def signature(self, command: Union[discord.SlashCommand, discord.SlashCommandGroup]) -> str:
-        """:class:`str`: Returns a POSIX-like signature useful for help command output."""
-        result = []
-        if isinstance(command, discord.SlashCommandGroup):
-            result.append(f'[ subcommands ]')
-        else:
-            params = command.options
-            if not params:
-                return ''
+    @staticmethod
+    def get_command_signature(_command: Union[app_commands.Command, commands.Command]):
+        if isinstance(_command, commands.Command):
+            parent = _command.full_parent_name
+            if len(_command.aliases) > 0:
+                aliases = " | ".join(_command.aliases)
+                fmt = f"[{_command.name}|{aliases}]"
+                if parent:
+                    fmt = f"{parent} {fmt}"
+                alias = fmt
+            else:
+                alias = _command.name if not parent else f"{parent} {_command.name}"
+            return f"{alias} {_command.signature}"
+        elif isinstance(_command, app_commands.Command):
+            return f"{_command.parent.name} {_command.name}"
 
-            for param in iter(params):
-                if param.autocomplete:
-                    signature = f"{param.name} = **Autocomplete**"
-                    if param.required:
-                        result.append(f'<{signature}>')
-                    elif not param.required:
-                        result.append(f'[{signature}]')
-                if param.choices:
-                    signature = f"{param.name} = [provided choices]"
-                    if param.required:
-                        result.append(f'<{signature}>')
-                    elif not param.required:
-                        result.append(f'[{signature}]')
-                if param.default:
-                    # We don't want None or '' to trigger the [name=value] case and instead it should
-                    # do [name] since [name=None] or [name=] are not exactly useful for the user.
-                    should_print = param.default if isinstance(param.default, str) else param.default is not None
-                    if should_print:
-                        result.append(f'[{param.name}={param.default}]')
-                    if not should_print:
-                        result.append(f'[{param.name}]')
-                else:
-                    if param.required:
-                        result.append(f'<{param.name}>')
-                    elif not param.required:
-                        result.append(f'[{param.name}]')
+    async def _send_bot_help(self, interaction: discord.Interaction) -> None:
+        def key(_command: Union[app_commands.Command, commands.Command]) -> str:
+            if isinstance(_command, app_commands.Command):
+                _cog: commands.Cog = (
+                    _command.binding
+                    if isinstance(_command.binding, commands.Cog)
+                    else None
+                )
+            else:
+                _cog: commands.Cog = _command.cog
+            return _cog.qualified_name if _cog else "\U0010ffff"
 
-        return ' '.join(result)
+        _tuple_of_iter = (
+            self.bot.tree.get_commands(guild=discord.Object(interaction.guild.id)),
+            self.bot.tree.get_commands(),
+            self.bot.commands,
+        )
 
-    async def on_help_command_error(self, ctx, error):
-        if isinstance(error, commands.CommandInvokeError):
-            # Ignore missing permission errors
-            if isinstance(error.original, discord.HTTPException) and error.original.code == 50013:
-                return
-
-            await ctx.send(str(error.original))
-
-    def get_command_signature(self, command: discord.SlashCommand):
-        alias = command.qualified_name()
-        return f'{alias} {self.signature(command)}'
-
-    async def send_bot_help(self, ctx, mapping):
-        bot = self.bot
-
-        def key(command: discord.SlashCommand) -> str:
-            cog = command.cog
-            return '\U0010ffff' if not cog else cog.qualified_name
-
-        entries = await self.filter_commands(
-            [x for x in bot.application_commands if isinstance(x, (discord.SlashCommand, discord.SlashCommandGroup))],
+        # sort guild and global slash commands, regular commands
+        entries: Union[
+            Set[Any], List[Union[commands.Command, app_commands.Command]]
+        ] = await self._filter_commands(
+            set(itertools.chain.from_iterable(_tuple_of_iter)),
+            interaction=interaction,
             sort=True,
-            key=key)
+            key=key,
+        )
 
-        all_commands: Dict[commands.Cog, List[discord.SlashCommand]] = {}
-        for name, children in itertools.groupby(entries, key=key):
-            if name == '\U0010ffff':
+        all_commands: TotalMappingDict = {}
+        for cog_name, children in itertools.groupby(entries, key=key):
+            if cog_name == "\U0010ffff":
                 continue
 
-            cog = bot.get_cog(name)
-            all_commands[cog] = sorted(children, key=lambda c: c.name)
+            cog = self.bot.get_cog(cog_name)
+            all_commands[cog] = sorted(
+                children,
+                key=lambda c: c.qualified_name
+                if isinstance(c, commands.Command)
+                else c.name,
+            )
 
-        menu = HelpMenu(FrontPageSource(), ctx=ctx)
+        menu = HelpMenu(FrontPageSource(), interaction=interaction, bot=self.bot)
         menu.add_categories(all_commands)
         await menu.start()
 
-    async def send_cog_help(self, ctx, cog: commands.Cog):
-        cmd_list = [x for x in cog.get_commands() if isinstance(x, (discord.SlashCommand, discord.SlashCommandGroup))]
-        entries = await self.filter_commands(cmd_list, sort=True)
-        menu = HelpMenu(GroupHelpPageSource(cog, entries, prefix="/"), ctx=ctx)
+    async def _send_cog_help(self, interaction: discord.Interaction, cog: commands.Cog):
+        __commands_iter = (cog.get_commands(), cog.__cog_app_commands__)
+        __commands = set(itertools.chain.from_iterable(__commands_iter))
+        entries = await self._filter_commands(__commands, interaction=interaction, sort=True)
+        menu = HelpMenu(
+            GroupHelpPageSource(cog, entries, prefix="/"),
+            interaction=interaction,
+            bot=self.bot,
+        )
         await menu.start()
 
-    def common_command_formatting(
-            self,
-            embed_like,
-            command: discord.SlashCommand
+    def reg_common_command_formatting(
+        self, embed_like: discord.Embed, _command: commands.Command
     ):
-        embed_like.title = self.get_command_signature(command)
-        if command.description:
-            embed_like.description = f'{command.description}'
+        embed_like.title = self.get_command_signature(_command)
+        if _command.description:
+            embed_like.description = f"{_command.description}\n\n{_command.help}"
         else:
-            embed_like.description = 'No help found...'
+            embed_like.description = _command.help or "No help found..."
 
-    async def send_command_help(
-            self,
-            ctx,
-            command: discord.SlashCommand
+    async def _send_command_help(
+        self,
+        interaction: discord.Interaction,
+        _command: Union[commands.Command, app_commands.Command, Any],
     ):
         # No pagination necessary for a single command.
         embed = discord.Embed(colour=discord.Colour.fuchsia())
-        self.common_command_formatting(embed, command)
-        context = ctx
-        await context.respond(embed=embed)
 
-    async def send_group_help(
-            self,
-            ctx: discord.ApplicationContext,
-            group: Union[discord.SlashCommandGroup, discord.SlashCommand]
+        if isinstance(_command, commands.Command):
+            self.reg_common_command_formatting(embed, _command)
+
+        if isinstance(_command, app_commands.Command):
+            self._common_command_formatting(embed, _command)
+
+        await interaction.response.send_message(embed=embed)
+
+    async def _send_group_help(
+        self,
+        interaction: discord.Interaction,
+        group: Union[List[Any], Set[Any], app_commands.Group, commands.Group],
     ):
-        subcommands = group.subcommands
-        if len(subcommands) == 0:
-            return await self.send_command_help(ctx, group)
+        if isinstance(group, app_commands.Group):
+            subcommands = group.commands
+            if len(subcommands) == 0:
+                return await self._send_command_help(interaction, group)
+            entries = await self._filter_commands(subcommands, interaction=interaction, sort=True)
+            if len(entries) == 0:
+                return await self._send_command_help(interaction, group)
 
-        entries = await self.filter_commands(subcommands, sort=True)
-        if len(entries) == 0:
-            return await self.send_command_help(ctx, group)
+        elif isinstance(group, commands.Group):
+            subcommands = group.commands
+            if len(subcommands) == 0:
+                return await self._send_command_help(interaction, group)
 
-        source = GroupHelpPageSource(group, entries, prefix="/")
-        self.common_command_formatting(source, group)
-        menu = HelpMenu(source, ctx=ctx)
-        await menu.start()
+            entries = await self._filter_commands(subcommands, interaction=interaction,sort=True)
+            if len(entries) == 0:
+                return await self._send_command_help(interaction, group)
 
-    async def command_callback(self, ctx: discord.ApplicationContext, *, command=None):
+    def _common_command_formatting(
+        self, embed_like: discord.Embed, _command: app_commands.Command
+    ):
+        embed_like.title = self.get_command_signature(_command)
+        if _command.description:
+            embed_like.description = f"{_command.description}"
+        else:
+            embed_like.description = "No help found..."
+
+    async def _command_callback(
+        self, interaction: discord.Interaction, *, _command=None
+    ):
         """|coro|
         The actual implementation of the help command.
-        It is not recommended to override this method and instead change
-        the behaviour through the methods that actually get dispatched.
-        - :meth:`send_bot_help`
-        - :meth:`send_cog_help`
-        - :meth:`send_group_help`
-        - :meth:`send_command_help`
-        - :meth:`get_destination`
-        - :meth:`command_not_found`
-        - :meth:`subcommand_not_found`
-        - :meth:`send_error_message`
-        - :meth:`on_help_command_error`
-        - :meth:`prepare_help_command`
+        - :meth:`_send_bot_help`
+        - :meth:`_send_cog_help`
+        - :meth:`_send_group_help`
+        - :meth:`_send_command_help`
         """
-        await self.prepare_help_command(ctx, command)
+        await self.prepare_help_command(interaction, _command)
         bot = self.bot
 
-        if command is None:
-            mapping = self.get_bot_mapping()
-            return await self.send_bot_help(ctx=ctx, mapping=mapping)
+        #  If no command, send help for the whole bot
+        if not _command:
+            return await self._send_bot_help(interaction=interaction)
 
         # Check if it's a cog
-        cog = bot.get_cog(command)
-        if cog is not None:
-            return await self.send_cog_help(ctx=ctx, cog=cog)
+        cog = bot.get_cog(_command)
+        if cog:
+            return await self._send_cog_help(interaction=interaction, cog=cog)
 
         # If it's not a cog then it's a command.
         # Since we want to have detailed errors when someone
         # passes an invalid subcommand, we need to walk through
         # the command group chain ourselves.
-        slash_cmd: discord.SlashCommand = bot.get_application_command(command)
-        slash_group: discord.SlashCommandGroup = bot.get_application_command(command, type=discord.SlashCommandGroup)
-        if slash_cmd:
-            return await self.send_command_help(ctx, slash_cmd)
-        if slash_group:
-            return await self.send_group_help(ctx, slash_group)
-        if not slash_group and not slash_cmd:
-            return await ctx.respond("Couldn't find command")
 
-    async def prepare_help_command(self, ctx: discord.ApplicationContext, command=None):
+        slash = (
+            self.bot.tree.get_command(
+                _command,
+                guild=interaction.guild,
+                type=discord.AppCommandType.chat_input,
+            ),
+            self.bot.tree.get_command(
+                _command, guild=None, type=discord.AppCommandType.chat_input
+            ),
+        )[0]
+
+        regular_command = self.bot.get_command(_command)
+        cog = self.bot.get_cog(_command)
+
+        if isinstance(slash, app_commands.Command):
+            return await self._send_command_help(interaction, slash)
+        elif isinstance(slash, app_commands.Group):
+            return await self._send_group_help(interaction, slash)
+        if isinstance(regular_command, commands.Group):
+            return await self._send_group_help(interaction, regular_command)
+        elif isinstance(regular_command, commands.Command):
+            return await self._send_command_help(interaction, regular_command)
+        if cog:
+            return await self._send_cog_help(interaction, cog)
+        if not slash and not regular_command and not cog:
+            return await interaction.response.send_message(
+                "Couldn't find command or cog"
+            )
+
+    async def prepare_help_command(
+        self, interaction: discord.Interaction, _command=None
+    ) -> Union[
+        None, Coroutine, List[Union[commands.Command, Any, app_commands.Command]]
+    ]:
         """|coro|
         A low level method that can be used to prepare the help command
         before it does anything. For example, if you need to prepare
@@ -435,32 +824,28 @@ class Help(commands.Cog):
             the usual rules that happen inside apply here as well.
         Parameters
         -----------
-        ctx: :class:`Context`
+        interaction: :class:`Interaction`
             The invocation context.
-        command: Optional[:class:`str`]
+        _command: Optional[:class:`str`]
             The argument passed to the help command.
         """
         pass
 
-    def cog_unload(self):
-        self.bot.help_command = self.old_help_command
+    @property
+    def display_emoji(self) -> str:
+        return "❔"
 
-    def get_bot_mapping(self):
-        """Retrieves the bot mapping passed to :meth:`send_bot_help`."""
-        bot = self.bot
-        mapping = {cog: cog.get_commands() for cog in bot.cogs.values()}
-        mapping[None] = [c for c in bot.commands if c.cog is None]
-        return mapping
-
-    @discord.slash_command(guild_ids=[SERVER_ID])
+    @command()
+    @guilds(SERVER_ID)
+    @describe(object="Name of command, cog or command group")
     async def help(
-            self,
-            ctx,
-            command: Optional[str]
+        self, interaction: discord.Interaction, object: Optional[str] = None
     ):
-        await ctx.defer()
-        await self.command_callback(ctx, command=command)
+
+        await self._command_callback(interaction, _command=object)
+        # Maybe add autocomplete for commands in the future
 
 
-def setup(bot):
-    bot.add_cog(Help(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(Help(bot))
+
