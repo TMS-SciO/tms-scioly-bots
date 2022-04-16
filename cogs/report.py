@@ -1,14 +1,21 @@
+from __future__ import annotations
+
 import datetime
 import json
 
 import discord
 from discord.ext import commands
-from utils.variables import *
+from utils import SERVER_ID, Channel
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bot import TMS
 
 """
 Relevant views.
 """
-# CREDIT - https://github.com/cbrxyz/pi-bot
+
 
 class IgnoreButton(discord.ui.Button):
     """
@@ -31,7 +38,7 @@ class IgnoreButton(discord.ui.Button):
         await interaction.message.delete()
 
         # Send an informational message about the report being ignored
-        closed_reports = discord.utils.get(interaction.guild.text_channels, id=CHANNEL_CLOSED_REPORTS)
+        closed_reports = interaction.guild.get_channel(Channel.CLOSED_REPORTS)
         await closed_reports.send(
             f"**Report was ignored** by {interaction.user.mention} - {self.view.member.mention} had the inappropriate "
             f"username `{self.view.offending_username}`, but the report was ignored.")
@@ -60,7 +67,7 @@ class ChangeInappropriateUsername(discord.ui.Button):
         # Check to make sure user is still in server before taking action
         member_still_here = self.view.member in self.view.member.guild.members
 
-        closed_reports = discord.utils.get(interaction.guild.text_channels, id=CHANNEL_CLOSED_REPORTS)
+        closed_reports = interaction.guild.get_channel(Channel.CLOSED_REPORTS)
         if member_still_here:
             await closed_reports.send(
                 f"**Member's username was changed** by {interaction.user.mention} - {self.view.member.mention} had "
@@ -93,7 +100,7 @@ class KickUserButton(discord.ui.Button):
         member_still_here = self.view.member in self.view.member.guild.members
 
         # Send an informational message about the report being updated
-        closed_reports = discord.utils.get(interaction.guild.text_channels, id=CHANNEL_CLOSED_REPORTS)
+        closed_reports = interaction.guild.get_channel(Channel.CLOSED_REPORTS)
         if member_still_here:
             await closed_reports.send(
                 f"**Member was kicked** by {interaction.user.mention} - {self.view.member.mention} had the "
@@ -128,18 +135,18 @@ class InappropriateUsername(discord.ui.View):
 
 class Reporter(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot: TMS):
         self.bot = bot
         print("Initialized Reporter cog.")
 
     async def create_staff_message(self, embed: discord.Embed):
         guild = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
+        reports_channel = guild.get_channel(Channel.REPORTS)
         await reports_channel.send(embed=embed)
 
     async def create_inappropriate_username_report(self, member: discord.Member, offending_username: str):
         guild = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
+        reports_channel = guild.get_channel(Channel.REPORTS)
 
         # Assemble relevant embed
         embed = discord.Embed(
@@ -162,7 +169,7 @@ class Reporter(commands.Cog):
 
     async def create_cron_task_report(self, task: dict):
         guild = self.bot.get_guild(SERVER_ID)
-        reports_channel = discord.utils.get(guild.text_channels, id=CHANNEL_REPORTS)
+        reports_channel = guild.get_channel(Channel.REPORTS)
 
         # Serialize values
         task['_id'] = str(task['_id'])  # ObjectID is not serializable by default
@@ -184,5 +191,5 @@ class Reporter(commands.Cog):
         await reports_channel.send(embed=embed)
 
 
-def setup(bot):
-    bot.add_cog(Reporter(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(Reporter(bot))
