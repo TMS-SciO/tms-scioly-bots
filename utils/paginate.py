@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import discord
 from discord.ext import menus, commands
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 import asyncio
+
+if TYPE_CHECKING:
+    from bot import TMS
 
 
 class Pages(discord.ui.View):
@@ -9,15 +14,17 @@ class Pages(discord.ui.View):
             self,
             source: menus.PageSource,
             *,
-            ctx: discord.ApplicationContext,
+            interaction: discord.Interaction,
+            bot: TMS,
             check_embeds: bool = True,
             compact: bool = False,
     ):
         super().__init__()
         self.source: menus.PageSource = source
         self.check_embeds: bool = check_embeds
-        self.ctx: discord.ApplicationContext = ctx
+        self.interaction: discord.Interaction = interaction
         self.message: Optional[discord.Message] = None
+        self.bot = bot
         self.current_page: int = 0
         self.compact: bool = compact
         self.input_lock = asyncio.Lock()
@@ -106,7 +113,7 @@ class Pages(discord.ui.View):
             pass
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user and interaction.user.id in (self.ctx.bot.owner_id, self.ctx.author.id):
+        if interaction.user and interaction.user.id in (self.bot.owner_id, self.interaction.user.id):
             return True
         await interaction.response.send_message('This pagination menu cannot be controlled by you, sorry!',
                                                 ephemeral=True)
@@ -123,8 +130,10 @@ class Pages(discord.ui.View):
             await interaction.response.send_message('An unknown error occurred, sorry', ephemeral=True)
 
     async def start(self) -> None:
-        if self.check_embeds and not self.ctx.channel.permissions_for(self.ctx.me).embed_links:
-            await self.ctx.send('Bot does not have embed links permission in this channel.')
+        if self.check_embeds and not self.interaction.channel.permissions_for(self.interaction.guild.me).embed_links:
+            if self.interaction.response.is_done():
+                return await self.interaction.followup.send('Bot does not have embed links permission in this channel.')
+            await self.interaction.response.send_message('Bot does not have embed links permission in this channel.')
             return
 
         await self.source._prepare_once()
@@ -132,9 +141,9 @@ class Pages(discord.ui.View):
         kwargs = await self._get_kwargs_from_page(page)
         self._update_labels(0)
         try:
-            self.message = await self.ctx.respond(**kwargs, view=self)
+            self.message = await self.interaction.response.send_message(**kwargs, view=self)
         except discord.InteractionResponded:
-            self.message = await self.ctx.followup(**kwargs, view=self)
+            self.message = await self.interaction.followup.send(**kwargs, view=self)
 
     @discord.ui.button(label='≪', style=discord.ButtonStyle.grey)
     async def go_to_first_page(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -180,7 +189,7 @@ class Pages(discord.ui.View):
                 return m.author.id == author_id and channel == m.channel and m.content.isdigit()
 
             try:
-                msg = await self.ctx.bot.wait_for('message', check=message_check, timeout=30.0)
+                msg = await self.interaction.client.wait_for('message', check=message_check, timeout=30.0)
             except asyncio.TimeoutError:
                 await interaction.followup.send('Took too long.', ephemeral=True)
                 await asyncio.sleep(5)
@@ -198,8 +207,13 @@ class Pages(discord.ui.View):
 
 
 class ResultPages(Pages):
-    def __init__(self, source: menus.PageSource, ctx: discord.ApplicationContext):
-        super().__init__(source, ctx=ctx, compact=True)
+    def __init__(
+            self,
+            source: menus.PageSource,
+            interaction: discord.Interaction,
+            bot: TMS
+    ):
+        super().__init__(source, bot=bot, interaction=interaction, compact=True)
 
     async def rebind(self, source: menus.PageSource, interaction: discord.Interaction) -> None:
         self.source = source
@@ -219,18 +233,20 @@ class Source(menus.ListPageSource):
 
 class RoboPages(discord.ui.View):
     def __init__(
-        self,
-        source: menus.PageSource,
-        *,
-        ctx: discord.ApplicationContext,
-        check_embeds: bool = True,
-        compact: bool = False,
+            self,
+            source: menus.PageSource,
+            *,
+            interaction: discord.Interaction,
+            bot: TMS,
+            check_embeds: bool = True,
+            compact: bool = False,
     ):
         super().__init__()
         self.source: menus.PageSource = source
         self.check_embeds: bool = check_embeds
-        self.ctx: discord.ApplicationContext = ctx
+        self.interaction: discord.Interaction = interaction
         self.message: Optional[discord.Message] = None
+        self.bot = bot
         self.current_page: int = 0
         self.compact: bool = compact
         self.input_lock = asyncio.Lock()
@@ -319,9 +335,10 @@ class RoboPages(discord.ui.View):
             pass
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user and interaction.user.id in (self.ctx.bot.owner_id, self.ctx.author.id):
+        if interaction.user and interaction.user.id in (self.bot.owner_id, self.interaction.user.id):
             return True
-        await interaction.response.send_message('This pagination menu cannot be controlled by you, sorry!', ephemeral=True)
+        await interaction.response.send_message('This pagination menu cannot be controlled by you, sorry!',
+                                                ephemeral=True)
         return False
 
     async def on_timeout(self) -> None:
@@ -337,15 +354,25 @@ class RoboPages(discord.ui.View):
             print(error)
 
     async def start(self) -> None:
-        if self.check_embeds and not self.ctx.channel.permissions_for(self.ctx.me).embed_links:
-            await self.ctx.send('Bot does not have embed links permission in this channel.')
+        if self.check_embeds and not self.interaction.channel.permissions_for(self.interaction.guild.me).embed_links:
+            try:
+                await self.interaction.response.send_message(
+                    'Bot does not have embed links permission in this channel.'
+                )
+            except discord.InteractionResponded:
+                await self.interaction.followup.send(
+                    'Bot does not have embed links permission in this channel.'
+                )
             return
 
         await self.source._prepare_once()
         page = await self.source.get_page(0)
         kwargs = await self._get_kwargs_from_page(page)
         self._update_labels(0)
-        self.message = await self.ctx.respond(**kwargs, view=self)
+        try:
+            self.message = await self.interaction.response.send_message(**kwargs, view=self)
+        except discord.InteractionResponded:
+            self.message = await self.interaction.followup.send(**kwargs, view=self)
 
     @discord.ui.button(label='≪', style=discord.ButtonStyle.grey)
     async def go_to_first_page(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -372,7 +399,6 @@ class RoboPages(discord.ui.View):
         # The call here is safe because it's guarded by skip_if
         await self.show_page(interaction, self.source.get_max_pages() - 1)
 
-
     @discord.ui.button(label='Skip to page...', style=discord.ButtonStyle.grey)
     async def numbered_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         """lets you type a page number to go to"""
@@ -392,7 +418,7 @@ class RoboPages(discord.ui.View):
                 return m.author.id == author_id and channel == m.channel and m.content.isdigit()
 
             try:
-                msg = await self.ctx.bot.wait_for('message', check=message_check, timeout=30.0)
+                msg = await self.interaction.client.wait_for('message', check=message_check, timeout=30.0)
             except asyncio.TimeoutError:
                 await interaction.followup.send('Took too long.', ephemeral=True)
                 await asyncio.sleep(5)
@@ -418,7 +444,7 @@ class FieldPageSource(menus.ListPageSource):
 
     async def format_page(self, menu, entries):
         self.embed.clear_fields()
-        self.embed.description = discord.Embed.Empty
+        self.embed.description = None
 
         for key, value in entries:
             self.embed.add_field(name=key, value=value, inline=False)
