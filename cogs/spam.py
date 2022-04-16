@@ -1,25 +1,29 @@
+from __future__ import annotations
+
 import discord
 import datetime
 from discord.ext import commands
-from utils.variables import *
+from utils import Role, SERVER_ID
+from typing import TYPE_CHECKING
 
-
-# CREDIT - https://github.com/cbrxyz/pi-bot
+if TYPE_CHECKING:
+    from bot import TMS
 
 
 class SpamManager(commands.Cog):
     recent_messages = []
 
     # Limits
-    caps_limit = 10
-    mute_limit = 10
+    caps_limit = 15
+    mute_limit = 8
     warning_limit = 3
 
-    def __init__(self, bot):
+    def __init__(self, bot: TMS):
         self.bot = bot
         self.recent_messages = []
 
-    def has_caps(self, message: discord.Message) -> bool:
+    @staticmethod
+    def has_caps(message: discord.Message) -> bool:
         """
         Returns true if the message has caps (more capitalized letters than lowercase letters)
         """
@@ -33,7 +37,7 @@ class SpamManager(commands.Cog):
 
     async def check_for_repetition(self, message: discord.Message):
         """
-        Checks to see if the message has been repeated often recently, and takes action if action is needed.
+        Checks to see if the message has often been repeated, and takes action if action is needed.
         """
         matching_messages = filter(
             lambda m: m.author == message.author and m.content.lower() == message.content.lower(), self.recent_messages)
@@ -50,16 +54,19 @@ class SpamManager(commands.Cog):
                 title=f"Automatic mute occurred",
                 color=discord.Color.yellow(),
                 description=f"""
-                {message.author.mention} was automatically muted in {message.channel} for **repeatedly spamming similar messages**. The user was **repeatedly warned**, and sent **{self.mute_limit} messages** before a mute was applied.
+                {message.author.mention} was automatically muted in {message.channel} for **repeatedly spamming 
+                similar messages**. The user was **repeatedly warned**, and sent **{self.mute_limit} messages** 
+                before a mute was applied. 
                 Their mute will automatically expire in: {discord.utils.format_dt(discord.utils.utcnow() + datetime.timedelta(hours=1), 'R')}.
-                No further action needs to be taken. To teleport to the issue, please [click here]({info_message.jump_url}). Please know that the offending messages may have been deleted by the author or staff.
+                No further action needs to be taken. To teleport to the issue, please [click here]({info_message.jump_url}). Please know that the offending messages may have been deleted by the author or staff. 
                 """
             )
             reporter_cog = self.bot.get_cog('Reporter')
             await reporter_cog.create_staff_message(staff_embed_message)
         elif matching_messages_count >= self.warning_limit:
             await message.author.send(
-                f"{message.author.mention}, please avoid spamming. Additional spam will lead to your account being temporarily muted.")
+                f"{message.author.mention}, please avoid spamming. Additional spam will lead to your account being "
+                f"temporarily muted.")
 
     async def check_for_caps(self, message: discord.Message):
         """
@@ -97,7 +104,7 @@ class SpamManager(commands.Cog):
         Mutes the user and schedules an unmute for an hour later in CRON.
         """
         guild = self.bot.get_guild(SERVER_ID)
-        muted_role = discord.utils.get(guild.roles, name=ROLE_MUTED)
+        muted_role = guild.get_role(Role.MUTED)
         unmute_time = datetime.datetime.now() + datetime.timedelta(hours=1)
         cron_cog = self.bot.get_cog("CronTasks")
         await cron_cog.schedule_unmute(member, unmute_time)
@@ -110,6 +117,14 @@ class SpamManager(commands.Cog):
         # No need to take action for bots
         if message.author.bot:
             return
+        if message.channel.id in (816809336113201193, 816806977723957278, 827537529162039326):
+            # Ignore if message # in bot-spam
+            return
+        if message.author.id == self.bot.owner_id:
+            # Ignore if is owner
+            return
+        if message.content.lower() in ("yea", "yeah", "ok",):
+            return
 
         # Store message
         self.recent_messages.insert(0, message)
@@ -119,5 +134,5 @@ class SpamManager(commands.Cog):
         await self.check_for_caps(message)
 
 
-def setup(bot):
-    bot.add_cog(SpamManager(bot))
+async def setup(bot: TMS):
+    await bot.add_cog(SpamManager(bot))
