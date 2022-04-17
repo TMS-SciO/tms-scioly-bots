@@ -59,7 +59,7 @@ class Medals(commands.Cog):
             ),
             color=discord.Color.blurple()
         )
-        await interaction.response.send_messahe(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):
