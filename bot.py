@@ -9,7 +9,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils.views import ReportView, Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns, Allevents
+import mongo
+
+from utils.views import ReportView, Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns
 from utils.variables import TMS_BOT_IDS
 
 import sys
@@ -47,6 +49,7 @@ class TmsBotTree(app_commands.CommandTree):
 class TMS(commands.Bot):
     def __init__(self):
         intents = discord.Intents.all()
+        intents.message_content = True
         super().__init__(
             command_prefix=commands.when_mentioned_or("!", ),
             case_insensitive=True,
@@ -56,17 +59,26 @@ class TMS(commands.Bot):
             tree_cls=TmsBotTree
         )
         self.persistent_views_added = False
-        self.session = aiohttp.ClientSession(loop=self.loop)
         self.owner_id = 747126643587416174
         self.help_command = commands.DefaultHelpCommand()
         self.enable_debug_events = True
+        # self.session = aiohttp.ClientSession()
 
+    async def setup_hook(self) -> None:
         for extension in INITIAL_EXTENSIONS:
             try:
                 await self.load_extension(extension)
             except all:
                 print(f'Failed to load extension {extension}', file=sys.stderr)
                 traceback.print_exc()
+        await self.db_start()
+
+    async def db_start(self):
+        await mongo.setup()
+
+    async def start(self, token: str, *, reconnect: bool = True) -> None:
+        self.session = aiohttp.ClientSession()
+        await super().start(token=token, reconnect=reconnect)
 
     async def on_ready(self):
         if not self.persistent_views_added:
@@ -75,7 +87,6 @@ class TMS(commands.Bot):
             self.add_view(Role3())
             self.add_view(Role4())
             self.add_view(Role5())
-            self.add_view(Allevents())
             self.add_view(Pronouns())
             self.add_view(ReportView())
             self.add_view(Ticket(bot))
@@ -104,12 +115,6 @@ class TMS(commands.Bot):
         listener_for_embed = bot.get_cog("Embeds")
         await listener_for_embed.on_message(message)
 
-    def run(self):
-        super().run(
-            os.getenv("TOKEN"),
-            reconnect=True
-        )
-
     async def close(self):
         await self.session.close()
         await super().close()
@@ -120,8 +125,8 @@ bot = TMS()
 
 async def main() -> None:
     async with bot:
-        bot.run()
+        await bot.start(os.getenv("TOKEN"), reconnect=True)
 
 
 if __name__ == "__main__":
-    asyncio.run((main()))
+    asyncio.run(main())
