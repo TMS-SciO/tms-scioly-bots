@@ -20,11 +20,10 @@ class Censor(commands.Cog):
 
     print("Censor Cog Loaded")
 
-    @commands.Cog.listener()
-    async def on_ready(self):
+    @commands.Cog.listener("on_ready")
+    async def on_ready(self) -> None:
 
         global CENSORED
-
         CENSORED = await mongo.get_censor()
 
     @staticmethod
