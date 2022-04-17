@@ -81,7 +81,7 @@ class Staff(commands.Cog):
 
     def __init__(self, bot: TMS):
         self.bot = bot
-        self.__cog_app_commands__.append(Suggest(bot))
+        # self.__cog_app_commands__.append(Suggest(bot))
 
     async def cog_check(self, interaction: commands.Context):
         return await is_staff(interaction)
