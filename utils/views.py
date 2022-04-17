@@ -408,61 +408,61 @@ class Role1(discord.ui.View):
 
     @discord.ui.button(label="\U0001f9e0 Anatomy & Physiology", custom_id='ap', row=1)
     async def anatomy(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.AP)
+        role = discord.utils.get(interaction.guild.roles, id=Role.AP)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f9ec Bio Process Lab", custom_id='bpl', row=1)
     async def bpl(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.BPL)
+        role = discord.utils.get(interaction.guild.roles, id=Role.BPL)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f9a0 Disease Detectives", custom_id='dd', row=1)
     async def dd(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.DD)
+        role = discord.utils.get(interaction.guild.roles, id=Role.DD)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f333 Green Generation", custom_id='gg', row=2)
     async def gg(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.GG)
+        role = discord.utils.get(interaction.guild.roles, id=Role.GG)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f985 Ornithology", custom_id='o', row=2)
     async def orni(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.O)
+        role = discord.utils.get(interaction.guild.roles, id=Role.O)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
@@ -473,61 +473,61 @@ class Role2(discord.ui.View):
 
     @discord.ui.button(label="\U0001f30e Dynamic Planet", custom_id='dp', row=1)
     async def dp(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.DP)
+        role = discord.utils.get(interaction.guild.roles, id=Role.DP)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U000026c8 Meteorology", custom_id='meteo', row=1)
     async def m(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.M)
+        role = discord.utils.get(interaction.guild.roles, id=Role.M)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U000026f0 Road Scholar", custom_id='rs', row=1)
     async def rs(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.RS)
+        role = discord.utils.get(interaction.guild.roles, id=Role.RS)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f48e Rocks & Minerals", custom_id='rm', row=2)
     async def rm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.RM)
+        role = discord.utils.get(interaction.guild.roles, id=Role.RM)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f52d Solar System", custom_id='ss', row=2)
     async def ss(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.SS)
+        role = discord.utils.get(interaction.guild.roles, id=Role.SS)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
@@ -538,61 +538,61 @@ class Role3(discord.ui.View):
 
     @discord.ui.button(label="\U0001f30a Crave the Wave", custom_id='ctw', row=1)
     async def ctw(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.CTW)
+        role = discord.utils.get(interaction.guild.roles, id=Role.CTW)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f3b5 Sounds of Music", custom_id='som', row=1)
     async def som(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.SOM)
+        role = discord.utils.get(interaction.guild.roles, id=Role.SOM)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f3af Storm the Castle", custom_id='stc', row=1)
     async def stc(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.STC)
+        role = discord.utils.get(interaction.guild.roles, id=Role.STC)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f349 Food Science", custom_id='fs', row=2)
     async def fs(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.FS)
+        role = discord.utils.get(interaction.guild.roles, id=Role.FS)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f9ea Crime Busters", custom_id='cb', row=2)
     async def cb(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.CB)
+        role = discord.utils.get(interaction.guild.roles, id=Role.CB)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
@@ -603,49 +603,49 @@ class Role4(discord.ui.View):
 
     @discord.ui.button(label="\U0001f309 Bridges", custom_id='bridge', row=1)
     async def b(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.B)
+        role = discord.utils.get(interaction.guild.roles, id=Role.B)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U00002708 Electric Wright Stuff", custom_id='ews', row=1)
     async def ews(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.EWS)
+        role = discord.utils.get(interaction.guild.roles, id=Role.EWS)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U000023f1 Mission Possible", custom_id='mp', row=2)
     async def mp(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.MP)
+        role = discord.utils.get(interaction.guild.roles, id=Role.MP)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001faa4 Mousetrap Vehicle", custom_id='mtv', row=2)
     async def mtv(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.MV)
+        role = discord.utils.get(interaction.guild.roles, id=Role.MV)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
@@ -656,49 +656,49 @@ class Role5(discord.ui.View):
 
     @discord.ui.button(label="\U0001f513 Codebusters", custom_id='code', row=1)
     async def code(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.C)
+        role = discord.utils.get(interaction.guild.roles, id=Role.C)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f97d Experimental Design", custom_id='expd', row=1)
     async def exp(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.ED)
+        role = discord.utils.get(interaction.guild.roles, id=Role.ED)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001fa82 Ping Pong Parachute", custom_id='ppp', row=2)
     async def ppp(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.PPP)
+        role = discord.utils.get(interaction.guild.roles, id=Role.PPP)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f4dd Write it, Do it", custom_id='widi', row=2)
     async def widi(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.WIDI)
+        role = discord.utils.get(interaction.guild.roles, id=Role.WIDI)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
@@ -709,49 +709,50 @@ class Pronouns(discord.ui.View):
 
     @discord.ui.button(label="\U0001f9e1 He/Him", custom_id='he', row=1)
     async def he(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.HE)
+        role = discord.utils.get(interaction.guild.roles, id=Role.HE)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f49b She/Her", custom_id='she', row=1)
     async def she(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.SHE)
+        role = discord.utils.get(interaction.guild.roles, id=Role.SHE)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f49c They/Them", custom_id='they', row=1)
     async def they(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.THEY)
+        role = discord.utils.get(interaction.guild.roles, id=Role.THEY)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
     @discord.ui.button(label="\U0001f49a Ask", custom_id='ask', row=1)
     async def ask(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=Role.ASK)
+        role = discord.utils.get(interaction.guild.roles, id=Role.ASK)
         if role in interaction.user.roles:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.remove_roles(role)
             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
         else:
-            member = await interaction.guild.fetch_member(interaction.user.id)
+            member = interaction.guild.get_member(interaction.user.id)
             await member.add_roles(role)
             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
@@ -762,13 +763,13 @@ class Pronouns(discord.ui.View):
 # 
 #     @discord.ui.button(label="\U0001f499 All Events ", custom_id='ae')
 #     async def allevents(self, interaction: discord.Interaction, button: discord.ui.Button):
-#         role = discord.utils.get(interaction.guild.roles, name=...)
+#         role = discord.utils.get(interaction.guild.roles, id=...)
 #         if role in interaction.user.roles:
-#             member = await interaction.guild.fetch_member(interaction.user.id)
+#             member = interaction.guild.get_member(interaction.user.id)
 #             await member.remove_roles(role)
 #             await interaction.response.send_message(f'Removed Roles {role.mention}', ephemeral=True)
 #         else:
-#             member = await interaction.guild.fetch_member(interaction.user.id)
+#             member = interaction.guild.get_member(interaction.user.id)
 #             await member.add_roles(role)
 #             await interaction.response.send_message(f'Added Roles {role.mention}', ephemeral=True)
 
@@ -883,7 +884,7 @@ class Nuke(discord.ui.View):
 #                  }
 #         values = select.values[0]
 #         role_name = roles[values]
-#         role = discord.utils.get(interaction.guild.roles, name=role_name)
+#         role = discord.utils.get(interaction.guild.roles, id=role_name)
 #         if role in interaction.user.roles:
 #             await interaction.user.remove_roles(role)
 #             await interaction.response.send_message(
@@ -995,14 +996,14 @@ class CronSelect(discord.ui.Select):
 
 class CronConfirm(discord.ui.View):
 
-    def __init__(self, doc, bot, ctx):
+    def __init__(self, doc, bot, ctx: discord.Interaction):
         super().__init__()
         self.doc = doc
         self.bot = bot
         self.ctx = ctx
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user == self.ctx.author:
+        if interaction.user == self.ctx.user:
             return True
         else:
             await interaction.response.send_message('Sorry, this menu cannot be controlled by you', ephemeral=True)
