@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import os
 
 import utils
 import motor.motor_asyncio
+from typing import TYPE_CHECKING
 
 client: motor.motor_asyncio.AsyncIOMotorClient
 
@@ -82,7 +85,12 @@ async def remove_doc(db_name, collection_name, doc_id):
     collection = client[db_name][collection_name]
     await collection.delete_one({'_id': doc_id})
 
+#
+# event_loop = asyncio.get_event_loop()
 
-event_loop = asyncio.get_event_loop()
-# asyncio.ensure_future(setup(), loop = event_loop)
-event_loop.run_until_complete(setup())
+
+# # asyncio.ensure_future(setup(), loop = event_loop)
+# async def main():
+#     await event_loop.run_until_complete(setup())
+
+
