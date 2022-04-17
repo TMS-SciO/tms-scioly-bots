@@ -483,7 +483,7 @@ class EmbedCommands(commands.Cog, name="Embeds"):
     async def prepembed(
             self,
             interaction: discord.Interaction,
-            channel: discord.abc.MessageableChannel
+            channel: discord.TextChannel
     ):
         """Helps to create an embed to be sent to a channel."""
 
