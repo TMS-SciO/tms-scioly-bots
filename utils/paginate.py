@@ -22,7 +22,7 @@ class Pages(discord.ui.View):
         super().__init__()
         self.source: menus.PageSource = source
         self.check_embeds: bool = check_embeds
-        self.interaction: discord.Interaction = interaction
+        self._interaction: discord.Interaction = interaction
         self.message: Optional[discord.Message] = None
         self.bot = bot
         self.current_page: int = 0
@@ -113,7 +113,7 @@ class Pages(discord.ui.View):
             pass
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user and interaction.user.id in (self.bot.owner_id, self.interaction.user.id):
+        if interaction.user and interaction.user.id in (self.bot.owner_id, self._interaction.user.id):
             return True
         await interaction.response.send_message('This pagination menu cannot be controlled by you, sorry!',
                                                 ephemeral=True)
@@ -123,28 +123,19 @@ class Pages(discord.ui.View):
         if self.message:
             await self.message.edit(view=None)
 
-    async def on_error(self, error: Exception, item: discord.ui.Item, interaction: discord.Interaction) -> None:
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
         if interaction.response.is_done():
             await interaction.followup.send('An unknown error occurred, sorry', ephemeral=True)
         else:
             await interaction.response.send_message('An unknown error occurred, sorry', ephemeral=True)
 
     async def start(self) -> None:
-        if self.check_embeds and not self.interaction.channel.permissions_for(self.interaction.guild.me).embed_links:
-            if self.interaction.response.is_done():
-                return await self.interaction.followup.send('Bot does not have embed links permission in this channel.')
-            await self.interaction.response.send_message('Bot does not have embed links permission in this channel.')
-            return
-
         await self.source._prepare_once()
         page = await self.source.get_page(0)
         kwargs = await self._get_kwargs_from_page(page)
         self._update_labels(0)
-        try:
-            self.message = await self.interaction.response.send_message(**kwargs, view=self)
-        except discord.InteractionResponded:
-            self.message = await self.interaction.followup.send(**kwargs, view=self)
-
+        self.message = await self._interaction.followup.send(**kwargs, view=self)
+            
     @discord.ui.button(label='≪', style=discord.ButtonStyle.grey)
     async def go_to_first_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         """go to the first page"""
@@ -189,7 +180,7 @@ class Pages(discord.ui.View):
                 return m.author.id == author_id and channel == m.channel and m.content.isdigit()
 
             try:
-                msg = await self.interaction.client.wait_for('message', check=message_check, timeout=30.0)
+                msg = await self._interaction.client.wait_for('message', check=message_check, timeout=30.0)
             except asyncio.TimeoutError:
                 await interaction.followup.send('Took too long.', ephemeral=True)
                 await asyncio.sleep(5)
