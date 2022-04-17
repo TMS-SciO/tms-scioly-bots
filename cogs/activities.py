@@ -46,7 +46,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def ytparty(self, ctx, invite_max_age_in_seconds=86400):
+    async def ytparty(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a YouTube Together voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -56,7 +56,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def betrayal(self, ctx, invite_max_age_in_seconds=86400):
+    async def betrayal(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Betrayal.io voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -66,7 +66,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def fishington(self, ctx, invite_max_age_in_seconds=86400):
+    async def fishington(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Fishington.io voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -76,7 +76,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def chess(self, ctx, invite_max_age_in_seconds=86400):
+    async def chess(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Chess in the Park voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -86,7 +86,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def chessdev(self, ctx, invite_max_age_in_seconds=86400):
+    async def chessdev(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Chess in the Park voice channel invite, the dev version.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -96,7 +96,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def doodlecrew(self, ctx, invite_max_age_in_seconds=86400):
+    async def doodlecrew(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Doodle Crew voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -106,7 +106,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def doodlecrewdev(self, ctx, invite_max_age_in_seconds=86400):
+    async def doodlecrewdev(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Doodle Crew voice channel invite, the dev version.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -116,7 +116,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def lettertile(self, ctx, invite_max_age_in_seconds=86400):
+    async def lettertile(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Letter Tile voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -126,7 +126,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def wordsnacks(self, ctx, invite_max_age_in_seconds=86400):
+    async def wordsnacks(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Word Snacks voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -136,7 +136,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def wordsnacksdev(self, ctx, invite_max_age_in_seconds=86400):
+    async def wordsnacksdev(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Word Snacks voice channel invite, the dev version.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -146,7 +146,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def spellcast(self, ctx, invite_max_age_in_seconds=86400):
+    async def spellcast(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a SpellCast voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -156,7 +156,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def checkers(self, ctx, invite_max_age_in_seconds=86400):
+    async def checkers(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Checkers in the Park voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -166,7 +166,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def sketchy(self, ctx, invite_max_age_in_seconds=86400):
+    async def sketchy(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Sketchy Artist voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -176,7 +176,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def sketchydev(self, ctx, invite_max_age_in_seconds=86400):
+    async def sketchydev(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Sketchy Artist voice channel invite, the dev version.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -186,7 +186,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def awkword(self, ctx, invite_max_age_in_seconds=86400):
+    async def awkword(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Awkword voice channel invite.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
@@ -196,7 +196,7 @@ class Activities(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def decodersdev(self, ctx, invite_max_age_in_seconds=86400):
+    async def decodersdev(self, ctx, invite_max_age_in_seconds: int = 86400):
         """
         Create a Decoders voice channel invite, the dev version.
         Use `0` for `invite_max_age_in_seconds` if you want the invite to be permanent.
