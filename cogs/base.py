@@ -108,7 +108,7 @@ class Module(Group):
         return True
 
     @command()
-    async def load(self, interaction: discord.Interaction, *, module):
+    async def load(self, interaction: discord.Interaction, *, module: str):
         """Loads a module."""
         try:
             await self.bot.load_extension(module)
@@ -118,7 +118,7 @@ class Module(Group):
             await interaction.response.send_message('<:greenTick:899466945672392704> ')
 
     @command()
-    async def unload(self, interaction: discord.Interaction, *, module):
+    async def unload(self, interaction: discord.Interaction, *, module: str):
         """Unloads a module."""
         try:
             await self.bot.unload_extension(module)
@@ -128,7 +128,7 @@ class Module(Group):
             await interaction.response.send_message('<:greenTick:899466945672392704>')
 
     @command()
-    async def reload(self, interaction: discord.Interaction, *, module):
+    async def reload(self, interaction: discord.Interaction, *, module: str):
         """Reloads a module."""
         try:
             await self.bot.reload_extension(module)
@@ -137,7 +137,7 @@ class Module(Group):
         else:
             await interaction.response.send_message('<:greenTick:899466945672392704>')
 
-    def _reload_or_load_extension(self, module):
+    async def _reload_or_load_extension(self, module):
         try:
             await self.bot.reload_extension(module)
         except commands.ExtensionNotLoaded:
