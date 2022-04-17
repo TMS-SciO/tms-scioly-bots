@@ -59,6 +59,10 @@ class CronTasks(commands.Cog):
                     reporter_cog = self.bot.get_cog('Reporter')
                     await reporter_cog.create_cron_task_report(task)
 
+    @cron.before_loop
+    async def _before(self):
+        await self.bot.wait_until_ready()
+
     @staticmethod
     async def add_to_cron(item_dict: dict):
         """
