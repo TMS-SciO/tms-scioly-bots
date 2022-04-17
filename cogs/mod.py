@@ -24,7 +24,7 @@ STOPNUKE = datetime.datetime.utcnow()
 class CensorGroup(Group):
     def __init__(self, bot: TMS):
         self.bot = bot
-        super().__init__(name="censor")
+        super().__init__(name="censor", guild_ids=[SERVER_ID])
 
     @property
     def cog(self) -> commands.Cog:
@@ -33,7 +33,6 @@ class CensorGroup(Group):
     @command()
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     @describe(phrase="The word/phrase to add to the censor list")
-    @guilds
     async def add(
             self,
             interaction: discord.Interaction,
