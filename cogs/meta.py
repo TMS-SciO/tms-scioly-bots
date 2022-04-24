@@ -8,7 +8,8 @@ from typing import Any, Coroutine, Dict, List, Optional, Set, TYPE_CHECKING, Uni
 from discord import app_commands
 import discord
 from discord.app_commands import command, describe, guilds
-from discord.ext import commands, menus
+from discord.ext import commands
+import menus
 
 if TYPE_CHECKING:
     from bot import TMS

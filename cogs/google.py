@@ -111,7 +111,7 @@ class Google(commands.Cog):
         """Google search your query from Discord channel."""
         if not query:
             return await interaction.response.send_message("Please enter something to search")
-
+        await interaction.response.defer()
         isnsfw = self.nsfwcheck(interaction)
         response, kwargs = await self.get_result(query, nsfw=isnsfw)
         pages = []

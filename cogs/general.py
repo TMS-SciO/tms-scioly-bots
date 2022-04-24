@@ -104,7 +104,7 @@ class BotGroup(Group):
 
         # To properly cache myself, I need to use the bot support server.
         support_guild = self.bot.get_guild(816806329925894217)
-        owner = await support_guild.fetch_member(747126643587416174)
+        owner = await support_guild.get_member(747126643587416174)
         name = str(owner)
         embed.set_author(name=name, icon_url=owner.display_avatar.url, url='https://github.com/pandabear189')
 

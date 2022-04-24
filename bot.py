@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import TYPE_CHECKING
+from typing import Any, List, Optional, Type
 
 import aiohttp
 import discord
+import slate
 from discord import app_commands
+from discord.abc import Snowflake
 from discord.ext import commands
 
 import mongo
@@ -16,8 +18,9 @@ from utils.variables import TMS_BOT_IDS
 
 import sys
 import traceback
+from custom import Context
 
-INITIAL_EXTENSIONS = [
+INITIAL_EXTENSIONS: List[str] = [
     "cogs.mod",
     "cogs.fun",
     "cogs.general",
@@ -37,13 +40,18 @@ INITIAL_EXTENSIONS = [
     "cogs.config",
     "cogs.staff",
     "cogs.medals",
-    "jishaku"
+    "cogs.player",
+    "cogs.music",
 ]
 
 
 class TmsBotTree(app_commands.CommandTree):
     def __init__(self, client: 'TMS'):
         super().__init__(client)
+
+    async def sync(self, *, guild: Optional[Snowflake] = None) -> List[discord.app_commands.AppCommand]:
+        print(f"Synced to {guild}")
+        return await super().sync(guild=guild)
 
 
 class TMS(commands.Bot):
@@ -65,16 +73,14 @@ class TMS(commands.Bot):
         # self.session = aiohttp.ClientSession()
 
     async def setup_hook(self) -> None:
+        await self.db_start()
+        await self.connect_slate()
         for extension in INITIAL_EXTENSIONS:
             try:
                 await self.load_extension(extension)
             except all:
                 print(f'Failed to load extension {extension}', file=sys.stderr)
                 traceback.print_exc()
-        await self.db_start()
-
-    async def db_start(self):
-        await mongo.setup()
 
     async def start(self, token: str, *, reconnect: bool = True) -> None:
         self.session = aiohttp.ClientSession()
@@ -97,27 +103,53 @@ class TMS(commands.Bot):
         print("discord.py v" + discord.__version__)
 
     async def on_message(
-            self, message
+            self, message: discord.Message
     ) -> None:
         if type(message.channel) == discord.DMChannel:
-            log = bot.get_cog("Listeners")
+            log = self.get_cog("Listeners")
             return await log.send_to_dm_log(bot, message)
 
         if message.author.id in TMS_BOT_IDS:
             return
 
-        censor_cog = bot.get_cog("Censor")  # Censor
+        censor_cog = self.get_cog("Censor")  # Censor
         await censor_cog.on_message(message)
 
-        spam = bot.get_cog("SpamManager")  # Spamming
+        spam = self.get_cog("SpamManager")  # Spamming
         await spam.store_and_validate(message)
 
-        listener_for_embed = bot.get_cog("Embeds")
+        listener_for_embed = self.get_cog("Embeds")
         await listener_for_embed.on_message(message)
 
     async def close(self):
         await self.session.close()
         await super().close()
+
+    async def connect_slate(self) -> None:
+        self.slate = slate.Pool()
+        node = await self.slate.create_node(
+                slate.Provider.LAVALINK,
+                bot=self,
+                identifier="slate",
+                host=os.getenv("NODE_HOST"),
+                port=os.getenv("NODE_PORT"),
+                password=os.getenv("NODE_PASSWORD"),
+                session=self.session,
+                spotify_client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+                spotify_client_secret=os.getenv("SPOTIFY_TOKEN"),
+            )
+        print(f"Connected node {node}")
+
+    async def db_start(self) -> None:
+        await mongo.setup()
+        print("Connected to Database")
+
+    async def get_context(
+            self,
+            origin: discord.Message | discord.Interaction,
+            cls: Type[Context] = None,
+    ) -> Any:
+        return await super().get_context(origin, cls=Context)
 
 
 bot = TMS()

@@ -9,6 +9,7 @@ import io
 import textwrap
 from contextlib import redirect_stdout
 import traceback
+import custom
 
 
 if TYPE_CHECKING:
@@ -40,7 +41,7 @@ class Core(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def eval(self, ctx: commands.Context, *, body: str):
+    async def eval(self, ctx: custom.Context, *, body: str):
         """Evaluates a code"""
         env = {
             'bot': self.bot,
@@ -84,6 +85,12 @@ class Core(commands.Cog):
             else:
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```')
+
+    @commands.hybrid_command()
+    async def _sync_commands(self, ctx: custom.Context, guild: int | discord.Guild | None = None):
+        await ctx.defer()
+        await self.bot.tree.sync(guild=guild)
+        await ctx.reply(f"Synced commands to {guild.name}")
 
     @commands.command(name="profile")
     async def _profile(self, ctx, user_id: discord.User):
