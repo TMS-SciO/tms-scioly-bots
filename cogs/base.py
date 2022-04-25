@@ -86,7 +86,8 @@ class Core(commands.Cog):
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```')
 
-    @commands.hybrid_command()
+    @commands.hybrid_command(name="sync-commands")
+    @commands.is_owner()
     async def _sync_commands(self, ctx: custom.Context, guild: int | discord.Guild | None = None):
         await ctx.defer()
         await self.bot.tree.sync(guild=guild)
