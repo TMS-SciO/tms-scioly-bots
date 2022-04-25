@@ -88,10 +88,10 @@ class Core(commands.Cog):
 
     @commands.hybrid_command(name="sync-commands")
     @commands.is_owner()
-    async def _sync_commands(self, ctx: custom.Context, guild: int | discord.Guild | None = None):
+    async def _sync_commands(self, ctx: custom.Context, guild: int):
         await ctx.defer()
-        await self.bot.tree.sync(guild=guild)
-        await ctx.reply(f"Synced commands to {guild.name}")
+        await self.bot.tree.sync(guild=discord.Object(guild))
+        await ctx.reply(f"Synced commands to guild id: {int}")
 
     @commands.command(name="profile")
     async def _profile(self, ctx, user_id: discord.User):
