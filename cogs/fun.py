@@ -62,7 +62,7 @@ class Fun(commands.Cog):
 
     @command()
     @guilds(SERVER_ID)
-    async def magic8ball(self, interaction, question: str):
+    async def magic8ball(self, interaction: discord.Interaction, question: str):
         '''Swishes a Magic8ball'''
         await asyncio.sleep(3)
         sayings = [
@@ -179,6 +179,7 @@ class Fun(commands.Cog):
     @command()
     @guilds(SERVER_ID)
     async def image(self, interaction: discord.Interaction, member: discord.User, manipulate: str):
+        await interaction.response.defer()
         params = {
             'image_url': member.avatar.url,
         }
@@ -186,7 +187,7 @@ class Fun(commands.Cog):
         r = await self.bot.session.get(f'https://api.jeyy.xyz/image/{manipulate}', params=params)
         buf = io.BytesIO(await r.read())
 
-        await interaction.response.send_message(file=discord.File(buf, 'image.gif'))
+        await interaction.followup.send(file=discord.File(buf, 'image.gif'))
 
     @image.autocomplete(name="manipulate")
     async def image_autocomplete(

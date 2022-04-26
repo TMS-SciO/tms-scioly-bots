@@ -238,7 +238,8 @@ class General(commands.Cog):
     @staticmethod
     async def _regular_user_cleanup_strategy(interaction: discord.Interaction, search):
         def check(m):
-            return (m.author == interaction.guild.me or m.content.startswith("!" or "?")) and not (m.mentions or m.role_mentions)
+            return (m.author == interaction.guild.me or m.content.startswith("!" or "?")) and not (
+                        m.mentions or m.role_mentions)
 
         deleted = await interaction.channel.purge(limit=search, check=check, before=interaction.message)
         return Counter(m.author.display_name for m in deleted)
@@ -267,23 +268,6 @@ class General(commands.Cog):
                               description=f"**Rule {number}:**\n> {rule}",
                               color=0xff008c)
         await interaction.response.send_message(embed=embed)
-
-    @command()
-    @guilds(SERVER_ID)
-    async def report(self, interaction: discord.Interaction, reason: str):
-        """Creates a report that is sent to staff members."""
-        reports_channel = interaction.guild.get_channel(Channel.REPORTS)
-        ava = interaction.user.avatar
-        if ava is None:
-            ava = ""
-
-        message = reason
-        embed = discord.Embed(title="Report received", description=" ", color=0xFF0000)
-        embed.add_field(name="User:", value=f"{interaction.user.mention} \n id: `{interaction.author.id}`")
-        embed.add_field(name="Report:", value=f"`{message}`")
-        embed.set_author(name=f"{interaction.user}", icon_url=ava)
-        await reports_channel.send(embed=embed, view=ReportView())
-        await interaction.response.send_message("Thanks, report created.")
 
     @staticmethod
     def tick(opt, label=None):
@@ -588,6 +572,7 @@ class General(commands.Cog):
             messages.extend(f'- **{author}**: {count}' for author, count in spammers)
 
         await interaction.response.send_message('\n'.join(messages))
+
     #
     # @command()
     # @guilds(SERVER_ID)
@@ -685,7 +670,6 @@ class General(commands.Cog):
             e.add_field(name=f'{member} (ID: {member.id})', value=body, inline=False)
 
         await interaction.response.send_message(embed=e)
-
 
 
 async def setup(bot: TMS):

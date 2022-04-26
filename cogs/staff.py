@@ -90,35 +90,6 @@ class Staff(commands.Cog):
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='mod_badge', id=900488706748731472)
 
-    @command()
-    @guilds(SERVER_ID)
-    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
-    @describe(user="The user you wish promote to trial leader")
-    async def trial(
-            self,
-            interaction: discord.Interaction,
-            user: discord.Member
-    ):
-        """Promotes/Trials a user."""
-        role = interaction.guild.get_role(Role.TRIAL)
-        await user.add_roles(role)
-        await interaction.response.send_message(
-            f"Successfully added {role}. Congratulations {user.mention}! :partying_face: :partying_face: ")
-
-    @command()
-    @guilds(SERVER_ID)
-    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
-    @describe(user="The user you wish to demote")
-    async def untrial(
-            self,
-            interaction: discord.Interaction,
-            user: discord.Member
-    ):
-        """Demotes/unTrials a user."""
-        role = interaction.guild.get_role(Role.TRIAL)
-        await user.remove_roles(role)
-        await interaction.response.send_message(f"Successfully removed {role} from {user.mention}.")
-
     @commands.command()
     @commands.is_owner()
     async def sudo(
@@ -137,34 +108,6 @@ class Staff(commands.Cog):
         new_context: commands.Context = await self.bot.get_context(msg, cls=type(ctx))
         await self.bot.invoke(new_context)
         await ctx.send('sent command', ephemeral=True)
-
-    @command()
-    @guilds(SERVER_ID)
-    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
-    @describe(user="The user you wish to VIP")
-    async def vip(
-            self,
-            interaction: discord.Interaction,
-            user: discord.Member
-    ):
-        """Exalts/VIPs a user."""
-        role = interaction.guild.get_role(Role.VIP)
-        await user.add_roles(role)
-        await interaction.response.send_message(
-            f"Successfully added VIP. Congratulations {user.mention}! :partying_face: :partying_face: ")
-
-    @command()
-    @guilds(SERVER_ID)
-    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
-    async def unvip(
-            self,
-            interaction: discord.Interaction,
-            user: discord.Member
-    ):
-        """Unexalts/unVIPs a user."""
-        role = interaction.guild.get_role(Role.VIP)
-        await user.remove_roles(role)
-        await interaction.response.send_message(f"Successfully removed VIP from {user.mention}.")
 
 
 async def setup(bot: TMS):
