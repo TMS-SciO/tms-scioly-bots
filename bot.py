@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import collections
 import os
-from typing import Any, List, Optional, Type
+from typing import Any, List, Optional, Type, TYPE_CHECKING
 
 import aiohttp
 import discord
@@ -19,6 +20,12 @@ from utils.variables import TMS_BOT_IDS
 import sys
 import traceback
 from custom import Context
+
+if TYPE_CHECKING:
+    from cogs.listeners import Listeners
+    from cogs.spam import SpamManager
+    from cogs.censor import Censor
+    from cogs.embed import EmbedCommands
 
 INITIAL_EXTENSIONS: List[str] = [
     "cogs.mod",
@@ -42,6 +49,7 @@ INITIAL_EXTENSIONS: List[str] = [
     "cogs.medals",
     "cogs.player",
     "cogs.music",
+    "jishaku"
 ]
 
 
@@ -70,6 +78,7 @@ class TMS(commands.Bot):
         self.owner_id = 747126643587416174
         self.help_command = commands.DefaultHelpCommand()
         self.enable_debug_events = True
+        self.socket_stats: collections.Counter[str] = collections.Counter()
         # self.session = aiohttp.ClientSession()
 
     async def setup_hook(self) -> None:
@@ -106,19 +115,19 @@ class TMS(commands.Bot):
             self, message: discord.Message
     ) -> None:
         if type(message.channel) == discord.DMChannel:
-            log = self.get_cog("Listeners")
+            log: 'Listeners' | commands.Cog = self.get_cog("Listeners")
             return await log.send_to_dm_log(bot, message)
 
         if message.author.id in TMS_BOT_IDS:
             return
 
-        censor_cog = self.get_cog("Censor")  # Censor
+        censor_cog: 'Censor' | commands.Cog = self.get_cog("Censor")  # Censor
         await censor_cog.on_message(message)
 
-        spam = self.get_cog("SpamManager")  # Spamming
+        spam: 'SpamManager' | commands.Cog = self.get_cog("SpamManager")  # Spamming
         await spam.store_and_validate(message)
 
-        listener_for_embed = self.get_cog("Embeds")
+        listener_for_embed: 'EmbedCommands' | commands.Cog = self.get_cog("Embeds")
         await listener_for_embed.on_message(message)
 
     async def close(self):
@@ -148,7 +157,7 @@ class TMS(commands.Bot):
             self,
             origin: discord.Message | discord.Interaction,
             cls: Type[Context] = None,
-    ) -> Any:
+    ) -> Any | 'Context':
         return await super().get_context(origin, cls=Context)
 
 

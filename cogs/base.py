@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import discord
-from discord.app_commands import Group, command
-from discord.ext import commands
 import io
 import textwrap
-from contextlib import redirect_stdout
 import traceback
-import custom
+from contextlib import redirect_stdout
+from typing import TYPE_CHECKING
 
+from discord.app_commands import command, Group
+from discord.ext import commands
+
+import custom
 
 if TYPE_CHECKING:
     from bot import TMS

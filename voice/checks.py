@@ -9,11 +9,12 @@ from typing import Literal, TypeVar, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
+from custom import exceptions
 
 T = TypeVar("T")
 
 if TYPE_CHECKING:
-    from custom import Context, exceptions
+    from custom import Context
 
 
 def is_track_seekable() -> Callable[[T], T]:
@@ -125,14 +126,14 @@ async def global_check(ctx: Context) -> bool:
     assert not isinstance(ctx.channel, discord.PartialMessageable)
 
     current = dict(ctx.channel.permissions_for(ctx.guild.me))
-    permissions_= discord.Permissions(
-            read_messages=True,
-            send_messages=True,
-            embed_links=True,
-            attach_files=True,
-            read_message_history=True,
-            add_reactions=True,
-            external_emojis=True,
+    permissions_ = discord.Permissions(
+        read_messages=True,
+        send_messages=True,
+        embed_links=True,
+        attach_files=True,
+        read_message_history=True,
+        add_reactions=True,
+        external_emojis=True,
     )
     needed = {
         permission: value for permission, value in permissions_ if value is True

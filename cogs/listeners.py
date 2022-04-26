@@ -5,20 +5,21 @@ from typing import TYPE_CHECKING
 import discord
 from discord.ext import commands
 
-from utils import (
-    SERVER_ID,
-    Role,
-    Channel,
-    TMS_BOT_IDS
-)
+from utils import (Channel, Role, SERVER_ID, TMS_BOT_IDS)
 
 if TYPE_CHECKING:
     from bot import TMS
+    from cogs.censor import Censor
+    from cogs.report import Reporter
 
 
 class Listeners(commands.Cog):
     def __init__(self, bot: TMS):
         self.bot = bot
+
+    @commands.Cog.listener("on_socket_event_type")
+    async def _increment_socket_event_counter(self, event_type: str) -> None:
+        self.bot.socket_stats[event_type] += 1
 
     @commands.Cog.listener()
     async def on_member_update(
@@ -27,11 +28,11 @@ class Listeners(commands.Cog):
 
         if after.nick is None:
             return
-        censor_cog = self.bot.get_cog("Censor")
+        censor_cog: 'Censor' | commands.Cog = self.bot.get_cog("Censor")
         censor_found = censor_cog.censor_needed(after.nick)
         if censor_found:
             # If name contains a censored link
-            reporter_cog = self.bot.get_cog('Reporter')
+            reporter_cog: 'Reporter' | commands.Cog = self.bot.get_cog('Reporter')
             await reporter_cog.create_inappropriate_username_report(member=after, offending_username=after.nick)
 
     @commands.Cog.listener()
@@ -42,9 +43,9 @@ class Listeners(commands.Cog):
             return
 
         name = member.name
-        censor_cog = self.bot.get_cog('Censor')
+        censor_cog: 'Censor' | commands.Cog = self.bot.get_cog('Censor')
         if censor_cog.censor_needed(name):
-            reporter_cog: commands.Cog = self.bot.get_cog('Reporter')
+            reporter_cog: 'Reporter' | commands.Cog = self.bot.get_cog('Reporter')
             await reporter_cog.create_inappropriate_username_report(member, member.name)
 
         role: discord.Role = member.guild.get_role(Role.MEMBER)
@@ -75,7 +76,7 @@ class Listeners(commands.Cog):
                 Channel.DELETEDM
         ):
             return
-        censor_cog = self.bot.get_cog("Censor")
+        censor_cog: 'Censor' | commands.Cog = self.bot.get_cog("Censor")
         censor_found = censor_cog.censor_needed(after.content)
         if censor_found:
             await after.delete()

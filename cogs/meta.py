@@ -3,56 +3,64 @@ from __future__ import annotations
 import asyncio
 import inspect
 import itertools
-from utils import SERVER_ID, times as time
-from typing import Any, Coroutine, Dict, List, Optional, Set, TYPE_CHECKING, Union
-from discord import app_commands
+from typing import Any, Coroutine, Dict, List, Optional, Set, TYPE_CHECKING, TypeVar, Union
+
 import discord
+from discord import app_commands
 from discord.app_commands import command, describe, guilds
 from discord.ext import commands
+
 import menus
+from utils import SERVER_ID, times as time
 
 if TYPE_CHECKING:
     from bot import TMS
 
-TotalMappingDict = Dict[
-    commands.Cog,
-    Union[
-        Set[Any],
+TotalMappingDict = TypeVar(
+    "TotalMappingDict",
+    bound=Dict[
+        commands.Cog,
+        Union[
+            Set[Any],
+            List[
+                Union[
+                    commands.Command,
+                    app_commands.Command,
+                    app_commands.Group,
+                    app_commands.ContextMenu,
+                    Any,
+                ]
+            ],
+        ],
+    ]
+)
+
+CommandsListType = TypeVar(
+    "CommandsListType",
+    bound=Union[
+        Set,
         List[
             Union[
                 commands.Command,
-                app_commands.Command,
+                commands.Group,
                 app_commands.Group,
+                app_commands.Command,
                 app_commands.ContextMenu,
-                Any,
             ]
         ],
-    ],
-]
-
-CommandsListType = Union[
-    Set,
-    List[
-        Union[
-            commands.Command,
-            commands.Group,
-            app_commands.Group,
-            app_commands.Command,
-            app_commands.ContextMenu,
-        ]
-    ],
-]
+    ]
+)
 
 
 class RoboPages(discord.ui.View):
     def __init__(
-        self,
-        source: menus.PageSource,
-        *,
-        interaction: discord.Interaction,
-        check_embeds: bool = True,
-        compact: bool = False,
-        bot: TMS,
+            self,
+            source: menus.PageSource,
+            *,
+            interaction: discord.Interaction,
+            check_embeds: bool = True,
+            compact: bool = False,
+            bot: TMS,
     ):
         super().__init__()
         self.source: menus.PageSource = source
@@ -98,7 +106,7 @@ class RoboPages(discord.ui.View):
             return {}
 
     async def show_page(
-        self, interaction: discord.Interaction, page_number: int
+            self, interaction: discord.Interaction, page_number: int
     ) -> None:
         page = await self.source.get_page(page_number)
         self.current_page = page_number
@@ -116,10 +124,10 @@ class RoboPages(discord.ui.View):
         if self.compact:
             max_pages = self.source.get_max_pages()
             self.go_to_last_page.disabled = (
-                max_pages is None or (page_number + 1) >= max_pages
+                    max_pages is None or (page_number + 1) >= max_pages
             )
             self.go_to_next_page.disabled = (
-                max_pages is not None and (page_number + 1) >= max_pages
+                    max_pages is not None and (page_number + 1) >= max_pages
             )
             self.go_to_previous_page.disabled = page_number == 0
             return
@@ -142,7 +150,7 @@ class RoboPages(discord.ui.View):
                 self.go_to_previous_page.label = "…"
 
     async def show_checked_page(
-        self, interaction: discord.Interaction, page_number: int
+            self, interaction: discord.Interaction, page_number: int
     ) -> None:
         max_pages = self.source.get_max_pages()
         try:
@@ -177,10 +185,8 @@ class RoboPages(discord.ui.View):
 
     async def start(self) -> None:
         if (
-            self.check_embeds
-            and not self.interaction.channel.permissions_for(
-                self.interaction.guild.me
-            ).embed_links
+                self.check_embeds
+                and not self.interaction.channel.permissions_for(self.interaction.guild.me).embed_links
         ):
             await self.interaction.response.send_message(
                 "Bot does not have embed links permission in this channel."
@@ -195,40 +201,40 @@ class RoboPages(discord.ui.View):
 
     @discord.ui.button(label="≪", style=discord.ButtonStyle.grey)
     async def go_to_first_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
+            self,
+            interaction: discord.Interaction,
+            button: discord.ui.Button,
     ):
         """go to the first page"""
         await self.show_page(interaction, 0)
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.blurple)
     async def go_to_previous_page(
-        self, interaction: discord.Interaction, button: discord.ui.Button
+            self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         """go to the previous page"""
         await self.show_checked_page(interaction, self.current_page - 1)
 
     @discord.ui.button(label="Current", style=discord.ButtonStyle.grey, disabled=True)
     async def go_to_current_page(
-        self, interaction: discord.Interaction, button: discord.ui.Button
+            self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         pass
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.blurple)
     async def go_to_next_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
+            self,
+            interaction: discord.Interaction,
+            button: discord.ui.Button,
     ):
         """go to the next page"""
         await self.show_checked_page(interaction, self.current_page + 1)
 
     @discord.ui.button(label="≫", style=discord.ButtonStyle.grey)
     async def go_to_last_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
+            self,
+            interaction: discord.Interaction,
+            button: discord.ui.Button,
     ):
         """go to the last page"""
         # The call here is safe because it's guarded by skip_if
@@ -236,9 +242,9 @@ class RoboPages(discord.ui.View):
 
     @discord.ui.button(label="Skip to page...", style=discord.ButtonStyle.grey)
     async def numbered_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
+            self,
+            interaction: discord.Interaction,
+            button: discord.ui.Button,
     ):
         """lets you type a page number to go to"""
         if self.input_lock.locked():
@@ -259,9 +265,9 @@ class RoboPages(discord.ui.View):
 
             def message_check(m):
                 return (
-                    m.author.id == author_id
-                    and channel == m.channel
-                    and m.content.isdigit()
+                        m.author.id == author_id
+                        and channel == m.channel
+                        and m.content.isdigit()
                 )
 
             try:
@@ -278,9 +284,9 @@ class RoboPages(discord.ui.View):
 
     @discord.ui.button(label="Quit", style=discord.ButtonStyle.red)
     async def stop_pages(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
+            self,
+            interaction: discord.Interaction,
+            button: discord.ui.Button,
     ):
         """stops the pagination session."""
         await interaction.response.defer()
@@ -314,11 +320,11 @@ class FieldPageSource(menus.ListPageSource):
 
 class GroupHelpPageSource(menus.ListPageSource):
     def __init__(
-        self,
-        group: Union[commands.Group, commands.Cog, app_commands.Group],
-        commands_: CommandsListType,
-        *,
-        prefix: str,
+            self,
+            group: Union[commands.Group, commands.Cog, app_commands.Group],
+            commands_: CommandsListType,
+            *,
+            prefix: str,
     ):
         super().__init__(entries=commands_, per_page=6)
         self.group = group
@@ -327,9 +333,9 @@ class GroupHelpPageSource(menus.ListPageSource):
         self.description = self.group.description
 
     async def format_page(
-        self,
-        menu,
-        commands_: CommandsListType,
+            self,
+            menu,
+            commands_: CommandsListType,
     ) -> discord.Embed:
 
         embed = discord.Embed(
@@ -382,7 +388,7 @@ class GroupHelpPageSource(menus.ListPageSource):
 
     @staticmethod
     def slash_param_signature(
-        _command: Union[app_commands.Command, app_commands.Group]
+            _command: Union[app_commands.Command, app_commands.Group]
     ) -> str:
 
         raw_sig = _command.to_dict()
@@ -408,9 +414,9 @@ class GroupHelpPageSource(menus.ListPageSource):
 
 class HelpSelectMenu(discord.ui.Select["HelpMenu"]):
     def __init__(
-        self,
-        _commands: TotalMappingDict,
-        bot: TMS,
+            self,
+            _commands: TotalMappingDict,
+            bot: TMS,
     ):
         super().__init__(
             placeholder="Select a category...",
@@ -467,22 +473,22 @@ class HelpSelectMenu(discord.ui.Select["HelpMenu"]):
 
 class HelpMenu(RoboPages):
     def __init__(
-        self,
-        source: menus.PageSource,
-        interaction: discord.Interaction,
-        bot: TMS,
+            self,
+            source: menus.PageSource,
+            interaction: discord.Interaction,
+            bot: TMS,
     ):
         super().__init__(source, interaction=interaction, compact=True, bot=bot)
 
     def add_categories(
-        self, _commands: Dict[commands.Cog, List[commands.Command]]
+            self, _commands: Dict[commands.Cog, List[commands.Command]]
     ) -> None:
         self.clear_items()
         self.add_item(HelpSelectMenu(_commands, self.bot))
         self.fill_items()
 
     async def rebind(
-        self, source: menus.PageSource, interaction: discord.Interaction
+            self, source: menus.PageSource, interaction: discord.Interaction
     ) -> None:
         self.source = source
         self.current_page = 0
@@ -564,11 +570,11 @@ class Help(commands.Cog):
 
     @staticmethod
     async def _filter_commands(
-        _commands: CommandsListType,
-        interaction: discord.Interaction,
-        *,
-        sort=False,
-        key=None,
+            _commands: CommandsListType,
+            interaction: discord.Interaction,
+            *,
+            sort=False,
+            key=None,
     ) -> List[Union[app_commands.Command, commands.Command, Any]]:
         """|coro|
         Returns a filtered list of commands and optionally sorts them.
@@ -698,7 +704,7 @@ class Help(commands.Cog):
         await menu.start()
 
     def reg_common_command_formatting(
-        self, embed_like: discord.Embed, _command: commands.Command
+            self, embed_like: discord.Embed, _command: commands.Command
     ):
         embed_like.title = self.get_command_signature(_command)
         if _command.description:
@@ -707,9 +713,9 @@ class Help(commands.Cog):
             embed_like.description = _command.help or "No help found..."
 
     async def _send_command_help(
-        self,
-        interaction: discord.Interaction,
-        _command: Union[commands.Command, app_commands.Command, Any],
+            self,
+            interaction: discord.Interaction,
+            _command: Union[commands.Command, app_commands.Command, Any],
     ):
         # No pagination necessary for a single command.
         embed = discord.Embed(colour=discord.Colour.fuchsia())
@@ -723,9 +729,9 @@ class Help(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     async def _send_group_help(
-        self,
-        interaction: discord.Interaction,
-        group: Union[List[Any], Set[Any], app_commands.Group, commands.Group],
+            self,
+            interaction: discord.Interaction,
+            group: Union[List[Any], Set[Any], app_commands.Group, commands.Group],
     ):
         if isinstance(group, app_commands.Group):
             subcommands = group.commands
@@ -740,12 +746,12 @@ class Help(commands.Cog):
             if len(subcommands) == 0:
                 return await self._send_command_help(interaction, group)
 
-            entries = await self._filter_commands(subcommands, interaction=interaction,sort=True)
+            entries = await self._filter_commands(subcommands, interaction=interaction, sort=True)
             if len(entries) == 0:
                 return await self._send_command_help(interaction, group)
 
     def _common_command_formatting(
-        self, embed_like: discord.Embed, _command: app_commands.Command
+            self, embed_like: discord.Embed, _command: app_commands.Command
     ):
         embed_like.title = self.get_command_signature(_command)
         if _command.description:
@@ -754,7 +760,7 @@ class Help(commands.Cog):
             embed_like.description = "No help found..."
 
     async def _command_callback(
-        self, interaction: discord.Interaction, *, _command=None
+            self, interaction: discord.Interaction, *, _command=None
     ):
         """|coro|
         The actual implementation of the help command.
@@ -810,7 +816,7 @@ class Help(commands.Cog):
             )
 
     async def prepare_help_command(
-        self, interaction: discord.Interaction, _command=None
+            self, interaction: discord.Interaction, _command=None
     ) -> Union[
         None, Coroutine, List[Union[commands.Command, Any, app_commands.Command]]
     ]:
@@ -840,7 +846,7 @@ class Help(commands.Cog):
     @guilds(SERVER_ID)
     @describe(object="Name of command, cog or command group")
     async def help(
-        self, interaction: discord.Interaction, object: Optional[str] = None
+            self, interaction: discord.Interaction, object: Optional[str] = None
     ):
 
         await self._command_callback(interaction, _command=object)
@@ -849,4 +855,3 @@ class Help(commands.Cog):
 
 async def setup(bot: TMS):
     await bot.add_cog(Help(bot))
-
