@@ -101,7 +101,7 @@ class Elements(commands.Cog):
         """Display a menu of all elements"""
         await interaction.response.defer(thinking=True)
         embeds = [await self.element_embed(ELEMENTS(e)) for e in range(1, 119)]
-        menu = Pages(bot=self.bot, interaction=interaction, source=Source(embeds, per_page=1), compact=True)
+        menu = Pages(bot=self.bot, interaction=interaction, source=Source(embeds, per_page=1), compact=False)
         await menu.start()
 
     async def element_embed(self, element: ELEMENTS) -> discord.Embed:

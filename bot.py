@@ -130,6 +130,9 @@ class TMS(commands.Bot):
         listener_for_embed: 'EmbedCommands' | commands.Cog = self.get_cog("Embeds")
         await listener_for_embed.on_message(message)
 
+        if not censor_cog.censor_needed(message.content):
+            await super().on_message(message)
+
     async def close(self):
         await self.session.close()
         await super().close()

@@ -84,7 +84,6 @@ class Censor(commands.Cog):
                 print(f"Censoring message by {message.author} because of the word: `{word}`")
                 await message.delete()
                 return await self.censor(message)
-        return await self.bot.process_commands(message)
 
 
 async def setup(bot: TMS):
