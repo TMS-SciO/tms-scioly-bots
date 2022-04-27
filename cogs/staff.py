@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+from abc import ABC
 
 import discord
+from discord import app_commands
 from discord.app_commands import checks, command, describe, Group, guilds
 from discord.ext import commands
 from utils import Role, SERVER_ID, is_staff, Channel
@@ -25,8 +27,8 @@ class Suggest(Group):
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     @describe(message="Message link or ID")
     async def deny(self, interaction: discord.Interaction, message: str):
-        '''Denies a suggestion, is not reversible'''
-        message = await commands.MessageConverter().convert(interaction._baton, message)
+        """Denies a suggestion, is not reversible"""
+        message = await commands.MessageConverter().convert(await self.bot.get_context(interaction), message)
         if message.channel.id == Channel.SUGGESTIONS:
             embed_obj = message.embeds[0]
             embed = embed_obj.copy()
@@ -44,7 +46,7 @@ class Suggest(Group):
     @describe(message="Message link or ID")
     async def approve(self, interaction: discord.Interaction, message: str):
         '''Approves a suggestion, is not reversible'''
-        message = await commands.MessageConverter().convert(interaction._baton, message)
+        message = await commands.MessageConverter().convert(await self.bot.get_context(interaction), message)
         if message.channel.id == Channel.SUGGESTIONS:
             embed_obj = message.embeds[0]
             embed = embed_obj.copy()
@@ -61,7 +63,7 @@ class Suggest(Group):
     @describe(message="Message link or ID")
     async def delete(self, interaction: discord.Interaction, message: str):
         '''Deletes a suggestion message'''
-        message = await commands.MessageConverter().convert(interaction._baton, message)
+        message = await commands.MessageConverter().convert(await self.bot.get_context(interaction), message)
         if message.channel.id == Channel.SUGGESTIONS:
             msg = await interaction.response.send_message("Deleting suggestion in `5` seconds")
             await asyncio.sleep(1)
@@ -81,7 +83,7 @@ class Staff(commands.Cog):
 
     def __init__(self, bot: TMS):
         self.bot = bot
-        # self.__cog_app_commands__.append(Suggest(bot))
+        self.__cog_app_commands__.append(Suggest(bot))
 
     async def cog_check(self, ctx: commands.Context):
         return await is_staff(ctx)
