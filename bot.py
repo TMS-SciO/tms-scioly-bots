@@ -79,7 +79,6 @@ class TMS(commands.Bot):
         self.help_command = commands.DefaultHelpCommand()
         self.enable_debug_events = True
         self.socket_stats: collections.Counter[str] = collections.Counter()
-        # self.session = aiohttp.ClientSession()
 
     async def setup_hook(self) -> None:
         await self.db_start()
