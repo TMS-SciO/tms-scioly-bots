@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Dict, Generator, Iterable, Literal, overload, TYPE_CHECKING, Optional
 
+from discord.app_commands import command, Group
 from discord.ext import commands
 import discord
 import re
@@ -13,7 +14,6 @@ import lxml.etree as etree
 from utils import SERVER_ID
 
 if TYPE_CHECKING:
-    from custom import Context
     from bot import TMS
 
 RTFM_PAGE_TYPES = {
@@ -109,34 +109,14 @@ class SphinxObjectFileReader:
                 pos = buf.find(b'\n')
 
 
-class BotUser(commands.Converter):
-    async def convert(self, ctx: Context, argument: str):
-        if not argument.isdigit():
-            raise commands.BadArgument('Not a valid bot user ID.')
-        try:
-            user = await ctx.bot.fetch_user(int(argument))
-        except discord.NotFound:
-            raise commands.BadArgument('Bot user not found (404).')
-        except discord.HTTPException as e:
-            raise commands.BadArgument(f'Error fetching bot user: {e}')
-        else:
-            if not user.bot:
-                raise commands.BadArgument('This is not a bot.')
-            return user
-
-
-class API(commands.Cog):
-    """Discord API exclusive things."""
-
-    faq_entries: Dict[str, str]
-
+class RtfmGroup(Group):
     def __init__(self, bot: TMS):
-        self.bot: TMS = bot
-        self.issue = re.compile(r'##(?P<number>\d+)')
+        self.bot = bot
+        super().__init__(name="rtfm", guild_ids=[SERVER_ID])
 
     @property
-    def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\N{PERSONAL COMPUTER}')
+    def cog(self) -> commands.Cog:
+        return self.bot.get_cog("API")
 
     def parse_object_inv(self, stream, url):
         # key: URL
@@ -206,17 +186,13 @@ class API(commands.Cog):
 
         self._rtfm_cache = cache
 
-    async def do_rtfm(self, ctx: Context, key: str, obj: Optional[str]):
-        await ctx.defer()
+    async def do_rtfm(self, interaction: discord.Interaction, key: str, obj: Optional[str]):
+        await interaction.response.defer()
 
         if obj is None:
-            if ctx.interaction:
-                return await ctx.interaction.followup.send(RTFM_PAGE_TYPES[key])
-            return await ctx.send(RTFM_PAGE_TYPES[key])
+            return await interaction.followup.send(RTFM_PAGE_TYPES[key])
 
         if not hasattr(self, '_rtfm_cache'):
-            if not ctx.interaction:
-                await ctx.trigger_typing()
             await self.build_rtfm_lookup_table()
 
         obj = re.sub(r'^(?:discord\.(?:ext\.)?)?(?:commands\.)?(.+)', r'\1', obj)
@@ -236,43 +212,31 @@ class API(commands.Cog):
 
         e = discord.Embed(colour=discord.Colour.blurple())
         if len(matches) == 0:
-            if ctx.interaction:
-                return await ctx.interaction.followup.send('Could not find anything. Sorry.')
-            return await ctx.send('Could not find anything. Sorry.')
+            return await interaction.followup.send('Could not find anything. Sorry.')
 
         e.description = '\n'.join(f'[`{key}`]({url})' for key, url in matches)
-        if ctx.interaction:
-            return await ctx.interaction.followup.send(embed=e)
-        return await ctx.send(embed=e)
+        return await interaction.followup.send(embed=e)
 
-    @commands.hybrid_group(aliases=['rtfd'], invoke_without_command=True, guild_ids=[SERVER_ID])
-    async def rtfm(self, ctx: Context, *, obj: str = None):
-        """Gives you a documentation link for a discord.py entity.
-        Events, objects, and functions are all supported through
-        a cruddy fuzzy algorithm.
-        """
-        await self.do_rtfm(ctx, 'latest', obj)
-
-    @rtfm.command(name='python', aliases=['py'])
-    async def rtfm_python(self, ctx: Context, *, obj: str = None):
+    @command(name='python')
+    async def rtfm_python(self, interaction: discord.Interaction, *, obj: str = None):
         """Gives you a documentation link for a Python entity."""
-        await self.do_rtfm(ctx, 'python', obj)
+        await self.do_rtfm(interaction, 'python', obj)
 
-    @rtfm.command(name='master', aliases=['2.0', 'latest'])
-    async def rtfm_master(self, ctx: Context, *, obj: str = None):
+    @command(name='master')
+    async def rtfm_master(self, interaction: discord.Interaction, *, obj: str = None):
         """Gives you a documentation link for a discord.py entity (master branch)"""
-        await self.do_rtfm(ctx, 'latest', obj)
+        await self.do_rtfm(interaction, 'latest', obj)
 
-    @rtfm.command(name='refresh')
+    @command(name='refresh')
     @commands.is_owner()
-    async def rtfm_refresh(self, ctx: Context):
+    async def rtfm_refresh(self, interaction: discord.Interaction):
         """Refreshes the RTFM and FAQ cache"""
 
-        async with ctx.typing():
-            await self.build_rtfm_lookup_table()
-            await self.refresh_faq_cache()
+        await interaction.response.defer()
+        await self.build_rtfm_lookup_table()
+        await self.refresh_faq_cache()
 
-        await ctx.send('\N{THUMBS UP SIGN}')
+        await interaction.followup.send('\N{THUMBS UP SIGN}')
 
     async def refresh_faq_cache(self):
         self.faq_entries = {}
@@ -284,6 +248,21 @@ class API(commands.Cog):
             nodes = root.findall(".//div[@id='questions']/ul[@class='simple']/li/ul//a")
             for node in nodes:
                 self.faq_entries[''.join(node.itertext()).strip()] = base_url + node.get('href').strip()
+
+
+class API(commands.Cog):
+    """Discord API exclusive things."""
+
+    faq_entries: Dict[str, str]
+
+    def __init__(self, bot: TMS):
+        self.bot: TMS = bot
+        self.issue = re.compile(r'##(?P<number>\d+)')
+        self.__cog_app_commands__.append(RtfmGroup(bot))
+
+    @property
+    def display_emoji(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name='\N{PERSONAL COMPUTER}')
 
 
 async def setup(bot: TMS):
