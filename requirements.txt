@@ -58,6 +58,7 @@ imageio-ffmpeg==0.4.5
 import-expression==1.1.4
 importlib-metadata==4.11.3
 git+https://github.com/Gorialis/jishaku
+lxml
 Markdown==3.3.4
 mendeleev==0.9.0
 module-wrapper==0.3.1
