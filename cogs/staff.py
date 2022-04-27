@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 class Suggest(Group):
     def __init__(self, bot: TMS):
-        super().__init__(name="suggest", guild_ids=[SERVER_ID])
+        super().__init__(name="suggestion", guild_ids=[SERVER_ID])
         self.bot = bot
 
     @property
