@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from cogs.embed import EmbedCommands
 
 INITIAL_EXTENSIONS: List[str] = [
+    "cogs.api",
     "cogs.mod",
     "cogs.fun",
     "cogs.general",

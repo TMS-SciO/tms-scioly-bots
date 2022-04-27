@@ -11,6 +11,8 @@ import io
 import os
 import lxml.etree as etree
 
+from utils import SERVER_ID
+
 if TYPE_CHECKING:
     from custom import Context
     from bot import TMS
@@ -241,13 +243,13 @@ class API(commands.Cog):
         e.description = '\n'.join(f'[`{key}`]({url})' for key, url in matches)
         functools.partial(method, embed=e)
 
-    @commands.hybrid_group(aliases=['rtfd'], invoke_without_command=True)
+    @commands.hybrid_group(aliases=['rtfd'], invoke_without_command=True, guild_ids=[SERVER_ID])
     async def rtfm(self, ctx: Context, *, obj: str = None):
         """Gives you a documentation link for a discord.py entity.
         Events, objects, and functions are all supported through
         a cruddy fuzzy algorithm.
         """
-        await self.do_rtfm(ctx, 'master', obj)
+        await self.do_rtfm(ctx, 'latest', obj)
 
     @rtfm.command(name='python', aliases=['py'])
     async def rtfm_python(self, ctx: Context, *, obj: str = None):
