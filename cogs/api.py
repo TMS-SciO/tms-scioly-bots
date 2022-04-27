@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 from typing import Callable, Dict, Generator, Iterable, Literal, overload, TYPE_CHECKING, Optional
 
 from discord.ext import commands
@@ -210,14 +209,13 @@ class API(commands.Cog):
     async def do_rtfm(self, ctx: Context, key: str, obj: Optional[str]):
         await ctx.defer()
 
-        method = ctx.interaction.followup.send if ctx.interaction else ctx.send
-
         if obj is None:
-            functools.partial(method, RTFM_PAGE_TYPES[key])
-            return
+            if ctx.interaction:
+                return await ctx.interaction.followup.send(RTFM_PAGE_TYPES[key])
+            return await ctx.send(RTFM_PAGE_TYPES[key])
 
         if not hasattr(self, '_rtfm_cache'):
-            if ctx.interaction:
+            if not ctx.interaction:
                 await ctx.trigger_typing()
             await self.build_rtfm_lookup_table()
 
@@ -238,10 +236,14 @@ class API(commands.Cog):
 
         e = discord.Embed(colour=discord.Colour.blurple())
         if len(matches) == 0:
-            return functools.partial(method, 'Could not find anything. Sorry.')
+            if ctx.interaction:
+                return await ctx.interaction.followup.send('Could not find anything. Sorry.')
+            return await ctx.send('Could not find anything. Sorry.')
 
         e.description = '\n'.join(f'[`{key}`]({url})' for key, url in matches)
-        functools.partial(method, embed=e)
+        if ctx.interaction:
+            return await ctx.interaction.followup.send(embed=e)
+        return await ctx.send(embed=e)
 
     @commands.hybrid_group(aliases=['rtfd'], invoke_without_command=True, guild_ids=[SERVER_ID])
     async def rtfm(self, ctx: Context, *, obj: str = None):
