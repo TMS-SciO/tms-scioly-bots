@@ -141,7 +141,6 @@ class Player(slate.Player):
 
         if reason is not enums.TrackEndReason.REPLACED:
             # Add current track to the queue history.
-            assert self._current is not None
             self.queue.history.insert(0, self._current)
 
         # Update controller message.

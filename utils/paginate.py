@@ -220,7 +220,7 @@ class Pages(discord.ui.View):
 
         async with self.input_lock:
             channel = self.message.channel
-            author_id = interaction.user and interaction.user.id
+            author_id = interaction.user.id
             await interaction.response.send_message(
                 "What page do you want to go to?", ephemeral=True
             )

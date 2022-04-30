@@ -63,7 +63,7 @@ class Fun(commands.Cog):
     @command()
     @guilds(SERVER_ID)
     async def magic8ball(self, interaction: discord.Interaction, question: str):
-        '''Swishes a Magic8ball'''
+        """Swishes a Magic8ball"""
         await asyncio.sleep(3)
         sayings = [
             "Yes.",
@@ -92,7 +92,7 @@ class Fun(commands.Cog):
     @command()
     @guilds(SERVER_ID)
     async def candy(self, interaction: discord.Interaction):
-        '''Feeds panda some candy!'''
+        """Feeds panda some candy!"""
         r = random.random()
         if r > 0.9:
             self.fish_now += 100
@@ -112,7 +112,7 @@ class Fun(commands.Cog):
     @command()
     @guilds(SERVER_ID)
     async def stealcandy(self, interaction: discord.Interaction):
-        '''Steals some candy from panda'''
+        """Steals some candy from panda"""
         member = interaction.user
         r = random.random()
         if member.id in STEALFISH_BAN:
@@ -161,15 +161,15 @@ class Fun(commands.Cog):
     @command()
     @guilds(SERVER_ID)
     async def count(self, interaction: discord.Interaction):
-        '''Counts the number of members in the server'''
+        """Counts the number of members in the server"""
         guild = interaction.user.guild
         await interaction.response.send_message(f"Currently, there are `{len(guild.members)}` members in the server.")
 
     @command()
     @guilds(SERVER_ID)
     @describe(latex="LaTex Code")
-    async def latex(self, interaction, latex: str):
-        '''Displays an image of an equation, uses LaTex as input'''
+    async def latex(self, interaction: discord.Interaction, latex: str):
+        """Displays an image of an equation, uses LaTex as input"""
         print(latex)
         new_args = latex.replace(" ", r"&space;")
         print(new_args)
@@ -241,7 +241,7 @@ class Fun(commands.Cog):
     @guilds(SERVER_ID)
     @describe(member="Who are you trying to shiba?")
     async def shiba(self, interaction: discord.Interaction, member: discord.Member):
-        '''Shiba-s another user'''
+        """Shiba-s another user"""
         doggo = await get_shiba()
         await interaction.response.send_message(doggo)
         await interaction.channel.send(f"{member.mention}, <@{interaction.user.id}> shiba-d you!!")
@@ -250,7 +250,7 @@ class Fun(commands.Cog):
     @guilds(SERVER_ID)
     @describe(member="Who are you trying to cottondetulear?")
     async def cottondetulear(self, interaction: discord.Interaction, member: discord.Member):
-        '''"Cottondetulear-s Another Member!"'''
+        """"Cottondetulear-s Another Member!\""""
         doggo = await get_cotondetulear()
         await interaction.response.send_message(doggo)
         await interaction.channel.send(f"{member.mention}, {interaction.user.mention} cottondetulear-d you!!")
@@ -306,7 +306,9 @@ class Fun(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @translate.autocomplete(name="language")
-    async def translate_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def translate_autocomplete(
+            self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         return [
             app_commands.Choice(name=lang, value=lang)
             for lang in GOOGLE_LANGUAGES if current.lower() in lang.lower()

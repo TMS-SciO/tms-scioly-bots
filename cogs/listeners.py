@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import discord
+import slate
 from discord.ext import commands
 
+import custom
+from custom import enums
 from utils import (Channel, Role, SERVER_ID, TMS_BOT_IDS)
 
 if TYPE_CHECKING:
@@ -186,6 +189,48 @@ class Listeners(commands.Cog):
         )
         moderation_log = self.bot.get_channel(Channel.EDITEDM)
         await moderation_log.send(embed=message_embed)
+
+# Voice events
+
+    @commands.Cog.listener("on_voice_state_update")
+    async def _handle_voice_client_disconnect(
+        self,
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState
+    ) -> None:
+
+        assert self.bot.user is not None
+
+        if member.id != self.bot.user.id:
+            return
+
+        if (
+                before.channel is not None and
+                after.channel is None and
+                before.channel.guild.voice_client is not None
+        ):
+            await before.channel.guild.voice_client.disconnect(force=True)
+
+    @commands.Cog.listener("on_slate_track_start")
+    async def _handle_track_start(self, player: custom.Player, _: slate.TrackStart) -> None:
+        await player.handle_track_start()
+
+    @commands.Cog.listener("on_slate_track_end")
+    async def _handle_track_end(self, player: custom.Player, event: slate.TrackEnd) -> None:
+
+        if event.reason == "REPLACED":
+            return
+
+        await player.handle_track_end(enums.TrackEndReason.NORMAL)
+
+    @commands.Cog.listener("on_slate_track_stuck")
+    async def _handle_track_stuck(self, player: custom.Player, _: slate.TrackStuck) -> None:
+        await player.handle_track_end(enums.TrackEndReason.STUCK)
+
+    @commands.Cog.listener("on_slate_track_exception")
+    async def _handle_track_exception(self, player: custom.Player, _: slate.TrackException) -> None:
+        await player.handle_track_end(enums.TrackEndReason.EXCEPTION)
 
 
 async def setup(bot: TMS):

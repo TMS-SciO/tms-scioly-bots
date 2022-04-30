@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import discord
 import webcolors
-from typing import Optional, Union, List, Dict
+from typing import Literal, Optional, Union, List, Dict, TypeVar
+
+F = TypeVar("F", bound=Optional[List[Dict[str, Union[Literal['name', 'value', 'inline'], bool]]]])
 
 
 def assemble_embed(
@@ -16,7 +20,7 @@ def assemble_embed(
     footer_text: Optional[str] = "",
     footer_url: Optional[str] = "",
     image_url: Optional[str] = "",
-    fields: Optional[List[Dict[str, Union[str, bool]]]] = None,
+    fields: 'F' = None,
 ) -> discord.Embed:
     """Assembles an embed with the specified parameters."""
 

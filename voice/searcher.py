@@ -160,7 +160,7 @@ class Searcher:
             source = slate.Source.NONE
 
         try:
-            search = await self.voice_client._node.search(query, source=source, ctx=ctx)
+            search = await self.voice_client.node.search(query, source=source, ctx=ctx)
 
         except slate.NoResultsFound as error:
             raise EmbedError(

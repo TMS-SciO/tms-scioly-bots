@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import collections
 import os
-from typing import Any, List, Optional, Type, TYPE_CHECKING
+from typing import Any, List, Optional, Type, TYPE_CHECKING, TypeVar, Union
 
 import aiohttp
 import discord
@@ -55,7 +55,7 @@ INITIAL_EXTENSIONS: List[str] = [
 
 
 class TmsBotTree(app_commands.CommandTree):
-    def __init__(self, client: 'TMS'):
+    def __init__(self, client: 'TMS') -> None:
         super().__init__(client)
 
     async def sync(self, *, guild: Optional[Snowflake] = None) -> List[discord.app_commands.AppCommand]:
@@ -64,7 +64,7 @@ class TmsBotTree(app_commands.CommandTree):
 
 
 class TMS(commands.Bot):
-    def __init__(self):
+    def __init__(self) -> None:
         intents = discord.Intents.all()
         intents.message_content = True
         super().__init__(
@@ -158,9 +158,9 @@ class TMS(commands.Bot):
 
     async def get_context(
             self,
-            origin: discord.Message | discord.Interaction,
+            origin: discord.Interaction | discord.Message,
             cls: Type[Context] = None,
-    ) -> Any | 'Context':
+    ) -> Optional[Union['Context', Any]]:
         return await super().get_context(origin, cls=Context)
 
 

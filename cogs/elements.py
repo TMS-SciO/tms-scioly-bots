@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
@@ -92,7 +92,7 @@ class Elements(commands.Cog):
         element = await convert(argument=element)
         await interaction.response.send_message(embed=await self.element_embed(element))
 
-    @command()
+    @command(name="periodic-table")
     @guilds(SERVER_ID)
     async def periodictable(
             self,

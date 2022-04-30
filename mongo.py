@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import os
 
 import utils
 import motor.motor_asyncio
-from typing import TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING, Dict
 
 client: motor.motor_asyncio.AsyncIOMotorClient
+
+D = Dict[str, datetime.datetime | int | str | Literal["UNSTEALCANDYBAN", "UNBAN", "UNMUTE"]]
 
 
 async def setup():
@@ -23,7 +26,7 @@ async def delete(db_name, collection_name, iden):
     await collection.delete_one({"_id": iden})
 
 
-async def get_entire_collection(db_name, collection_name, return_one=False):
+async def get_entire_collection(db_name: str, collection_name: str, return_one=False):
     global client
     collection = client[db_name][collection_name]
     if return_one:
@@ -55,19 +58,19 @@ async def get_censor() -> dict[str, list[str]]:
     return await get_entire_collection("bot", "censor", return_one=True)
 
 
-async def insert(db_name, collection_name, insert_dict):
+async def insert(db_name, collection_name, insert_dict: 'D'):
     global client
     collection = client[db_name][collection_name]
     return await collection.insert_one(insert_dict)
 
 
-async def update(db_name, collection_name, doc_id, update_dict):
+async def update(db_name, collection_name, doc_id, update_dict: 'D'):
     global client
     collection = client[db_name][collection_name]
     await collection.update_one({'_id': doc_id}, update_dict)
 
 
-async def update_many(db_name, collection_name, docs, update_dict):
+async def update_many(db_name, collection_name, docs, update_dict: 'D'):
     global client
     collection = client[db_name][collection_name]
     ids = [doc.get("_id") for doc in docs]

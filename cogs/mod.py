@@ -168,17 +168,17 @@ class Moderation(commands.Cog):
     ):
         """Bans a user."""
         times = {
-            "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
-            "30 minutes": datetime.datetime.now() + datetime.timedelta(minutes=30),
-            "1 hour": datetime.datetime.now() + datetime.timedelta(hours=1),
-            "2 hours": datetime.datetime.now() + datetime.timedelta(hours=2),
-            "4 hours": datetime.datetime.now() + datetime.timedelta(hours=4),
-            "8 hours": datetime.datetime.now() + datetime.timedelta(hours=8),
-            "1 day": datetime.datetime.now() + datetime.timedelta(days=1),
-            "4 days": datetime.datetime.now() + datetime.timedelta(days=4),
-            "7 days": datetime.datetime.now() + datetime.timedelta(days=7),
-            "1 month": datetime.datetime.now() + datetime.timedelta(days=30),
-            "1 year": datetime.datetime.now() + datetime.timedelta(days=365),
+            "10 minutes": discord.utils.utcnow() + datetime.timedelta(minutes=10),
+            "30 minutes": discord.utils.utcnow() + datetime.timedelta(minutes=30),
+            "1 hour": discord.utils.utcnow() + datetime.timedelta(hours=1),
+            "2 hours": discord.utils.utcnow() + datetime.timedelta(hours=2),
+            "4 hours": discord.utils.utcnow() + datetime.timedelta(hours=4),
+            "8 hours": discord.utils.utcnow() + datetime.timedelta(hours=8),
+            "1 day": discord.utils.utcnow() + datetime.timedelta(days=1),
+            "4 days": discord.utils.utcnow() + datetime.timedelta(days=4),
+            "7 days": discord.utils.utcnow() + datetime.timedelta(days=7),
+            "1 month": discord.utils.utcnow() + datetime.timedelta(days=30),
+            "1 year": discord.utils.utcnow() + datetime.timedelta(days=365),
         }
         delete_length = {
             "Previous 24 hours": 1,
@@ -316,17 +316,17 @@ class Moderation(commands.Cog):
     ):
 
         times = {
-            "10 minutes": datetime.datetime.now() + datetime.timedelta(minutes=10),
-            "30 minutes": datetime.datetime.now() + datetime.timedelta(minutes=30),
-            "1 hour": datetime.datetime.now() + datetime.timedelta(hours=1),
-            "2 hours": datetime.datetime.now() + datetime.timedelta(hours=2),
-            "4 hours": datetime.datetime.now() + datetime.timedelta(hours=4),
-            "8 hours": datetime.datetime.now() + datetime.timedelta(hours=8),
-            "1 day": datetime.datetime.now() + datetime.timedelta(days=1),
-            "4 days": datetime.datetime.now() + datetime.timedelta(days=4),
-            "7 days": datetime.datetime.now() + datetime.timedelta(days=7),
-            "1 month": datetime.datetime.now() + datetime.timedelta(days=30),
-            "1 year": datetime.datetime.now() + datetime.timedelta(days=365),
+            "10 minutes": discord.utils.utcnow() + datetime.timedelta(minutes=10),
+            "30 minutes": discord.utils.utcnow() + datetime.timedelta(minutes=30),
+            "1 hour": discord.utils.utcnow() + datetime.timedelta(hours=1),
+            "2 hours": discord.utils.utcnow() + datetime.timedelta(hours=2),
+            "4 hours": discord.utils.utcnow() + datetime.timedelta(hours=4),
+            "8 hours": discord.utils.utcnow() + datetime.timedelta(hours=8),
+            "1 day": discord.utils.utcnow() + datetime.timedelta(days=1),
+            "4 days": discord.utils.utcnow() + datetime.timedelta(days=4),
+            "7 days": discord.utils.utcnow() + datetime.timedelta(days=7),
+            "1 month": discord.utils.utcnow() + datetime.timedelta(days=30),
+            "1 year": discord.utils.utcnow() + datetime.timedelta(days=365),
         }
 
         if mute_length == "Indefinitely":
@@ -573,8 +573,8 @@ class Moderation(commands.Cog):
 
                 await interaction.response.send_message(f"Successfully removed command blacklist from {member.mention}")
             #
-            # except Exception:
-            #     await interaction.response.send_message(f"Couldn't remove command blacklist from {member.mention}", ephemeral=True)
+            # except Exception: await interaction.response.send_message(f"Couldn't remove command blacklist from {
+            # member.mention}", ephemeral=True)
         else:
             await interaction.response.send_message(f"{member.mention} is not blacklisted from using commands")
 
