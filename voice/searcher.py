@@ -222,7 +222,6 @@ class Searcher:
             await self.voice_client.stop()
         if not self.voice_client.is_playing():
             await self.voice_client._play_next()
-        await self.voice_client.controller.send_new_message()
 
         await self.voice_client.controller.update_current_message()
 
