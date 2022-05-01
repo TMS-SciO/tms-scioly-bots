@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+from threading import Thread
+
 import discord
 import io
 import textwrap
 import traceback
 from contextlib import redirect_stdout
-from typing import TYPE_CHECKING
+from typing import List, Literal, TYPE_CHECKING
 
-from discord.app_commands import command, Group
+from discord.app_commands import checks, command, Group
 from discord.ext import commands
 
 import custom
@@ -100,11 +104,36 @@ class Core(commands.Cog):
 
 class Module(Group):
     def __init__(self, bot: TMS):
-        self.bot = bot
         super().__init__(
             name="module",
             description="Manages the bot's modules",
         )
+        self.bot = bot
+        self.extensions: List[str] = [
+            "cogs.api",
+            "cogs.mod",
+            "cogs.fun",
+            "cogs.general",
+            "cogs.tasks",
+            "cogs.meta",
+            "cogs.embed",
+            "cogs.base",
+            "cogs.github",
+            "cogs.google",
+            "cogs.censor",
+            "cogs.elements",
+            "cogs.activities",
+            "cogs.spam",
+            "cogs.report",
+            "cogs.listeners",
+            "cogs.wikipedia",
+            "cogs.config",
+            "cogs.staff",
+            "cogs.medals",
+            "cogs.player",
+            "cogs.music",
+            "jishaku"
+        ]
 
     @property
     def cog(self) -> commands.Cog:
@@ -150,6 +179,132 @@ class Module(Group):
             await self.bot.reload_extension(module)
         except commands.ExtensionNotLoaded:
             await self.bot.load_extension(module)
+
+    @staticmethod
+    async def _force_restart(interaction: discord.Interaction, branch="master"):
+        p = subprocess.run(
+            "git status -uno", shell=True, text=True, capture_output=True, check=True
+        )
+
+        embed = discord.Embed(
+            title="Restarting...",
+            description="Doing GIT Operation (1/3)",
+            color=discord.Color.brand_green(),
+        )
+        embed.add_field(
+            name="Checking GIT (1/3)",
+            value=f"**Git Output:**\n```shell\n{p.stdout}\n```",
+        )
+
+        msg = await interaction.channel.send(embed=embed)
+        try:
+
+            result = subprocess.run(
+                f"cd && cd {branch}",
+                shell=True,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            theproc = subprocess.Popen([sys.executable, "bot.py"])
+
+            runThread = Thread(target=theproc.communicate)
+            runThread.start()
+
+            embed.add_field(
+                name="Started Environment and Additional Process (2/3)",
+                value="Executed `source` and `nohup`.",
+                inline=False,
+            )
+            await msg.edit(embed=embed)
+
+        except Exception as e:
+            embed = discord.Embed(
+                title="Operation Failed", description=e, color=discord.Color.brand_red()
+            )
+            embed.set_footer(text="Main bot process will be terminated.")
+
+            await interaction.channel.send(embed=embed)
+
+        else:
+            embed.add_field(
+                name="Killing Old Bot Process (3/3)",
+                value="Executing `sys.exit(0)` now...",
+                inline=False,
+            )
+            await msg.edit(embed=embed)
+            sys.exit(0)
+
+    @command()
+    async def gitpull(
+            self,
+            interaction: discord.Interaction,
+            mode: Literal["-a", "-c"] = "-a",
+            sync_commands: bool = False,
+    ) -> None:
+        output = ""
+        try:
+            p = subprocess.run(
+                "git fetch --all",
+                shell=True,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            output += p.stdout
+        except Exception as e:
+            await interaction.response.send_message(
+                f"⛔️ Unable to fetch the Current Repo Header!\n**Error:**\n{e}"
+            )
+        try:
+            p = subprocess.run(
+                f"git reset --hard `master`",
+                shell=True,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            output += p.stdout
+        except Exception as e:
+            await interaction.response.send_message(
+                f"⛔️ Unable to apply changes!\n**Error:**\n{e}"
+            )
+
+        embed = discord.Embed(
+            title="GitHub Local Reset",
+            description=f"Local Files changed to match `master`",
+            color=discord.Color.brand_green(),
+        )
+        embed.add_field(name="Shell Output", value=f"```shell\n$ {output}\n```")
+        if mode == "-a":
+            embed.set_footer(text="Attempting to restart the bot...")
+        elif mode == "-c":
+            embed.set_footer(text="Attempting to reloading cogs...")
+
+        await interaction.response.send_message(embed=embed)
+
+        if mode == "-a":
+            await self._force_restart(interaction)
+        elif mode == "-c":
+            try:
+                embed = discord.Embed(
+                    title="Cogs - Reload",
+                    description="Reloaded all cogs",
+                    color=discord.Color.brand_green(),
+                )
+                for extension in self.extensions:
+                    await self.bot.reload_extension(extension)
+                return await interaction.channel.send(embed=embed)
+            except commands.ExtensionError:
+                embed = discord.Embed(
+                    title="Cogs - Reload",
+                    description="Failed to reload cogs",
+                    color=discord.Color.brand_red(),
+                )
+                return await interaction.channel.send(embed=embed)
+
+        if sync_commands:
+            await self.bot.tree.sync()
 
 
 async def setup(bot: TMS):
