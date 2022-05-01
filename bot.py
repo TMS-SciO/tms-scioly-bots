@@ -11,7 +11,9 @@ import slate
 from discord import app_commands
 from discord.abc import Snowflake
 from discord.ext import commands
+from discord.ext.commands import errors
 
+import custom
 import mongo
 
 from utils.views import ReportView, Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns
@@ -162,6 +164,15 @@ class TMS(commands.Bot):
             cls: Type[Context] = None,
     ) -> Optional[Union['Context', Any]]:
         return await super().get_context(origin, cls=Context)
+
+    async def on_command_error(
+            self,
+            context: Context['TMS'],
+            exception: errors.CommandError, /
+    ) -> None:
+        if isinstance(exception, custom.EmbedError):
+            await context.reply(embed=exception.embed)
+        await super().on_command_error(context, exception)
 
 
 bot = TMS()
