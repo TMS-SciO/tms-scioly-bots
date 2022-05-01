@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import logging
 import os
-from typing import Any, List, Optional, Type, TYPE_CHECKING, TypeVar, Union
+import sys
+import traceback
+from typing import Any, List, Optional, Type, TYPE_CHECKING, Union
 
 import aiohttp
 import discord
@@ -15,13 +18,9 @@ from discord.ext.commands import errors
 
 import custom
 import mongo
-
-from utils.views import ReportView, Ticket, Close, Role1, Role2, Role3, Role4, Role5, Pronouns
-from utils.variables import TMS_BOT_IDS
-
-import sys
-import traceback
 from custom import Context
+from utils.variables import TMS_BOT_IDS
+from utils.views import Close, Pronouns, ReportView, Role1, Role2, Role3, Role4, Role5, Ticket
 
 if TYPE_CHECKING:
     from cogs.listeners import Listeners
@@ -54,6 +53,8 @@ INITIAL_EXTENSIONS: List[str] = [
     "cogs.music",
     "jishaku"
 ]
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TmsBotTree(app_commands.CommandTree):
