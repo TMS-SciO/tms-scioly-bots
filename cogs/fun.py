@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import random
+
+import aiohttp
 import unicodedata
 
 import discord
@@ -41,7 +44,7 @@ class Fun(commands.Cog):
     def display_emoji(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name='\U0001f973')
 
-    async def cog_check(self, ctx):
+    async def cog_check(self, ctx) -> bool:
         return await is_not_blacklisted(ctx)
 
     @command()
@@ -242,8 +245,12 @@ class Fun(commands.Cog):
     @describe(member="Who are you trying to shiba?")
     async def shiba(self, interaction: discord.Interaction, member: discord.Member):
         """Shiba-s another user"""
-        doggo = await get_shiba()
-        await interaction.response.send_message(doggo)
+        async with self.bot.session as session:
+            page: aiohttp.ClientResponse = await session.get("https://dog.ceo/api/breed/shiba/images/random")
+        text = await page.content.read()
+        text = text.decode("utf-8")
+        jso = json.loads(text)
+        await interaction.response.send_message(jso)
         await interaction.channel.send(f"{member.mention}, <@{interaction.user.id}> shiba-d you!!")
 
     @command()

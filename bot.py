@@ -54,7 +54,7 @@ INITIAL_EXTENSIONS: List[str] = [
     "jishaku"
 ]
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.CRITICAL)
 
 
 class TmsBotTree(app_commands.CommandTree):

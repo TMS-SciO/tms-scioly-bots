@@ -566,19 +566,6 @@ class RolesGroup(Group):
         await roles_channel.send(embed=em1, view=Role5())
         await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
 
-    @command(name="six")
-    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
-    async def _six(self, interaction):
-        """Buttons for All Events Role"""
-        em1 = discord.Embed(title="Chose what events you're participating in!",
-                            description="Press the button below to gain access to all the event channels",
-                            color=0xff008c)
-        em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
-        roles_channel = self.bot.get_channel(Channel.ROLES)
-        await roles_channel.send(embed=em1, view=Allevents())
-        await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
-
     @command()
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def pronouns(self, interaction: discord.Interaction):
@@ -643,16 +630,6 @@ class RolesGroup(Group):
         await roles_channel.send(embed=em6, view=Pronouns())
 
         await interaction.followup.send('Sent to ' + roles_channel.mention, ephemeral=True)
-
-    @command()
-    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
-    async def _test(self, interaction: discord.Interaction):
-        """
-        USES: TESTING ONLY
-        :param interaction:
-        :return: select menu
-        """
-        await interaction.response.send_message("test", view=AllEventsSelect())
 
 
 async def setup(bot: TMS):

@@ -61,7 +61,6 @@ class LogType(Enum):
 
 
 class Effect(Enum):
-
     ROTATION = "8d"
     NIGHTCORE = "nightcore"
     MONO = "mono"
