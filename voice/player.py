@@ -55,7 +55,7 @@ class Player(slate.Player):
         )
         await self.disconnect()
 
-    async def _convert_spotify_track(self, track: Track) -> Optional[Track]:
+    async def _convert_spotify_track(self, track: Track['Context']) -> Optional[Track]:
 
         assert track.ctx is not None
 

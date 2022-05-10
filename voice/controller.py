@@ -302,4 +302,4 @@ class Controller:
         self.message = None
 
     async def handle_track_end(self, reason: enums.TrackEndReason) -> None:
-        await self.send_new_message()
+        await self._edit_old_message(reason)
