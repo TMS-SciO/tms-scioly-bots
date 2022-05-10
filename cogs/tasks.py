@@ -5,12 +5,13 @@ import discord
 
 import mongo
 import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 from utils import Role, SERVER_ID, STEALFISH_BAN
 
 
 if TYPE_CHECKING:
     from bot import TMS
+    from .report import Reporter
 
 
 class CronTasks(commands.Cog):
@@ -37,6 +38,7 @@ class CronTasks(commands.Cog):
                         member: discord.Member = server.get_member(task['user'])
                         await server.unban(member)
                         print(f"Unbanned user ID: {member.id}")
+                        await mongo.delete("data", "cron", task["_id"])
 
                     elif task['type'] == "UNMUTE":
                         server = self.bot.get_guild(SERVER_ID)
@@ -45,18 +47,19 @@ class CronTasks(commands.Cog):
                         self_role = server.get_role(Role.SELFMUTE)
                         await member.remove_roles(role, self_role)
                         print(f"Unmuted user ID: {member.id}")
+                        await mongo.delete("data", "cron", task["_id"])
 
                     elif task['type'] == "UNSTEALCANDYBAN":
                         STEALFISH_BAN.remove(task['user'])
                         print(f"Un-stealcandybanneded user ID: {task['user']}")
-
+                        await mongo.delete("data", "cron", task["_id"])
                     else:
                         print("ERROR:")
-                        reporter_cog = self.bot.get_cog('Reporter')
+                        reporter_cog: Union[commands.Cog, Reporter] = self.bot.get_cog('Reporter')
                         await reporter_cog.create_cron_task_report(task)
-                    await mongo.delete("data", "cron", task["_id"])
+                        await mongo.delete("data", "cron", task["_id"])
                 except Exception:
-                    reporter_cog = self.bot.get_cog('Reporter')
+                    reporter_cog: Union[commands.Cog, Reporter] = self.bot.get_cog('Reporter')
                     await reporter_cog.create_cron_task_report(task)
 
     @cron.before_loop
