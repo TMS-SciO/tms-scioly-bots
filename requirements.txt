@@ -27,7 +27,7 @@ dateparser==1.1.0
 deep-translator==1.6.0
 git+https://github.com/Rapptz/discord.py@bd727d2b0c1696bbe17ad749494b3b3c4f69cc3d
 git+https://github.com/pandabear189/discord-ext-menus
-https://githuhttps://github.com/Axelware/slate@221d345418a1c405796ed1a4eabd2ea37494fe46b.com/Axelware/slate@221d345418a1c405796ed1a4eabd2ea37494fe46
+git+https://github.com/Axelware/slate@241f782d9109b626ca068bfe439d1970f1663166
 git+https://github.com/Axelware/spoti.py
 humanize==4.0.0
 django-classy-tags==2.0.0
