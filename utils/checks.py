@@ -1,3 +1,5 @@
+from typing import Union
+
 import discord
 from utils.variables import *
 from discord.ext import commands
@@ -16,9 +18,9 @@ import json
 #     return commands.check(predicate)
 
 
-async def is_staff(ctx: discord.Interaction):
+async def is_staff(ctx: Union[commands.Context, discord.Interaction]):
     """Checks to see if the user is a launch helper."""
-    guild = ctx.client.get_guild(SERVER_ID)
+    guild = ctx.client.get_guild(SERVER_ID) or ctx.guild
     member = guild.get_member(ctx.message.author.id)
     staffRole = discord.utils.get(guild.roles, name=Role.SERVERLEADER)
     vipRole = discord.utils.get(guild.roles, name=Role.COACH)

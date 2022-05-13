@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
-import mongo
 
 import discord
 from discord.app_commands import Group, command, guilds, describe, checks
@@ -17,6 +16,7 @@ from typing import Literal, Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from bot import TMS
+    from .tasks import CronTasks
 
 STOPNUKE = datetime.datetime.utcnow()
 
@@ -46,7 +46,7 @@ class CensorGroup(Group):
                 f"`{phrase}` is already in the censored words list. Operation cancelled.")
         else:
             CENSORED['words'].append(phrase)
-            await mongo.update("bot", "censor", CENSORED['_id'], {"$push": {"words": phrase}})
+            await self.bot.mongo.update("bot", "censor", CENSORED['_id'], {"$push": {"words": phrase}})
             return await interaction.response.send_message(f"Added Word to censored list")
 
     @command()
@@ -64,7 +64,7 @@ class CensorGroup(Group):
             return await interaction.response.send_message(f"`{phrase}` is not in the list of censored words.")
         else:
             CENSORED["words"].remove(phrase)
-            await mongo.update("bot", "censor", CENSORED['_id'], {"$pull": {"words": phrase}})
+            await self.bot.mongo.update("bot", "censor", CENSORED['_id'], {"$pull": {"words": phrase}})
             return await interaction.response.send_message(f"Removed {phrase} from list of censored words")
 
 
@@ -100,7 +100,7 @@ class Moderation(commands.Cog):
             3. Perform steps as staff request.
         """
 
-        cron_list = await mongo.get_cron()
+        cron_list = await self.bot.mongo.get_cron()
         if len(cron_list) == 0:
             return await interaction.response.send_message("No items currently in CRON list")
 
@@ -228,7 +228,7 @@ class Moderation(commands.Cog):
                 await interaction.edit_original_message(embed=original_shown_embed, content=None)
                 await reports_channel.send(embed=original_shown_embed)
                 if ban_length != "Indefinitely":
-                    cron_cog = self.bot.get_cog("CronTasks")
+                    cron_cog: Union[commands.Cog, CronTasks] = self.bot.get_cog("CronTasks")
                     await cron_cog.schedule_unban(member, times[ban_length])
 
             elif member not in interaction.guild.members:
@@ -356,7 +356,7 @@ class Moderation(commands.Cog):
             await user.add_roles(role)
             await user.send(message)
             if mute_length != "Indefinitely":
-                cron_cog = self.bot.get_cog("CronTasks")
+                cron_cog: Union[commands.Cog, CronTasks] = self.bot.get_cog("CronTasks")
                 await cron_cog.schedule_unmute(user, times[mute_length])
 
             original_shown_embed.colour = discord.Colour.brand_green()

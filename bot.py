@@ -60,7 +60,7 @@ class TmsBotTree(app_commands.CommandTree):
     def __init__(self, client: 'TMS') -> None:
         super().__init__(client)
 
-    async def sync(self, *, guild: Optional[Snowflake] = None) -> List[discord.app_commands.AppCommand]:
+    async def sync(self, *, guild: Optional[Snowflake] = None) -> List[app_commands.AppCommand]:
         print(f"Synced to {guild}")
         return await super().sync(guild=guild)
 
@@ -81,10 +81,10 @@ class TMS(commands.Bot):
         self.owner_id = 747126643587416174
         self.help_command = commands.DefaultHelpCommand()
         self.enable_debug_events = True
+        self.mongo: mongo.Mongo = mongo.Mongo(os.getenv("MONGO_URL"))
         self.socket_stats: collections.Counter[str] = collections.Counter()
 
     async def setup_hook(self) -> None:
-        await self.db_start()
         await self.connect_slate()
         for extension in INITIAL_EXTENSIONS:
             try:
@@ -142,21 +142,17 @@ class TMS(commands.Bot):
     async def connect_slate(self) -> None:
         self.slate = slate.Pool()
         node = await self.slate.create_node(
-                provider=slate.Provider.LAVALINK,
-                bot=self,
-                identifier="slate",
-                host=os.getenv("NODE_HOST"),
-                port=os.getenv("NODE_PORT"),
-                password=os.getenv("NODE_PASSWORD"),
-                session=self.session,
-                spotify_client_id=os.getenv("SPOTIFY_CLIENT_ID"),
-                spotify_client_secret=os.getenv("SPOTIFY_TOKEN"),
-            )
+            provider=slate.Provider.LAVALINK,
+            bot=self,
+            identifier="slate",
+            host=os.getenv("NODE_HOST"),
+            port=os.getenv("NODE_PORT"),
+            password=os.getenv("NODE_PASSWORD"),
+            session=self.session,
+            spotify_client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+            spotify_client_secret=os.getenv("SPOTIFY_TOKEN"),
+        )
         print(f"Connected node {node}")
-
-    async def db_start(self) -> None:
-        await mongo.setup()
-        print("Connected to Database")
 
     async def get_context(
             self,

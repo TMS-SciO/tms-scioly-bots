@@ -2,30 +2,23 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import io
 import json
+import math
 import random
+from typing import List, TYPE_CHECKING
 
 import aiohttp
-import unicodedata
-
 import discord
-
-import math
-import io
+import unicodedata
 from deep_translator import GoogleTranslator
 from deep_translator.exceptions import LanguageNotSupportedException as UnsupportedLanguage
 from discord import app_commands
 from discord.app_commands import command, describe, guilds
 from discord.ext import commands
-from typing import List, TYPE_CHECKING
 
-import mongo
-from utils import (
-    get_akita, get_cotondetulear, get_doggo,
-    get_shiba, image_filters, GOOGLE_LANGUAGES,
-    Counter, TicTacToe, is_not_blacklisted,
-    SERVER_ID, STEALFISH_BAN
-)
+from utils import (Counter, get_akita, get_cotondetulear, get_doggo, GOOGLE_LANGUAGES, image_filters,
+                   is_not_blacklisted, SERVER_ID, STEALFISH_BAN, TicTacToe)
 
 if TYPE_CHECKING:
     from bot import TMS
@@ -128,7 +121,7 @@ class Fun(commands.Cog):
         if r >= 0.416:
             date = datetime.datetime.now() + datetime.timedelta(hours=1)
             STEALFISH_BAN.append(member.id)
-            await mongo.insert(
+            await self.bot.mongo.insert(
                 "bot", "cron",
                 {
                     'type': "UNSTEALCANDYBAN",
@@ -143,7 +136,7 @@ class Fun(commands.Cog):
         if r >= 0.25:
             date = datetime.datetime.now() + datetime.timedelta(days=1)
             STEALFISH_BAN.append(member.id)
-            await mongo.insert(
+            await self.bot.mongo.insert(
                 "bot", "cron",
                 {
                     'type': "UNSTEALCANDYBAN",
@@ -199,9 +192,9 @@ class Fun(commands.Cog):
             current: str
     ) -> List[app_commands.Choice[str]]:
         return [
-            app_commands.Choice(name=filter, value=filter)
-            for filter in image_filters if current.lower() in filter.lower()
-        ][:25]
+                   app_commands.Choice(name=filter, value=filter)
+                   for filter in image_filters if current.lower() in filter.lower()
+               ][:25]
 
     @command()
     @guilds(SERVER_ID)
@@ -317,9 +310,9 @@ class Fun(commands.Cog):
             self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         return [
-            app_commands.Choice(name=lang, value=lang)
-            for lang in GOOGLE_LANGUAGES if current.lower() in lang.lower()
-        ][:25]
+                   app_commands.Choice(name=lang, value=lang)
+                   for lang in GOOGLE_LANGUAGES if current.lower() in lang.lower()
+               ][:25]
 
 
 async def setup(bot: TMS):
