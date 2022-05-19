@@ -20,10 +20,12 @@ class MongoDatabase:
     client: motor.motor_asyncio.AsyncIOMotorClient
 
     def __init__(self, bot: TMS):
+        self.bot = bot
+
+    async def setup(self):
         self.client = motor.motor_asyncio.AsyncIOMotorClient(
             os.getenv("MONGO_URL"), tz_aware=True
         )
-        self.bot = bot
 
     async def delete(self, db_name, collection_name, iden):
         collection = self.client[db_name][collection_name]
