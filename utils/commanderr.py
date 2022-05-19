@@ -11,4 +11,3 @@ class CommandBlacklistedUserInvoke(commands.CommandError):
     def __init__(self, member, *args, **kwargs):
         self.member = member
         super().__init__(*args, **kwargs)
-

@@ -7,7 +7,7 @@ async def get_doggo():
     res = requests.get("https://dog.ceo/api/breeds/image/random")
     res = res.content.decode("UTF-8")
     jso = json.loads(res)
-    return jso['message']
+    return jso["message"]
 
 
 async def get_shiba():
@@ -15,7 +15,7 @@ async def get_shiba():
     res = requests.get("https://dog.ceo/api/breed/shiba/images/random")
     res = res.content.decode("UTF-8")
     jso = json.loads(res)
-    return jso['message']
+    return jso["message"]
 
 
 async def get_akita():
@@ -23,7 +23,7 @@ async def get_akita():
     res = requests.get("https://dog.ceo/api/breed/akita/images/random")
     res = res.content.decode("UTF-8")
     jso = json.loads(res)
-    return jso['message']
+    return jso["message"]
 
 
 async def get_cotondetulear():
@@ -31,4 +31,4 @@ async def get_cotondetulear():
     res = requests.get("https://dog.ceo/api/breed/cotondetulear/images/random")
     res = res.content.decode("UTF-8")
     jso = json.loads(res)
-    return jso['message']
+    return jso["message"]

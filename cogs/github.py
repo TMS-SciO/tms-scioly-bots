@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 
 class Github(commands.Cog):
     """Github related commands."""
-    print('Github Cog Loaded')
+
+    print("Github Cog Loaded")
 
     def __init__(self, bot: TMS):
         self.bot = bot
@@ -27,7 +28,7 @@ class Github(commands.Cog):
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='github', id=902367446986543116)
+        return discord.PartialEmoji(name="github", id=902367446986543116)
 
     # def get_last_commits(self, count: int):
     #     repo = pygit2.Repository(".git")
@@ -67,19 +68,21 @@ class Github(commands.Cog):
         periods, e.g. tag.create for the create subcommand of the tag command
         or by spaces.
         """
-        source_url = 'https://github.com/pandabear189/tms-scioly-bots'
-        branch = 'master'
+        source_url = "https://github.com/pandabear189/tms-scioly-bots"
+        branch = "master"
         if command is None:
             return await interaction.response.send_message(source_url)
 
-        if command == 'help':
+        if command == "help":
             src = type(self.bot.help_command)
             module = src.__module__
             filename = inspect.getsourcefile(src)
         else:
-            obj = self.bot.tree.get_command(command.replace('.', ' '))
+            obj = self.bot.tree.get_command(command.replace(".", " "))
             if obj is None:
-                return await interaction.response.send_message('Could not find command.')
+                return await interaction.response.send_message(
+                    "Could not find command."
+                )
 
             # since we found the command we're looking for, presumably anyway, let's
             # try to access the code itself
@@ -88,15 +91,15 @@ class Github(commands.Cog):
             filename = src.co_filename
 
         lines, firstlineno = inspect.getsourcelines(src)
-        if not module.startswith('discord'):
+        if not module.startswith("discord"):
             # not a built-in command
-            location = os.path.relpath(filename).replace('\\', '/')
+            location = os.path.relpath(filename).replace("\\", "/")
         else:
-            location = module.replace('.', '/') + '.py'
-            source_url = 'https://github.com/Rapptz/discord.py'
-            branch = 'master'
+            location = module.replace(".", "/") + ".py"
+            source_url = "https://github.com/Rapptz/discord.py"
+            branch = "master"
 
-        final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
+        final_url = f"<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>"
         await interaction.response.send_message(final_url)
 
 

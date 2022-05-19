@@ -12,13 +12,25 @@ import aiohttp
 import discord
 import unicodedata
 from deep_translator import GoogleTranslator
-from deep_translator.exceptions import LanguageNotSupportedException as UnsupportedLanguage
+from deep_translator.exceptions import (
+    LanguageNotSupportedException as UnsupportedLanguage,
+)
 from discord import app_commands
 from discord.app_commands import command, describe, guilds
 from discord.ext import commands
 
-from utils import (Counter, get_akita, get_cotondetulear, get_doggo, GOOGLE_LANGUAGES, image_filters,
-                   is_not_blacklisted, SERVER_ID, STEALFISH_BAN, TicTacToe)
+from utils import (
+    Counter,
+    get_akita,
+    get_cotondetulear,
+    get_doggo,
+    GOOGLE_LANGUAGES,
+    image_filters,
+    is_not_blacklisted,
+    SERVER_ID,
+    STEALFISH_BAN,
+    TicTacToe,
+)
 
 if TYPE_CHECKING:
     from bot import TMS
@@ -27,7 +39,7 @@ if TYPE_CHECKING:
 class Fun(commands.Cog):
     """Commands for Fun!"""
 
-    print('Fun Cog Loaded')
+    print("Fun Cog Loaded")
 
     def __init__(self, bot: TMS):
         self.bot = bot
@@ -35,7 +47,7 @@ class Fun(commands.Cog):
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\U0001f973')
+        return discord.PartialEmoji(name="\U0001f973")
 
     async def cog_check(self, ctx) -> bool:
         return await is_not_blacklisted(ctx)
@@ -46,13 +58,14 @@ class Fun(commands.Cog):
         """Rolls a dice"""
         await interaction.response.defer(thinking=True)
         await asyncio.sleep(2)
-        sayings = ['<:dice1:884113954383728730>',
-                   '<:dice2:884113968493391932>',
-                   '<:dice3:884113979033665556>',
-                   '<:dice4:884113988596674631>',
-                   '<:dice5:884114002156867635>',
-                   '<:dice6:884114012281901056>'
-                   ]
+        sayings = [
+            "<:dice1:884113954383728730>",
+            "<:dice2:884113968493391932>",
+            "<:dice3:884113979033665556>",
+            "<:dice4:884113988596674631>",
+            "<:dice5:884114002156867635>",
+            "<:dice6:884114012281901056>",
+        ]
         response = sayings[math.floor(random.random() * len(sayings))]
         await interaction.followup.send(f"{response}")
 
@@ -80,7 +93,7 @@ class Fun(commands.Cog):
             "Concentrate and ask later.",
             "Try asking again.",
             "For sure not.",
-            "Definitely no."
+            "Definitely no.",
         ]
         response = random.choice(sayings)
         await interaction.response.send_message(f"**{response}**")
@@ -93,11 +106,13 @@ class Fun(commands.Cog):
         if r > 0.9:
             self.fish_now += 100
             return await interaction.response.send_message(
-                f"Wow, you gave panda a super candy! Added 100 candy! Panda now has {self.fish_now} pieces of candy!")
+                f"Wow, you gave panda a super candy! Added 100 candy! Panda now has {self.fish_now} pieces of candy!"
+            )
         if r > 0.1:
             self.fish_now += 1
             return await interaction.response.send_message(
-                f"You feed panda one candy. Panda now has {self.fish_now} pieces of candy!")
+                f"You feed panda one candy. Panda now has {self.fish_now} pieces of candy!"
+            )
         if r > 0.02:
             self.fish_now += 0
             return await interaction.response.send_message(
@@ -112,54 +127,67 @@ class Fun(commands.Cog):
         member = interaction.user
         r = random.random()
         if member.id in STEALFISH_BAN:
-            return await interaction.response.send_message("Hey! You've been banned from stealing candy for now.")
+            return await interaction.response.send_message(
+                "Hey! You've been banned from stealing candy for now."
+            )
         if r >= 0.75:
             ratio = r - 0.5
             self.fish_now = round(self.fish_now * (1 - ratio))
             per = round(ratio * 100)
-            return await interaction.response.send_message(f"You stole {per}% of panda's candy!")
+            return await interaction.response.send_message(
+                f"You stole {per}% of panda's candy!"
+            )
         if r >= 0.416:
             date = datetime.datetime.now() + datetime.timedelta(hours=1)
             STEALFISH_BAN.append(member.id)
             await self.bot.mongo.insert(
-                "bot", "cron",
+                "bot",
+                "cron",
                 {
-                    'type': "UNSTEALCANDYBAN",
-                    'user': member.id,
-                    'time': date,
-                    'tag': str(member)
-                }
+                    "type": "UNSTEALCANDYBAN",
+                    "user": member.id,
+                    "time": date,
+                    "tag": str(member),
+                },
             )
             return await interaction.response.send_message(
                 f"Sorry {member.mention}, but it looks like you're going to be banned from using this command for 1 "
-                f"hour!")
+                f"hour!"
+            )
         if r >= 0.25:
             date = datetime.datetime.now() + datetime.timedelta(days=1)
             STEALFISH_BAN.append(member.id)
             await self.bot.mongo.insert(
-                "bot", "cron",
+                "bot",
+                "cron",
                 {
-                    'type': "UNSTEALCANDYBAN",
-                    'user': member.id,
-                    'time': date,
-                    'tag': str(member)
-                }
+                    "type": "UNSTEALCANDYBAN",
+                    "user": member.id,
+                    "time": date,
+                    "tag": str(member),
+                },
             )
             return await interaction.response.send_message(
-                f"Sorry {member.mention}, but it looks like you're going to be banned from using this command for 1 day!")
+                f"Sorry {member.mention}, but it looks like you're going to be banned from using this command for 1 day!"
+            )
         if r >= 0.01:
-            return await interaction.response.send_message("Hmm, nothing happened. *crickets*")
+            return await interaction.response.send_message(
+                "Hmm, nothing happened. *crickets*"
+            )
         else:
             STEALFISH_BAN.append(member.id)
             return await interaction.response.send_message(
-                "You are banned from using `/stealcandy` until the next version of TMS-Bot is released.")
+                "You are banned from using `/stealcandy` until the next version of TMS-Bot is released."
+            )
 
     @command()
     @guilds(SERVER_ID)
     async def count(self, interaction: discord.Interaction):
         """Counts the number of members in the server"""
         guild = interaction.user.guild
-        await interaction.response.send_message(f"Currently, there are `{len(guild.members)}` members in the server.")
+        await interaction.response.send_message(
+            f"Currently, there are `{len(guild.members)}` members in the server."
+        )
 
     @command()
     @guilds(SERVER_ID)
@@ -170,39 +198,43 @@ class Fun(commands.Cog):
         new_args = latex.replace(" ", r"&space;")
         print(new_args)
         await interaction.response.send_message(
-            r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + new_args + "}")
+            r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}"
+            + new_args
+            + "}"
+        )
 
     @command()
     @guilds(SERVER_ID)
-    async def image(self, interaction: discord.Interaction, member: discord.User, manipulate: str):
+    async def image(
+        self, interaction: discord.Interaction, member: discord.User, manipulate: str
+    ):
         await interaction.response.defer()
         params = {
-            'image_url': member.avatar.url,
+            "image_url": member.avatar.url,
         }
 
-        r = await self.bot.session.get(f'https://api.jeyy.xyz/image/{manipulate}', params=params)
+        r = await self.bot.session.get(
+            f"https://api.jeyy.xyz/image/{manipulate}", params=params
+        )
         buf = io.BytesIO(await r.read())
 
-        await interaction.followup.send(file=discord.File(buf, 'image.gif'))
+        await interaction.followup.send(file=discord.File(buf, "image.gif"))
 
     @image.autocomplete(name="manipulate")
     async def image_autocomplete(
-            self,
-            interaction: discord.Interaction,
-            current: str
+        self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         return [
-                   app_commands.Choice(name=filter, value=filter)
-                   for filter in image_filters if current.lower() in filter.lower()
-               ][:25]
+            app_commands.Choice(name=filter, value=filter)
+            for filter in image_filters
+            if current.lower() in filter.lower()
+        ][:25]
 
     @command()
     @guilds(SERVER_ID)
-    async def profile(
-            self, interaction: discord.Interaction, user: discord.User
-    ):
+    async def profile(self, interaction: discord.Interaction, user: discord.User):
         try:
-            await interaction.response.send_message(f'{user.display_avatar}')
+            await interaction.response.send_message(f"{user.display_avatar}")
         except Exception as e:
             await interaction.response.send_message(f"Couldn't find profile: {e}")
 
@@ -214,7 +246,7 @@ class Fun(commands.Cog):
         em = discord.Embed(
             title="Pong :ping_pong:",
             description=f":clock1: My ping is {latency} ms!",
-            color=discord.Color.brand_green()
+            color=discord.Color.brand_green(),
         )
         await interaction.response.send_message(embed=em)
 
@@ -222,11 +254,13 @@ class Fun(commands.Cog):
     @guilds(SERVER_ID)
     async def counter(self, interaction: discord.Interaction):
         """Starts a counter for pressing."""
-        await interaction.response.send_message('Press!', view=Counter())
+        await interaction.response.send_message("Press!", view=Counter())
 
     @command()
     @guilds(SERVER_ID)
-    async def tictactoe(self, interaction: discord.Interaction, to_invite: discord.Member):
+    async def tictactoe(
+        self, interaction: discord.Interaction, to_invite: discord.Member
+    ):
         """Starts a tic-tac-toe game."""
         await interaction.response.send_message(
             f"Tic Tac Toe: {interaction.user.mention} goes first",
@@ -239,21 +273,29 @@ class Fun(commands.Cog):
     async def shiba(self, interaction: discord.Interaction, member: discord.Member):
         """Shiba-s another user"""
         async with self.bot.session as session:
-            page: aiohttp.ClientResponse = await session.get("https://dog.ceo/api/breed/shiba/images/random")
+            page: aiohttp.ClientResponse = await session.get(
+                "https://dog.ceo/api/breed/shiba/images/random"
+            )
         text = await page.content.read()
         text = text.decode("utf-8")
         jso = json.loads(text)
         await interaction.response.send_message(jso)
-        await interaction.channel.send(f"{member.mention}, <@{interaction.user.id}> shiba-d you!!")
+        await interaction.channel.send(
+            f"{member.mention}, <@{interaction.user.id}> shiba-d you!!"
+        )
 
     @command()
     @guilds(SERVER_ID)
     @describe(member="Who are you trying to cottondetulear?")
-    async def cottondetulear(self, interaction: discord.Interaction, member: discord.Member):
-        """"Cottondetulear-s Another Member!\""""
+    async def cottondetulear(
+        self, interaction: discord.Interaction, member: discord.Member
+    ):
+        """ "Cottondetulear-s Another Member!\" """
         doggo = await get_cotondetulear()
         await interaction.response.send_message(doggo)
-        await interaction.channel.send(f"{member.mention}, {interaction.user.mention} cottondetulear-d you!!")
+        await interaction.channel.send(
+            f"{member.mention}, {interaction.user.mention} cottondetulear-d you!!"
+        )
 
     @command()
     @guilds(SERVER_ID)
@@ -262,7 +304,9 @@ class Fun(commands.Cog):
         """Akita-s a user!"""
         doggo = await get_akita()
         await interaction.response.send_message(doggo)
-        await interaction.channel.send(f"{member.mention}, <@{interaction.user.id}> akita-d you!!")
+        await interaction.channel.send(
+            f"{member.mention}, <@{interaction.user.id}> akita-d you!!"
+        )
 
     @command()
     @guilds(SERVER_ID)
@@ -271,7 +315,9 @@ class Fun(commands.Cog):
         """Dogeee-s someone!"""
         doggo = await get_doggo()
         await interaction.response.send_message(doggo)
-        await interaction.channel.send(f"{member.mention}, <@{interaction.user.id}> dogeee-d you!!")
+        await interaction.channel.send(
+            f"{member.mention}, <@{interaction.user.id}> dogeee-d you!!"
+        )
 
     @command()
     @guilds(SERVER_ID)
@@ -281,38 +327,49 @@ class Fun(commands.Cog):
         """
 
         def to_string(c):
-            digit = f'{ord(c):x}'
-            name = unicodedata.name(c, 'Name not found.')
-            return f'`\\U{digit:>08}`: {name} - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{digit}>'
+            digit = f"{ord(c):x}"
+            name = unicodedata.name(c, "Name not found.")
+            return f"`\\U{digit:>08}`: {name} - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{digit}>"
 
-        msg = '\n'.join(map(to_string, characters))
+        msg = "\n".join(map(to_string, characters))
         if len(msg) > 2000:
-            return await interaction.response.send_message('Output too long to display.')
+            return await interaction.response.send_message(
+                "Output too long to display."
+            )
         await interaction.response.send_message(msg)
 
     @command()
     @guilds(SERVER_ID)
-    async def translate(self, interaction: discord.Interaction, language: str, *, input: str):
+    async def translate(
+        self, interaction: discord.Interaction, language: str, *, input: str
+    ):
         try:
-            translator = GoogleTranslator(source='auto', target=language.lower())
+            translator = GoogleTranslator(source="auto", target=language.lower())
             translated = translator.translate(input)
         except UnsupportedLanguage:
             return await interaction.response.send_message(
-                embed=discord.Embed(title='Error Occurred', description='Please input valid language to translate to'))
+                embed=discord.Embed(
+                    title="Error Occurred",
+                    description="Please input valid language to translate to",
+                )
+            )
         embed = discord.Embed()
-        embed.add_field(name=f'Text in `{language}:`', value=translated)
-        embed.set_footer(text='Please remember, that the translations can\'t be a 100% accurate')
+        embed.add_field(name=f"Text in `{language}:`", value=translated)
+        embed.set_footer(
+            text="Please remember, that the translations can't be a 100% accurate"
+        )
 
         await interaction.response.send_message(embed=embed)
 
     @translate.autocomplete(name="language")
     async def translate_autocomplete(
-            self, interaction: discord.Interaction, current: str
+        self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         return [
-                   app_commands.Choice(name=lang, value=lang)
-                   for lang in GOOGLE_LANGUAGES if current.lower() in lang.lower()
-               ][:25]
+            app_commands.Choice(name=lang, value=lang)
+            for lang in GOOGLE_LANGUAGES
+            if current.lower() in lang.lower()
+        ][:25]
 
 
 async def setup(bot: TMS):

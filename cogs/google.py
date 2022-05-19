@@ -28,9 +28,9 @@ s = namedtuple("searchres", "url title desc")
 
 
 class Google(commands.Cog):
-    '''
+    """
     Google Related Commands
-    '''
+    """
 
     def __init__(self, bot: TMS):
         self.nsfwcheck = lambda ctx: (not ctx.guild) or ctx.channel.is_nsfw()
@@ -85,7 +85,9 @@ class Google(commands.Cog):
         encoded = quote_plus(query, encoding="utf-8", errors="replace")
 
         async def get_html(url, encoded):
-            async with self.bot.session.get(url + encoded, headers=self.options) as resp:
+            async with self.bot.session.get(
+                url + encoded, headers=self.options
+            ) as resp:
                 self.cookies = resp.cookies
                 return await resp.text(), resp.url
 
@@ -99,7 +101,9 @@ class Google(commands.Cog):
             else "https://www.google.com/search?q="
         )
         text, redir = await get_html(url, encoded)
-        prep = functools.partial(self.parser_image if images else self.parser_text, text)
+        prep = functools.partial(
+            self.parser_image if images else self.parser_text, text
+        )
 
         fin, kwargs = await self.bot.loop.run_in_executor(None, prep)
         kwargs["redir"] = redir
@@ -110,12 +114,14 @@ class Google(commands.Cog):
     async def google(self, interaction: discord.Interaction, *, query: str):
         """Google search your query from Discord channel."""
         if not query:
-            return await interaction.response.send_message("Please enter something to search")
+            return await interaction.response.send_message(
+                "Please enter something to search"
+            )
         await interaction.response.defer()
         isnsfw = self.nsfwcheck(interaction)
         response, kwargs = await self.get_result(query, nsfw=isnsfw)
         pages = []
-        groups = [response[n: n + 3] for n in range(0, len(response), 3)]
+        groups = [response[n : n + 3] for n in range(0, len(response), 3)]
         for num, group in enumerate(groups, 1):
             emb = discord.Embed(
                 title="Google Search: {}".format(
@@ -130,8 +136,8 @@ class Google(commands.Cog):
             )
             for result in group:
                 desc = (
-                           f"[{result.url[:60]}]({result.url})\n" if result.url else ""
-                       ) + f"{result.desc}"[:800]
+                    f"[{result.url[:60]}]({result.url})\n" if result.url else ""
+                ) + f"{result.desc}"[:800]
                 emb.add_field(
                     name=f"{result.title}",
                     value=desc or "Nothing",
@@ -139,7 +145,8 @@ class Google(commands.Cog):
                 )
             emb.description = f"Page {num} of {len(groups)}"
             emb.set_footer(
-                text=f"Safe Search: {not isnsfw} | " + kwargs["stats"].replace("\n", " ")
+                text=f"Safe Search: {not isnsfw} | "
+                + kwargs["stats"].replace("\n", " ")
             )
             if "thumbnail" in kwargs:
                 emb.set_thumbnail(url=kwargs["thumbnail"])
@@ -148,7 +155,12 @@ class Google(commands.Cog):
                 emb.set_image(url=kwargs["image"])
             pages.append(emb)
         if pages:
-            menu = Pages(interaction=interaction, source=Source(pages, per_page=1), compact=True, bot=self.bot)
+            menu = Pages(
+                interaction=interaction,
+                source=Source(pages, per_page=1),
+                compact=True,
+                bot=self.bot,
+            )
             await menu.start()
         else:
             await interaction.response.send_message("No results.")
@@ -172,7 +184,9 @@ class Google(commands.Cog):
             if question := card.find("span", class_="vUGUtc"):
                 if answer := card.find("span", class_="qv3Wpe"):
                     tmp = h2t(str(question)).strip("\n")
-                    final.append(s(None, "Google Calculator:", f"**{tmp}** {h2t(str(answer))}"))
+                    final.append(
+                        s(None, "Google Calculator:", f"**{tmp}** {h2t(str(answer))}")
+                    )
                     return
 
         # sidepage card
@@ -184,27 +198,32 @@ class Google(commands.Cog):
                     if remove := desc.find(class_=re.compile("Uo8X3b")):
                         remove.decompose()
 
-                    desc = textwrap.shorten(h2t(str(desc.span)), 1024, placeholder="...") + "\n"
+                    desc = (
+                        textwrap.shorten(h2t(str(desc.span)), 1024, placeholder="...")
+                        + "\n"
+                    )
 
                     if more_info := soup.findAll("div", class_="Z1hOCe"):
                         for thing in more_info:
                             tmp = thing.findAll("span")
                             if len(tmp) >= 2:
-                                desc2 = f"\n **{tmp[0].text}**`{tmp[1].text.lstrip(':')}`"
+                                desc2 = (
+                                    f"\n **{tmp[0].text}**`{tmp[1].text.lstrip(':')}`"
+                                )
                                 # More jack advises :D
                                 MAX = 1024
                                 MAX_LEN = MAX - len(desc2)
                                 if len(desc) > MAX_LEN:
                                     desc = (
-                                            next(
-                                                self.pagify(
-                                                    desc,
-                                                    deliminators=[" ", "\n"],
-                                                    page_length=MAX_LEN - 1,
-                                                    shorten_by=0,
-                                                )
+                                        next(
+                                            self.pagify(
+                                                desc,
+                                                deliminators=[" ", "\n"],
+                                                page_length=MAX_LEN - 1,
+                                                shorten_by=0,
                                             )
-                                            + "\N{HORIZONTAL ELLIPSIS}"
+                                        )
+                                        + "\N{HORIZONTAL ELLIPSIS}"
                                     )
                                 desc = desc + desc2
                     final.append(
@@ -235,7 +254,11 @@ class Google(commands.Cog):
                     s(
                         None,
                         "Unit Conversion v1:",
-                        "`" + " ".join(tmp[0]) + " is equal to " + " ".join(tmp[1]) + "`",
+                        "`"
+                        + " ".join(tmp[0])
+                        + " is equal to "
+                        + " ".join(tmp[1])
+                        + "`",
                     )
                 )
                 return
@@ -260,7 +283,9 @@ class Google(commands.Cog):
             if source := card.find("div", id="KnM9nf"):
                 final_text += (src_lang + "\n`" + source.find("pre").text) + "`\n"
             if dest := card.find("div", id="kAz1tf"):
-                final_text += dest_lang + "\n`" + dest.find("pre").text.strip("\n") + "`"
+                final_text += (
+                    dest_lang + "\n`" + dest.find("pre").text.strip("\n") + "`"
+                )
             final.append(s(None, "Google Translator", final_text))
             return
 
@@ -276,9 +301,13 @@ class Google(commands.Cog):
                     remove.decompose()
                 tmp = h2t(str(time)).replace("\n", " ").split("·")
                 final_text += (
-                        "\n"
-                        + (f"`{tmp[0].strip()}` ·{tmp[1]}" if len(tmp) == 2 else "·".join(tmp))
-                        + "\n\N{ZWSP}"
+                    "\n"
+                    + (
+                        f"`{tmp[0].strip()}` ·{tmp[1]}"
+                        if len(tmp) == 2
+                        else "·".join(tmp)
+                    )
+                    + "\n\N{ZWSP}"
                 )
             final.append(s(None, "Unit Conversion", final_text))
             return
@@ -304,7 +333,9 @@ class Google(commands.Cog):
                 for text in definition.findAll("span"):
                     tmp = h2t(str(text))
                     if tmp.count("\n") < 5:
-                        final_text += "`" + tmp.strip("\n").replace("\n", " ") + "`" + "\n"
+                        final_text += (
+                            "`" + tmp.strip("\n").replace("\n", " ") + "`" + "\n"
+                        )
 
             final.append(s(None, "Definition", final_text))
             return
@@ -348,7 +379,9 @@ class Google(commands.Cog):
         try:
             async with self.bot.session.get(base_url, params=params) as response:
                 if response.status != 200:
-                    return await interaction.response.send_message(f"https://http.cat/{response.status}")
+                    return await interaction.response.send_message(
+                        f"https://http.cat/{response.status}"
+                    )
                 data = await response.json()
         except asyncio.TimeoutError:
             return await interaction.response.send_message("Operation timed out.")
@@ -437,7 +470,12 @@ class Google(commands.Cog):
         if len(pages) == 1:
             await interaction.response.send_message(embed=pages[0])
         else:
-            menu = Pages(interaction=interaction, source=Source(pages, per_page=1), compact=True, bot=self.bot)
+            menu = Pages(
+                interaction=interaction,
+                source=Source(pages, per_page=1),
+                compact=True,
+                bot=self.bot,
+            )
             await menu.start()
 
 

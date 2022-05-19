@@ -5,6 +5,7 @@ from utils.variables import *
 from discord.ext import commands
 from utils.commanderr import CommandBlacklistedUserInvoke
 import json
+
 #
 # def is_staff():
 #     def predicate(ctx):
@@ -32,10 +33,10 @@ async def is_staff(ctx: Union[commands.Context, discord.Interaction]):
 
 async def is_not_blacklisted(ctx):
     member = ctx.message.author.id
-    f = open('blacklist.json')
+    f = open("blacklist.json")
     data = json.load(f)
 
-    if member in data['blacklisted_ids']:
+    if member in data["blacklisted_ids"]:
         raise CommandBlacklistedUserInvoke(member=member)
     else:
         return True
@@ -43,14 +44,13 @@ async def is_not_blacklisted(ctx):
 
 async def is_not_canceled(ctx):
     member = ctx.message.author
-    f = open('../blacklist.json')
+    f = open("../blacklist.json")
     data = json.load(f)
 
-    if member in data['canceled_ids']:
+    if member in data["canceled_ids"]:
         raise CommandBlacklistedUserInvoke(member=member)
     else:
         return True
-
 
 
 # async def is_staff(bot):

@@ -36,8 +36,7 @@ class Wikipedia(commands.Cog):
 
         if not embeds:
             return await interaction.response.send_message(
-                f"I'm sorry, I couldn't find \"{query}\" on Wikipedia",
-                embed=embeds[0]
+                f"I'm sorry, I couldn't find \"{query}\" on Wikipedia", embed=embeds[0]
             )
         elif len(embeds) == 1:
             embeds[0].set_author(name="Result 1 of 1")
@@ -47,7 +46,12 @@ class Wikipedia(commands.Cog):
             for embed in embeds:
                 count += 1
                 embed.set_author(name=f"Result {count} of {len(embeds)}")
-            menu = Pages(interaction=interaction, source=Source(embeds, per_page=1), compact=True, bot=self.bot)
+            menu = Pages(
+                interaction=interaction,
+                source=Source(embeds, per_page=1),
+                compact=True,
+                bot=self.bot,
+            )
             await menu.start()
 
     #
@@ -88,8 +92,8 @@ class Wikipedia(commands.Cog):
         payload = self.generate_payload(query)
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                    "https://en.wikipedia.org/w/api.php",
-                    params=payload,
+                "https://en.wikipedia.org/w/api.php",
+                params=payload,
             ) as res:
                 result = await res.json()
 
@@ -101,10 +105,10 @@ class Wikipedia(commands.Cog):
             for page in result["query"]["pages"]:
                 try:
                     if (
-                            "categories" in page
-                            and page["categories"]
-                            and "title" in page["categories"][0]
-                            and page["categories"][0]["title"] == self.DISAMBIGUATION_CAT
+                        "categories" in page
+                        and page["categories"]
+                        and "title" in page["categories"][0]
+                        and page["categories"][0]["title"] == self.DISAMBIGUATION_CAT
                     ):
                         continue  # Skip disambiguation pages
                     embeds.append(self.generate_embed(page))
@@ -127,8 +131,8 @@ class Wikipedia(commands.Cog):
         timestamp = (
             isoparse(page_json["revisions"][0]["timestamp"])
             if "revisions" in page_json
-               and page_json["revisions"]
-               and "timestamp" in page_json["revisions"][0]
+            and page_json["revisions"]
+            and "timestamp" in page_json["revisions"][0]
             else None
         )
 

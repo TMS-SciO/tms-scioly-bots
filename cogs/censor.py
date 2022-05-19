@@ -14,7 +14,6 @@ CENSORED: Dict[str, List[str]] = {}
 
 
 class Censor(commands.Cog):
-
     def __init__(self, bot: TMS):
         self.bot = bot
 
@@ -34,8 +33,8 @@ class Censor(commands.Cog):
 
         global CENSORED
 
-        for word in CENSORED['words']:
-            if len(re.findall(fr"\b({word})\b", content, re.I)):
+        for word in CENSORED["words"]:
+            if len(re.findall(rf"\b({word})\b", content, re.I)):
                 return True
         return False
 
@@ -50,14 +49,20 @@ class Censor(commands.Cog):
         wh = await channel.create_webhook(name="Censor (Automated)")
         content = message.content
         for word in CENSORED["words"]:
-            content = re.sub(fr'\b({word})\b', "<censored>", content, flags=re.IGNORECASE)
+            content = re.sub(
+                rf"\b({word})\b", "<censored>", content, flags=re.IGNORECASE
+            )
         author_nickname = message.author.nick
         if author_nickname is None:
             author_nickname = message.author.name
         # Make sure pinging through @everyone, @here, or any role can not happen
         mention_perms = discord.AllowedMentions(everyone=False, users=True, roles=False)
-        await wh.send(content, username=(author_nickname + " (Auto-Censor)"), avatar_url=ava,
-                      allowed_mentions=mention_perms)
+        await wh.send(
+            content,
+            username=(author_nickname + " (Auto-Censor)"),
+            avatar_url=ava,
+            allowed_mentions=mention_perms,
+        )
         await wh.delete()
 
     async def on_message(self, message: discord.Message):
@@ -80,8 +85,10 @@ class Censor(commands.Cog):
             return
         content = message.content
         for word in CENSORED["words"]:
-            if len(re.findall(fr"\b({word})\b", content, re.I)):
-                print(f"Censoring message by {message.author} because of the word: `{word}`")
+            if len(re.findall(rf"\b({word})\b", content, re.I)):
+                print(
+                    f"Censoring message by {message.author} because of the word: `{word}`"
+                )
                 await message.delete()
                 return await self.censor(message)
 

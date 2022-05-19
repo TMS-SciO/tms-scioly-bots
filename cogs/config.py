@@ -18,11 +18,11 @@ if TYPE_CHECKING:
 class Config(commands.Cog):
     """Server utilities/Moderator Config Commands"""
 
-    print('Config Cog Loaded')
+    print("Config Cog Loaded")
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\U00002699')
+        return discord.PartialEmoji(name="\U00002699")
 
     def __init__(self, bot: TMS):
         self.bot = bot
@@ -33,15 +33,15 @@ class Config(commands.Cog):
     @guilds(SERVER_ID)
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def theme(
-            self,
-            interaction: discord.Interaction,
-            theme: Literal["Christmas", "Thanksgiving", "Aesthetic", "Party"]
+        self,
+        interaction: discord.Interaction,
+        theme: Literal["Christmas", "Thanksgiving", "Aesthetic", "Party"],
     ) -> None:
 
         themes = {
             "Thanksgiving": "\U0001f983",
             "Aesthetic": "\U00002728",
-            "Party": "\U0001f389"
+            "Party": "\U0001f389",
         }
         await interaction.response.defer()
 
@@ -91,7 +91,9 @@ class Config(commands.Cog):
             await voice_category.edit(name="\N{GLOWING STAR}" + "│voice channels")
             embed = discord.Embed()
             embed.title = "\N{CHRISTMAS TREE} Theme change complete! \N{CHRISTMAS TREE}"
-            embed.description = "The server is now set to christmas mode. Happy Holidays!"
+            embed.description = (
+                "The server is now set to christmas mode. Happy Holidays!"
+            )
             embed.colour = 0x146B3A
             return await interaction.followup.send(embed=embed)
         else:
@@ -106,10 +108,7 @@ class Config(commands.Cog):
 class TicketGroup(Group):
     def __init__(self, bot: TMS):
         self.bot = bot
-        super().__init__(
-            name="ticket",
-            guild_ids=[SERVER_ID]
-        )
+        super().__init__(name="ticket", guild_ids=[SERVER_ID])
 
     @property
     def cog(self) -> commands.Cog:
@@ -120,21 +119,27 @@ class TicketGroup(Group):
     async def _button(self, interaction: discord.Interaction):
         """Sends the ticket button embed to the rules channel"""
         view = Ticket(self.bot)
-        em1 = discord.Embed(title="TMS Tickets",
-                            description="To create a ticket press the button below", color=0xff008c)
+        em1 = discord.Embed(
+            title="TMS Tickets",
+            description="To create a ticket press the button below",
+            color=0xFF008C,
+        )
         em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+            url="https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif"
+        )
         em1.set_footer(text="TMS-Bot Tickets for reporting or questions")
         rules_channel = self.bot.get_channel(Channel.RULES)
         await rules_channel.send(embed=em1, view=view)
-        await interaction.response.send_message('Sent to ' + rules_channel.mention, ephemeral=True)
+        await interaction.response.send_message(
+            "Sent to " + rules_channel.mention, ephemeral=True
+        )
 
     @command()
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def close(self, interaction: discord.Interaction):
         """Manually closes the ticket channel"""
 
-        with open('data.json') as f:
+        with open("data.json") as f:
             data = json.load(f)
 
         if interaction.channel.id in data["ticket-channel-ids"]:
@@ -142,38 +147,44 @@ class TicketGroup(Group):
             channel_id = interaction.channel.id
 
             def check(message) -> bool:
-                return message.author == interaction.user and message.channel == interaction.channel and message.content.lower() == "close"
+                return (
+                    message.author == interaction.user
+                    and message.channel == interaction.channel
+                    and message.content.lower() == "close"
+                )
 
             try:
 
                 em = discord.Embed(
                     title="TMS Tickets",
                     description="Are you sure you want to close this ticket? Reply with `close` if you are sure.",
-                    color=0x00a8ff)
+                    color=0x00A8FF,
+                )
 
                 ticket_channel = interaction.channel
                 await interaction.response.send_message(embed=em)
-                await self.bot.wait_for('message', check=check, timeout=60)
+                await self.bot.wait_for("message", check=check, timeout=60)
                 await ticket_channel.delete()
 
                 index = data["ticket-channel-ids"].index(channel_id)
                 del data["ticket-channel-ids"][index]
 
-                with open('data.json', 'w') as f:
+                with open("data.json", "w") as f:
                     json.dump(data, f)
 
             except asyncio.TimeoutError:
                 em = discord.Embed(
                     title="TMS Tickets",
                     description="You have run out of time to close this ticket. Please run the command again.",
-                    color=0x00a8ff)
+                    color=0x00A8FF,
+                )
                 await interaction.response.send_message(embed=em)
 
     @command()
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     @describe(role="Role ID or mention role")
     async def add_access(self, interaction: discord.Interaction, role: discord.Role):
-        with open('data.json') as f:
+        with open("data.json") as f:
             data = json.load(f)
 
         valid_user = False
@@ -198,37 +209,46 @@ class TicketGroup(Group):
 
                     data["valid-roles"].append(role)
 
-                    with open('data.json', 'w') as f:
+                    with open("data.json", "w") as f:
                         json.dump(data, f)
 
                     em = discord.Embed(
                         title="TMS Tickets",
                         description=f"You have successfully added `{role.name}` to the list of roles with access "
-                                    "to tickets.", color=0x00a8ff
+                        "to tickets.",
+                        color=0x00A8FF,
                     )
 
                     await interaction.response.send_message(embed=em)
 
                 except:
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="That isn't a valid role ID. Please try again with a valid role ID.")
+                    em = discord.Embed(
+                        title="TMS Tickets",
+                        description="That isn't a valid role ID. Please try again with a valid role ID.",
+                    )
                     await interaction.response.send_message(embed=em)
 
             else:
-                em = discord.Embed(title="TMS Tickets", description="That role already has access to tickets!",
-                                   color=0x00a8ff)
+                em = discord.Embed(
+                    title="TMS Tickets",
+                    description="That role already has access to tickets!",
+                    color=0x00A8FF,
+                )
                 await interaction.response.send_message(embed=em)
 
         else:
-            em = discord.Embed(title="TMS Tickets", description="Sorry, you don't have permission to run that command.",
-                               color=0x00a8ff)
+            em = discord.Embed(
+                title="TMS Tickets",
+                description="Sorry, you don't have permission to run that command.",
+                color=0x00A8FF,
+            )
             await interaction.response.send_message(embed=em)
 
     @command()
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     @describe(role="Role ID or mention role")
     async def delete_access(self, interaction: discord.Interaction, role: discord.Role):
-        with open('data.json') as f:
+        with open("data.json") as f:
             data = json.load(f)
 
         valid_user = False
@@ -258,36 +278,50 @@ class TicketGroup(Group):
 
                     data["valid-roles"] = valid_roles
 
-                    with open('data.json', 'w') as f:
+                    with open("data.json", "w") as f:
                         json.dump(data, f)
 
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="You have successfully removed `{}` from the list of roles with access to tickets.".format(
-                                           role.name), color=0x00a8ff)
+                    em = discord.Embed(
+                        title="TMS Tickets",
+                        description="You have successfully removed `{}` from the list of roles with access to tickets.".format(
+                            role.name
+                        ),
+                        color=0x00A8FF,
+                    )
 
                     await interaction.response.send_message(embed=em)
 
                 else:
 
-                    em = discord.Embed(title="TMS Tickets",
-                                       description="That role already doesn't have access to tickets!", color=0x00a8ff)
+                    em = discord.Embed(
+                        title="TMS Tickets",
+                        description="That role already doesn't have access to tickets!",
+                        color=0x00A8FF,
+                    )
                     await interaction.response.send_message(embed=em)
 
             except:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="That isn't a valid role ID. Please try again with a valid role ID.")
+                em = discord.Embed(
+                    title="TMS Tickets",
+                    description="That isn't a valid role ID. Please try again with a valid role ID.",
+                )
                 await interaction.response.send_message(embed=em)
 
         else:
-            em = discord.Embed(title="TMS Tickets", description="Sorry, you don't have permission to run that command.",
-                               color=0x00a8ff)
+            em = discord.Embed(
+                title="TMS Tickets",
+                description="Sorry, you don't have permission to run that command.",
+                color=0x00A8FF,
+            )
             await interaction.response.send_message(embed=em)
 
     @command()
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     @describe(role="Role ID or mention role")
-    async def add_pinged_role(self, interaction: discord.Interaction, role: discord.Role):
-        with open('data.json') as f:
+    async def add_pinged_role(
+        self, interaction: discord.Interaction, role: discord.Role
+    ):
+        with open("data.json") as f:
             data = json.load(f)
 
         valid_user = False
@@ -313,14 +347,14 @@ class TicketGroup(Group):
 
                     data["pinged-roles"].append(role)
 
-                    with open('data.json', 'w') as f:
+                    with open("data.json", "w") as f:
                         json.dump(data, f)
 
                     em = discord.Embed(
                         title="TMS Tickets",
                         description=f"You have successfully added `{role.name}` to the list of roles that get pinged "
-                                    f"when new tickets are created!",
-                        color=0x00a8ff
+                        f"when new tickets are created!",
+                        color=0x00A8FF,
                     )
 
                     await interaction.response.send_message(embed=em)
@@ -328,7 +362,7 @@ class TicketGroup(Group):
                 except:
                     em = discord.Embed(
                         title="TMS Tickets",
-                        description="That isn't a valid role ID. Please try again with a valid role ID."
+                        description="That isn't a valid role ID. Please try again with a valid role ID.",
                     )
                     await interaction.response.send_message(embed=em)
 
@@ -336,7 +370,7 @@ class TicketGroup(Group):
                 em = discord.Embed(
                     title="TMS Tickets",
                     description="That role already receives pings when tickets are created.",
-                    color=0x00a8ff
+                    color=0x00A8FF,
                 )
                 await interaction.response.send_message(embed=em)
 
@@ -344,7 +378,7 @@ class TicketGroup(Group):
             em = discord.Embed(
                 title="TMS Tickets",
                 description="Sorry, you don't have permission to run that command.",
-                color=0x00a8ff
+                color=0x00A8FF,
             )
             await interaction.response.send_message(embed=em)
 
@@ -352,7 +386,7 @@ class TicketGroup(Group):
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     @describe(role="Role ID or mention role")
     async def delete_pinged_role(self, interaction, role: discord.Role):
-        with open('data.json') as f:
+        with open("data.json") as f:
             data = json.load(f)
 
         valid_user = False
@@ -382,14 +416,14 @@ class TicketGroup(Group):
 
                     data["pinged-roles"] = pinged_roles
 
-                    with open('data.json', 'w') as f:
+                    with open("data.json", "w") as f:
                         json.dump(data, f)
 
                     em = discord.Embed(
                         title="TMS Tickets",
                         description=f"You have successfully removed `{role.name}` from the list of roles that get "
-                                    f"pinged when new tickets are created.",
-                        color=0x00a8ff
+                        f"pinged when new tickets are created.",
+                        color=0x00A8FF,
                     )
                     await interaction.response.send_message(embed=em)
 
@@ -397,20 +431,22 @@ class TicketGroup(Group):
                     em = discord.Embed(
                         title="TMS Tickets",
                         description="That role already isn't getting pinged when new tickets are created!",
-                        color=0xff008c
+                        color=0xFF008C,
                     )
                     await interaction.response.send_message(embed=em)
 
             except:
-                em = discord.Embed(title="TMS Tickets",
-                                   description="That isn't a valid role ID. Please try again with a valid role ID.")
+                em = discord.Embed(
+                    title="TMS Tickets",
+                    description="That isn't a valid role ID. Please try again with a valid role ID.",
+                )
                 await interaction.response.send_message(embed=em)
 
         else:
             em = discord.Embed(
                 title="TMS Tickets",
                 description="Sorry, you don't have permission to run that command.",
-                color=0xff008c
+                color=0xFF008C,
             )
             await interaction.response.send_message(embed=em)
 
@@ -423,20 +459,22 @@ class TicketGroup(Group):
 
             data["verified-roles"].append(role.id)
 
-            with open('data.json', 'w') as f:
+            with open("data.json", "w") as f:
                 json.dump(data, f)
 
             em = discord.Embed(
                 title="TMS Tickets",
                 description=f"You have successfully added `{role.name}` to the list of roles that can run admin-level "
-                            f"commands!",
-                color=0xff008c
+                f"commands!",
+                color=0xFF008C,
             )
             await interaction.response.send_message(embed=em)
 
         except:
-            em = discord.Embed(title="TMS Tickets",
-                               description="That isn't a valid role ID. Please try again with a valid role ID.")
+            em = discord.Embed(
+                title="TMS Tickets",
+                description="That isn't a valid role ID. Please try again with a valid role ID.",
+            )
             await interaction.response.send_message(embed=em)
 
     @command()
@@ -455,14 +493,14 @@ class TicketGroup(Group):
 
                 data["verified-roles"] = admin_roles
 
-                with open('data.json', 'w') as f:
+                with open("data.json", "w") as f:
                     json.dump(data, f)
 
                 em = discord.Embed(
                     title="TMS Tickets",
                     description=f"You have successfully removed `{role.name}` from the list of roles that get pinged "
-                                f"when new tickets are created.",
-                    color=0x00a8ff
+                    f"when new tickets are created.",
+                    color=0x00A8FF,
                 )
 
                 await interaction.response.send_message(embed=em)
@@ -471,23 +509,22 @@ class TicketGroup(Group):
                 em = discord.Embed(
                     title="TMS Tickets",
                     description="That role isn't getting pinged when new tickets are created!",
-                    color=0x00a8ff
+                    color=0x00A8FF,
                 )
                 await interaction.response.send_message(embed=em)
 
         except:
-            em = discord.Embed(title="TMS Tickets",
-                               description="That isn't a valid role ID. Please try again with a valid role ID.")
+            em = discord.Embed(
+                title="TMS Tickets",
+                description="That isn't a valid role ID. Please try again with a valid role ID.",
+            )
             await interaction.response.send_message(embed=em)
 
 
 class RolesGroup(Group):
     def __init__(self, bot: TMS):
         self.bot = bot
-        super().__init__(
-            name="roles",
-            guild_ids=[SERVER_ID]
-        )
+        super().__init__(name="roles", guild_ids=[SERVER_ID])
 
     @property
     def cog(self) -> commands.Cog:
@@ -500,85 +537,114 @@ class RolesGroup(Group):
         em1 = discord.Embed(
             title="Chose what events you're participating in!",
             description="To choose your event roles press the buttons below",
-            color=0xff008c
+            color=0xFF008C,
         )
         em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif'
+            url="https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif"
         )
         em1.set_footer(text="Life Science Events - Page 1 of 5")
-        roles_channel: discord.abc.MessageableChannel = self.bot.get_channel(Channel.ROLES)
+        roles_channel: discord.abc.MessageableChannel = self.bot.get_channel(
+            Channel.ROLES
+        )
         await roles_channel.send(embed=em1, view=Role1())
-        await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
+        await interaction.response.send_message(
+            "Sent to " + roles_channel.mention, ephemeral=True
+        )
 
     @command(name="two")
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def _two(self, interaction):
         """Buttons for Earth and Space Science Events"""
-        em1 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em1 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
         em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+            url="https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif"
+        )
         em1.set_footer(text="Earth and Space Science Events - Page 2 of 5")
         roles_channel = self.bot.get_channel(Channel.ROLES)
         await roles_channel.send(embed=em1, view=Role2())
-        await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
+        await interaction.response.send_message(
+            "Sent to " + roles_channel.mention, ephemeral=True
+        )
 
     @command(name="three")
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def _three(self, interaction):
         """Buttons for Physical Science & Chemistry Events"""
-        em1 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em1 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
         em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+            url="https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif"
+        )
         em1.set_footer(text="Physical Science & Chemistry Events - Page 3 of 5")
         roles_channel = self.bot.get_channel(Channel.ROLES)
         await roles_channel.send(embed=em1, view=Role3())
-        await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
+        await interaction.response.send_message(
+            "Sent to " + roles_channel.mention, ephemeral=True
+        )
 
     @command(name="four")
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def _four(self, interaction):
         """Buttons for Technology & Engineering Design Events"""
-        em1 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em1 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
         em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+            url="https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif"
+        )
         em1.set_footer(text="Technology & Engineering Design Events - Page 4 of 5")
         roles_channel = self.bot.get_channel(Channel.ROLES)
         await roles_channel.send(embed=em1, view=Role4())
-        await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
+        await interaction.response.send_message(
+            "Sent to " + roles_channel.mention, ephemeral=True
+        )
 
     @command(name="five")
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def _five(self, interaction):
         """Buttons for Inquiry & Nature"""
-        em1 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em1 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
         em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+            url="https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif"
+        )
         em1.set_footer(text="Inquiry & Nature of Science Events")
         roles_channel = self.bot.get_channel(Channel.ROLES)
         await roles_channel.send(embed=em1, view=Role5())
-        await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
+        await interaction.response.send_message(
+            "Sent to " + roles_channel.mention, ephemeral=True
+        )
 
     @command()
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     async def pronouns(self, interaction: discord.Interaction):
         """Buttons for Pronoun Roles"""
-        em1 = discord.Embed(title="What pronouns do you use?",
-                            description="Press the buttons below to choose your pronoun role(s)",
-                            color=0xff008c)
+        em1 = discord.Embed(
+            title="What pronouns do you use?",
+            description="Press the buttons below to choose your pronoun role(s)",
+            color=0xFF008C,
+        )
         em1.set_image(
-            url='https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif')
+            url="https://cdn.discordapp.com/attachments/685035292989718554/724301857157283910/ezgif-1-a2a2e7173d80.gif"
+        )
         em1.set_footer(text="Pronoun Roles")
         roles_channel = self.bot.get_channel(Channel.ROLES)
         await roles_channel.send(embed=em1, view=Pronouns())
-        await interaction.response.send_message('Sent to ' + roles_channel.mention, ephemeral=True)
+        await interaction.response.send_message(
+            "Sent to " + roles_channel.mention, ephemeral=True
+        )
 
     @command(name="all")
     @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
@@ -587,37 +653,49 @@ class RolesGroup(Group):
 
         await interaction.response.defer(thinking=True, ephemeral=True)
 
-        em1 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em1 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
         em1.set_footer(text="Life Science Events - Page 1 of 5")
 
-        em2 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em2 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
 
         em2.set_footer(text="Earth and Space Science Events - Page 2 of 5")
 
-        em3 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em3 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
 
         em3.set_footer(text="Physical Science & Chemistry Events - Page 3 of 5")
 
-        em4 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em4 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
 
         em4.set_footer(text="Technology & Engineering Design Events - Page 4 of 5")
 
-        em5 = discord.Embed(title="Chose what events you're participating in!",
-                            description="To choose your event roles press the buttons below",
-                            color=0xff008c)
+        em5 = discord.Embed(
+            title="Chose what events you're participating in!",
+            description="To choose your event roles press the buttons below",
+            color=0xFF008C,
+        )
         em5.set_footer(text="Inquiry & Nature of Science Events")
 
-        em6 = discord.Embed(title="What pronouns do you use?",
-                            description="Press the buttons below to choose your pronoun role(s)",
-                            color=0xff008c)
+        em6 = discord.Embed(
+            title="What pronouns do you use?",
+            description="Press the buttons below to choose your pronoun role(s)",
+            color=0xFF008C,
+        )
         em6.set_footer(text="Pronoun Roles")
 
         roles_channel = self.bot.get_channel(Channel.ROLES)
@@ -629,7 +707,9 @@ class RolesGroup(Group):
         await roles_channel.send(embed=em5, view=Role5())
         await roles_channel.send(embed=em6, view=Pronouns())
 
-        await interaction.followup.send('Sent to ' + roles_channel.mention, ephemeral=True)
+        await interaction.followup.send(
+            "Sent to " + roles_channel.mention, ephemeral=True
+        )
 
 
 async def setup(bot: TMS):

@@ -25,7 +25,7 @@ class Core(commands.Cog):
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\U0001f4bb')
+        return discord.PartialEmoji(name="\U0001f4bb")
 
     def __init__(self, bot: TMS):
         print("Core Cog Loaded")
@@ -37,24 +37,24 @@ class Core(commands.Cog):
     def cleanup_code(content):
         """Automatically removes code blocks from the code."""
         # remove ```py\n```
-        if content.startswith('```') and content.endswith('```'):
-            return '\n'.join(content.split('\n')[1:-1])
+        if content.startswith("```") and content.endswith("```"):
+            return "\n".join(content.split("\n")[1:-1])
 
         # remove `foo`
-        return content.strip('` \n')
+        return content.strip("` \n")
 
     @commands.command()
     @commands.is_owner()
     async def eval(self, ctx: custom.Context, *, body: str):
         """Evaluates a code"""
         env = {
-            'bot': self.bot,
-            'ctx': ctx,
-            'channel': ctx.channel,
-            'author': ctx.author,
-            'guild': ctx.guild,
-            'message': ctx.message,
-            '_': self._last_result
+            "bot": self.bot,
+            "ctx": ctx,
+            "channel": ctx.channel,
+            "author": ctx.author,
+            "guild": ctx.guild,
+            "message": ctx.message,
+            "_": self._last_result,
         }
 
         env.update(globals())
@@ -67,28 +67,28 @@ class Core(commands.Cog):
         try:
             exec(to_compile, env)
         except Exception as e:
-            return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
+            return await ctx.send(f"```py\n{e.__class__.__name__}: {e}\n```")
 
-        func = env['func']
+        func = env["func"]
         try:
             with redirect_stdout(stdout):
                 ret = await func()
         except Exception as e:
             value = stdout.getvalue()
-            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
+            await ctx.send(f"```py\n{value}{traceback.format_exc()}\n```")
         else:
             value = stdout.getvalue()
             try:
-                await ctx.message.add_reaction('\u2705')
+                await ctx.message.add_reaction("\u2705")
             except:
                 pass
 
             if ret is None:
                 if value:
-                    await ctx.send(f'```py\n{value}\n```')
+                    await ctx.send(f"```py\n{value}\n```")
             else:
                 self._last_result = ret
-                await ctx.send(f'```py\n{value}{ret}\n```')
+                await ctx.send(f"```py\n{value}{ret}\n```")
 
     @commands.hybrid_command(name="sync-commands")
     @commands.is_owner()
@@ -132,7 +132,7 @@ class Module(Group):
             "cogs.medals",
             "cogs.player",
             "cogs.music",
-            "jishaku"
+            "jishaku",
         ]
 
     @property
@@ -150,9 +150,9 @@ class Module(Group):
         try:
             await self.bot.load_extension(module)
         except commands.ExtensionError as e:
-            await interaction.response.send_message(f'{e.__class__.__name__}: {e}')
+            await interaction.response.send_message(f"{e.__class__.__name__}: {e}")
         else:
-            await interaction.response.send_message('<:greenTick:899466945672392704> ')
+            await interaction.response.send_message("<:greenTick:899466945672392704> ")
 
     @command()
     async def unload(self, interaction: discord.Interaction, *, module: str):
@@ -160,9 +160,9 @@ class Module(Group):
         try:
             await self.bot.unload_extension(module)
         except commands.ExtensionError as e:
-            await interaction.response.send_message(f'{e.__class__.__name__}: {e}')
+            await interaction.response.send_message(f"{e.__class__.__name__}: {e}")
         else:
-            await interaction.response.send_message('<:greenTick:899466945672392704>')
+            await interaction.response.send_message("<:greenTick:899466945672392704>")
 
     @command()
     async def reload(self, interaction: discord.Interaction, *, module: str):
@@ -170,9 +170,9 @@ class Module(Group):
         try:
             await self.bot.reload_extension(module)
         except commands.ExtensionError as e:
-            await interaction.response.send_message(f'{e.__class__.__name__}: {e}')
+            await interaction.response.send_message(f"{e.__class__.__name__}: {e}")
         else:
-            await interaction.response.send_message('<:greenTick:899466945672392704>')
+            await interaction.response.send_message("<:greenTick:899466945672392704>")
 
     async def _reload_or_load_extension(self, module):
         try:
@@ -237,10 +237,10 @@ class Module(Group):
 
     @command()
     async def gitpull(
-            self,
-            interaction: discord.Interaction,
-            mode: Literal["-a", "-c"] = "-a",
-            sync_commands: bool = False,
+        self,
+        interaction: discord.Interaction,
+        mode: Literal["-a", "-c"] = "-a",
+        sync_commands: bool = False,
     ) -> None:
         output = ""
         try:

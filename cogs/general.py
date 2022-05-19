@@ -39,18 +39,18 @@ class BotGroup(Group):
     async def say_permissions(interaction: discord.Interaction, member, channel):
         permissions = channel.permissions_for(member)
         e = discord.Embed(colour=member.colour)
-        avatar = member.display_avatar.with_static_format('png')
+        avatar = member.display_avatar.with_static_format("png")
         e.set_author(name=str(member), url=avatar)
         allowed, denied = [], []
         for name, value in permissions:
-            name = name.replace('_', ' ').replace('guild', 'server').title()
+            name = name.replace("_", " ").replace("guild", "server").title()
             if value:
                 allowed.append(name)
             else:
                 denied.append(name)
 
-        e.add_field(name='Allowed', value='\n'.join(allowed))
-        e.add_field(name='Denied', value='\n'.join(denied))
+        e.add_field(name="Allowed", value="\n".join(allowed))
+        e.add_field(name="Denied", value="\n".join(denied))
         await interaction.response.send_message(embed=e)
 
     def get_bot_uptime(self) -> str:
@@ -63,9 +63,7 @@ class BotGroup(Group):
 
     @command(name="permissions")
     async def _permissions(
-            self,
-            interaction: discord.Interaction,
-            channel: Optional[discord.TextChannel]
+        self, interaction: discord.Interaction, channel: Optional[discord.TextChannel]
     ):
         """Shows the bot's permissions in a specific channel.
         If no channel is given then it uses the current one.
@@ -80,7 +78,7 @@ class BotGroup(Group):
 
     @command()
     async def uptime(self, interaction: discord.Interaction):
-        '''Sends how long the bot has been online'''
+        """Sends how long the bot has been online"""
         uptime = self.get_bot_uptime()
         await interaction.response.send_message(f"**{uptime}**")
 
@@ -106,7 +104,11 @@ class BotGroup(Group):
         support_guild = self.bot.get_guild(816806329925894217)
         owner = await support_guild.get_member(747126643587416174)
         name = str(owner)
-        embed.set_author(name=name, icon_url=owner.display_avatar.url, url='https://github.com/pandabear189')
+        embed.set_author(
+            name=name,
+            icon_url=owner.display_avatar.url,
+            url="https://github.com/pandabear189",
+        )
 
         # statistics
         total_members = 0
@@ -127,19 +129,31 @@ class BotGroup(Group):
                 elif isinstance(channel, discord.VoiceChannel):
                     voice += 1
 
-        embed.add_field(name='Members', value=f'{total_members} total\n{total_unique} unique')
-        embed.add_field(name='Channels', value=f'{text + voice} total\n{text} text\n{voice} voice')
+        embed.add_field(
+            name="Members", value=f"{total_members} total\n{total_unique} unique"
+        )
+        embed.add_field(
+            name="Channels", value=f"{text + voice} total\n{text} text\n{voice} voice"
+        )
 
-        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
+        memory_usage = self.process.memory_full_info().uss / 1024**2
         cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
-        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU')
+        embed.add_field(
+            name="Process", value=f"{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU"
+        )
 
-        dpyversion = pkg_resources.get_distribution('py-cord').version
-        embed.add_field(name='Guilds', value=guilds)
-        embed.add_field(name='Number of Commands', value=(len(self.bot.commands) + len(self.bot.tree.get_commands())))
+        dpyversion = pkg_resources.get_distribution("py-cord").version
+        embed.add_field(name="Guilds", value=guilds)
+        embed.add_field(
+            name="Number of Commands",
+            value=(len(self.bot.commands) + len(self.bot.tree.get_commands())),
+        )
         uptime = self.get_bot_uptime()
         embed.add_field(name="Uptime", value=uptime)
-        embed.set_footer(text=f'Made with discord.py v{dpyversion}', icon_url='https://i.imgur.com/RPrw70n.png')
+        embed.set_footer(
+            text=f"Made with discord.py v{dpyversion}",
+            icon_url="https://i.imgur.com/RPrw70n.png",
+        )
         embed.timestamp = discord.utils.utcnow()
         await interaction.response.send_message(embed=embed)
 
@@ -155,53 +169,63 @@ class BotGroup(Group):
 
         total_warnings = 0
 
-        embed = discord.Embed(title='Bot Health Report', colour=HEALTHY)
+        embed = discord.Embed(title="Bot Health Report", colour=HEALTHY)
 
-        description = [
-        ]
+        description = []
 
         task_retriever = asyncio.all_tasks
         all_tasks = task_retriever(loop=self.bot.loop)
 
         event_tasks = [
-            t for t in all_tasks
-            if 'Client._run_event' in repr(t) and not t.done()
+            t for t in all_tasks if "Client._run_event" in repr(t) and not t.done()
         ]
 
         cogs_directory = os.path.dirname(__file__)
-        tasks_directory = os.path.join('discord', 'ext', 'tasks', '__init__.py')
+        tasks_directory = os.path.join("discord", "ext", "tasks", "__init__.py")
         inner_tasks = [
-            t for t in all_tasks
+            t
+            for t in all_tasks
             if cogs_directory in repr(t) or tasks_directory in repr(t)
         ]
 
-        bad_inner_tasks = ", ".join(hex(id(t)) for t in inner_tasks if t.done() and t._exception is not None)
+        bad_inner_tasks = ", ".join(
+            hex(id(t)) for t in inner_tasks if t.done() and t._exception is not None
+        )
         total_warnings += bool(bad_inner_tasks)
-        embed.add_field(name='Inner Tasks', value=f'Total: {len(inner_tasks)}\nFailed: {bad_inner_tasks or "None"}')
-        embed.add_field(name='Events Waiting', value=f'Total: {len(event_tasks)}', inline=False)
+        embed.add_field(
+            name="Inner Tasks",
+            value=f'Total: {len(inner_tasks)}\nFailed: {bad_inner_tasks or "None"}',
+        )
+        embed.add_field(
+            name="Events Waiting", value=f"Total: {len(event_tasks)}", inline=False
+        )
 
-        memory_usage = self.process.memory_full_info().uss / 1024 ** 2
+        memory_usage = self.process.memory_full_info().uss / 1024**2
         cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
-        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', inline=False)
+        embed.add_field(
+            name="Process",
+            value=f"{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU",
+            inline=False,
+        )
 
         ws_rate_limit = self.bot.is_ws_ratelimited()
-        description.append(f'Websocket Rate Limit: {ws_rate_limit}')
+        description.append(f"Websocket Rate Limit: {ws_rate_limit}")
 
         global_rate_limit = self.bot.http._global_over.set()
-        description.append(f'Global Rate Limit: {global_rate_limit}')
+        description.append(f"Global Rate Limit: {global_rate_limit}")
 
         if ws_rate_limit or total_warnings >= 3 or len(event_tasks) >= 4:
             embed.colour = UNHEALTHY
 
-        embed.set_footer(text=f'{total_warnings} warning(s)')
-        embed.description = '\n'.join(description)
+        embed.set_footer(text=f"{total_warnings} warning(s)")
+        embed.description = "\n".join(description)
         await interaction.response.send_message(embed=embed)
 
 
 class General(commands.Cog):
     """General commands."""
 
-    print('GeneralCommands Cog Loaded')
+    print("GeneralCommands Cog Loaded")
 
     def __init__(self, bot: TMS):
         self.bot = bot
@@ -209,7 +233,7 @@ class General(commands.Cog):
 
     @property
     def display_emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(name='\U0001f62f')
+        return discord.PartialEmoji(name="\U0001f62f")
 
     async def cog_check(self, interaction) -> bool:
         return await is_not_blacklisted(interaction)
@@ -220,79 +244,95 @@ class General(commands.Cog):
     @staticmethod
     async def _basic_cleanup_strategy(interaction: discord.Interaction, search):
         count = 0
-        async for msg in interaction.channel.history(limit=search, before=interaction.message):
-            if msg.author == interaction.guild.me and not (msg.mentions or msg.role_mentions):
+        async for msg in interaction.channel.history(
+            limit=search, before=interaction.message
+        ):
+            if msg.author == interaction.guild.me and not (
+                msg.mentions or msg.role_mentions
+            ):
                 await msg.delete()
                 count += 1
-        return {'Bot': count}
+        return {"Bot": count}
 
     @staticmethod
     async def _complex_cleanup_strategy(interaction: discord.Interaction, search):
-
         def check(m):
             return m.author == interaction.guild.me or m.content.startswith("!" or "?")
 
-        deleted = await interaction.channel.purge(limit=search, check=check, before=interaction.message)
+        deleted = await interaction.channel.purge(
+            limit=search, check=check, before=interaction.message
+        )
         return Counter(m.author.display_name for m in deleted)
 
     @staticmethod
     async def _regular_user_cleanup_strategy(interaction: discord.Interaction, search):
         def check(m):
-            return (m.author == interaction.guild.me or m.content.startswith("!" or "?")) and not (
-                        m.mentions or m.role_mentions)
+            return (
+                m.author == interaction.guild.me or m.content.startswith("!" or "?")
+            ) and not (m.mentions or m.role_mentions)
 
-        deleted = await interaction.channel.purge(limit=search, check=check, before=interaction.message)
+        deleted = await interaction.channel.purge(
+            limit=search, check=check, before=interaction.message
+        )
         return Counter(m.author.display_name for m in deleted)
 
     @staticmethod
     def format_commit(commit):
-        short, _, _ = commit.message.partition('\n')
+        short, _, _ = commit.message.partition("\n")
         short_sha2 = commit.hex[0:6]
-        commit_tz = datetime.timezone(datetime.timedelta(minutes=commit.commit_time_offset))
-        commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(commit_tz)
+        commit_tz = datetime.timezone(
+            datetime.timedelta(minutes=commit.commit_time_offset)
+        )
+        commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(
+            commit_tz
+        )
 
         # [`hash`](url) message (offset)
         offset = times.format_relative(commit_time.astimezone(datetime.timezone.utc))
-        return f'[`{short_sha2}`](https://github.com/pandabear189/tms-scioly-bots/commit/{commit.hex}) {short} ({offset})'
+        return f"[`{short_sha2}`](https://github.com/pandabear189/tms-scioly-bots/commit/{commit.hex}) {short} ({offset})"
 
     @command()
     @guilds(SERVER_ID)
     async def rule(
-            self,
-            interaction: discord.Interaction,
-            number: Literal["1", "2", "3", "4", "5", "6"]
+        self,
+        interaction: discord.Interaction,
+        number: Literal["1", "2", "3", "4", "5", "6"],
     ):
         """Gets a specified rule."""
         rule = RULES[int(number) - 1]
-        embed = discord.Embed(title="",
-                              description=f"**Rule {number}:**\n> {rule}",
-                              color=0xff008c)
+        embed = discord.Embed(
+            title="", description=f"**Rule {number}:**\n> {rule}", color=0xFF008C
+        )
         await interaction.response.send_message(embed=embed)
 
     @staticmethod
     def tick(opt, label=None):
         lookup = {
-            True: '<:greenTick:899466945672392704>',
-            False: '<:redTick:899466976748003398>',
-            None: '<:greyTick:899466890102075393>',
+            True: "<:greenTick:899466945672392704>",
+            False: "<:redTick:899466976748003398>",
+            None: "<:greyTick:899466890102075393>",
         }
-        emoji = lookup.get(opt, '<:redTick:330090723011592193>')
+        emoji = lookup.get(opt, "<:redTick:330090723011592193>")
         if label is not None:
-            return f'{emoji}: {label}'
+            return f"{emoji}: {label}"
         return emoji
 
     @command()
     @guilds(SERVER_ID)
-    async def serverinfo(self, interaction: discord.Interaction, *, guild_id: int = None):
+    async def serverinfo(
+        self, interaction: discord.Interaction, *, guild_id: int = None
+    ):
         """Shows info about the current server."""
         if guild_id is not None and await self.bot.is_owner(interaction.user):
             guild = self.bot.get_guild(guild_id)
             if guild is None:
-                return await interaction.response.send_message(f'Invalid Guild ID given.')
+                return await interaction.response.send_message(
+                    f"Invalid Guild ID given."
+                )
         else:
             guild = interaction.guild
 
-        roles = [role.name.replace('@', '@\u200b') for role in guild.roles]
+        roles = [role.name.replace("@", "@\u200b") for role in guild.roles]
 
         if not guild.chunked:
             await guild.chunk(cache=True)
@@ -309,19 +349,21 @@ class General(commands.Cog):
             totals[channel_type] += 1
             if not perms.read_messages:
                 secret[channel_type] += 1
-            elif isinstance(channel, discord.VoiceChannel) and (not perms.connect or not perms.speak):
+            elif isinstance(channel, discord.VoiceChannel) and (
+                not perms.connect or not perms.speak
+            ):
                 secret[channel_type] += 1
 
         e = discord.Embed()
         e.title = guild.name
-        e.description = f'**ID**: {guild.id}\n**Owner**: {guild.owner}'
+        e.description = f"**ID**: {guild.id}\n**Owner**: {guild.owner}"
         if guild.icon:
             e.set_thumbnail(url=guild.icon.url)
 
         channel_info = []
         key_to_emoji = {
-            discord.TextChannel: '<:text_channel:899326950785576970>',
-            discord.VoiceChannel: '<:voice_channel:899326987255021619>',
+            discord.TextChannel: "<:text_channel:899326950785576970>",
+            discord.VoiceChannel: "<:voice_channel:899326987255021619>",
         }
         for key, total in totals.items():
             secrets = secret[key]
@@ -331,99 +373,107 @@ class General(commands.Cog):
                 continue
 
             if secrets:
-                channel_info.append(f'{emoji} {total} ({secrets} locked)')
+                channel_info.append(f"{emoji} {total} ({secrets} locked)")
             else:
-                channel_info.append(f'{emoji} {total}')
+                channel_info.append(f"{emoji} {total}")
 
         info = []
         features = set(guild.features)
         all_features = {
-            'PARTNERED': 'Partnered',
-            'VERIFIED': 'Verified',
-            'DISCOVERABLE': 'Server Discovery',
-            'COMMUNITY': 'Community Server',
-            'FEATURABLE': 'Featured',
-            'WELCOME_SCREEN_ENABLED': 'Welcome Screen',
-            'INVITE_SPLASH': 'Invite Splash',
-            'VIP_REGIONS': 'VIP Voice Servers',
-            'VANITY_URL': 'Vanity Invite',
-            'COMMERCE': 'Commerce',
-            'LURKABLE': 'Lurkable',
-            'NEWS': 'News Channels',
-            'ANIMATED_ICON': 'Animated Icon',
-            'BANNER': 'Banner',
+            "PARTNERED": "Partnered",
+            "VERIFIED": "Verified",
+            "DISCOVERABLE": "Server Discovery",
+            "COMMUNITY": "Community Server",
+            "FEATURABLE": "Featured",
+            "WELCOME_SCREEN_ENABLED": "Welcome Screen",
+            "INVITE_SPLASH": "Invite Splash",
+            "VIP_REGIONS": "VIP Voice Servers",
+            "VANITY_URL": "Vanity Invite",
+            "COMMERCE": "Commerce",
+            "LURKABLE": "Lurkable",
+            "NEWS": "News Channels",
+            "ANIMATED_ICON": "Animated Icon",
+            "BANNER": "Banner",
         }
 
         for feature, label in all_features.items():
             if feature in features:
-                info.append(f'{self.tick(True)}: {label}')
+                info.append(f"{self.tick(True)}: {label}")
 
         if info:
-            e.add_field(name='Features', value='\n'.join(info))
+            e.add_field(name="Features", value="\n".join(info))
 
-        e.add_field(name='Channels', value='\n'.join(channel_info))
+        e.add_field(name="Channels", value="\n".join(channel_info))
 
         if guild.premium_tier != 0:
-            boosts = f'Level {guild.premium_tier}\n{guild.premium_subscription_count} boosts'
-            last_boost = max(guild.members, key=lambda m: m.premium_since or guild.created_at)
+            boosts = (
+                f"Level {guild.premium_tier}\n{guild.premium_subscription_count} boosts"
+            )
+            last_boost = max(
+                guild.members, key=lambda m: m.premium_since or guild.created_at
+            )
             if last_boost.premium_since is not None:
-                boosts = f'{boosts}\nLast Boost: {last_boost} ({times.format_relative(last_boost.premium_since)})'
-            e.add_field(name='Boosts', value=boosts, inline=False)
+                boosts = f"{boosts}\nLast Boost: {last_boost} ({times.format_relative(last_boost.premium_since)})"
+            e.add_field(name="Boosts", value=boosts, inline=False)
 
         bots = sum(m.bot for m in guild.members)
-        fmt = f'Total: {guild.member_count} ({bots} bots)'
+        fmt = f"Total: {guild.member_count} ({bots} bots)"
 
-        e.add_field(name='Members', value=fmt, inline=False)
-        e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
+        e.add_field(name="Members", value=fmt, inline=False)
+        e.add_field(
+            name="Roles",
+            value=", ".join(roles) if len(roles) < 10 else f"{len(roles)} roles",
+        )
 
         emoji_stats = Counter()
         for emoji in guild.emojis:
             if emoji.animated:
-                emoji_stats['animated'] += 1
-                emoji_stats['animated_disabled'] += not emoji.available
+                emoji_stats["animated"] += 1
+                emoji_stats["animated_disabled"] += not emoji.available
             else:
-                emoji_stats['regular'] += 1
-                emoji_stats['disabled'] += not emoji.available
+                emoji_stats["regular"] += 1
+                emoji_stats["disabled"] += not emoji.available
 
         fmt = (
             f'Regular: {emoji_stats["regular"]}/{guild.emoji_limit}\n'
             f'Animated: {emoji_stats["animated"]}/{guild.emoji_limit}\n'
         )
-        if emoji_stats['disabled'] or emoji_stats['animated_disabled']:
+        if emoji_stats["disabled"] or emoji_stats["animated_disabled"]:
             fmt = f'{fmt}Disabled: {emoji_stats["disabled"]} regular, {emoji_stats["animated_disabled"]} animated\n'
 
-        fmt = f'{fmt}Total Emoji: {len(guild.emojis)}/{guild.emoji_limit * 2}'
-        e.add_field(name='Emoji', value=fmt, inline=False)
-        e.set_footer(text='Created').timestamp = guild.created_at
+        fmt = f"{fmt}Total Emoji: {len(guild.emojis)}/{guild.emoji_limit * 2}"
+        e.add_field(name="Emoji", value=fmt, inline=False)
+        e.set_footer(text="Created").timestamp = guild.created_at
         await interaction.response.send_message(embed=e)
 
     @staticmethod
     async def say_permissions(
-            interaction: discord.Interaction,
-            member: discord.Member,
-            channel
+        interaction: discord.Interaction, member: discord.Member, channel
     ):
         permissions = channel.permissions_for(member)
         e = discord.Embed(colour=member.colour)
-        avatar = member.display_avatar.with_static_format('png')
+        avatar = member.display_avatar.with_static_format("png")
         e.set_author(name=str(member), url=avatar)
         allowed, denied = [], []
         for name, value in permissions:
-            name = name.replace('_', ' ').replace('guild', 'server').title()
+            name = name.replace("_", " ").replace("guild", "server").title()
             if value:
                 allowed.append(name)
             else:
                 denied.append(name)
 
-        e.add_field(name='Allowed', value='\n'.join(allowed))
-        e.add_field(name='Denied', value='\n'.join(denied))
+        e.add_field(name="Allowed", value="\n".join(allowed))
+        e.add_field(name="Denied", value="\n".join(denied))
         await interaction.response.send_message(embed=e)
 
     @command()
     @guilds(SERVER_ID)
-    async def permissions(self, interaction: discord.Interaction,
-                          member: Optional[discord.Member],
-                          channel: Optional[discord.TextChannel]):
+    async def permissions(
+        self,
+        interaction: discord.Interaction,
+        member: Optional[discord.Member],
+        channel: Optional[discord.TextChannel],
+    ):
         """Shows a member's permissions in a specific channel.
         If no channel is given then it uses the current one.
         You cannot use this in private messages. If no member is given then
@@ -438,21 +488,21 @@ class General(commands.Cog):
     @command()
     @guilds(SERVER_ID)
     async def debugpermissions(
-            self,
-            interaction: discord.Interaction,
-            guild_id: int,
-            channel_id: int,
-            author_id: int = None
+        self,
+        interaction: discord.Interaction,
+        guild_id: int,
+        channel_id: int,
+        author_id: int = None,
     ):
         """Shows permission resolution for a channel and an optional author."""
 
         guild = self.bot.get_guild(guild_id)
         if guild is None:
-            return await interaction.response.send_message('Guild not found?')
+            return await interaction.response.send_message("Guild not found?")
 
         channel = guild.get_channel(channel_id)
         if channel is None:
-            return await interaction.response.send_message('Channel not found?')
+            return await interaction.response.send_message("Channel not found?")
 
         if author_id is None:
             member = guild.me
@@ -460,7 +510,7 @@ class General(commands.Cog):
             member = await interaction.guild.get_member(author_id)
 
         if member is None:
-            return await interaction.response.send_message('Member not found?')
+            return await interaction.response.send_message("Member not found?")
 
         await self.say_permissions(interaction, member, channel)
 
@@ -471,28 +521,41 @@ class General(commands.Cog):
 
         user = user or interaction.user
         e = discord.Embed()
-        roles = [role.name.replace('@', '@\u200b') for role in getattr(user, 'roles', [])]
+        roles = [
+            role.name.replace("@", "@\u200b") for role in getattr(user, "roles", [])
+        ]
         e.set_author(name=str(user))
 
         def format_date(dt):
             if dt is None:
-                return 'N/A'
+                return "N/A"
             return f'{times.format_dt(dt, "F")} ({times.format_relative(dt)})'
 
-        e.add_field(name='ID', value=user.id, inline=False)
-        e.add_field(name='Joined', value=format_date(getattr(user, 'joined_at', None)), inline=False)
-        e.add_field(name='Created', value=format_date(user.created_at), inline=False)
+        e.add_field(name="ID", value=user.id, inline=False)
+        e.add_field(
+            name="Joined",
+            value=format_date(getattr(user, "joined_at", None)),
+            inline=False,
+        )
+        e.add_field(name="Created", value=format_date(user.created_at), inline=False)
 
-        voice = getattr(user, 'voice', None)
+        voice = getattr(user, "voice", None)
         if voice is not None:
             vc = voice.channel
             other_people = len(vc.members) - 1
-            voice = f'{vc.name} with {other_people} others' if other_people else f'{vc.name} by themselves'
-            e.add_field(name='Voice', value=voice, inline=False)
+            voice = (
+                f"{vc.name} with {other_people} others"
+                if other_people
+                else f"{vc.name} by themselves"
+            )
+            e.add_field(name="Voice", value=voice, inline=False)
 
         if roles:
-            e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 15 else f'{len(roles)} roles',
-                        inline=False)
+            e.add_field(
+                name="Roles",
+                value=", ".join(roles) if len(roles) < 15 else f"{len(roles)} roles",
+                inline=False,
+            )
 
         colour = user.colour
         if colour.value:
@@ -501,25 +564,29 @@ class General(commands.Cog):
         e.set_thumbnail(url=user.display_avatar.url)
 
         if isinstance(user, discord.User):
-            e.set_footer(text='This member is not in this server.')
+            e.set_footer(text="This member is not in this server.")
 
         await interaction.response.send_message(embed=e)
 
     @command()
     @guilds(SERVER_ID)
     async def invite(self, interaction: discord.Interaction):
-        '''Gives you a 1 time use invite link'''
+        """Gives you a 1 time use invite link"""
         x = await interaction.channel.create_invite(max_uses=1)
         await interaction.response.send_message(x)
 
     @command()
     @guilds(SERVER_ID)
     async def suggest(self, interaction: discord.Interaction, suggestion: str):
-        '''Make a suggestion for the server, team or bot'''
+        """Make a suggestion for the server, team or bot"""
         server = self.bot.get_guild(SERVER_ID)
         suggest_channel = interaction.guild.get_channel(Channel.SUGGESTIONS)
         reports_channel = interaction.guild.get_channel(Channel.REPORTS)
-        embed = discord.Embed(title="New Suggestion", description=f"{suggestion}", color=discord.Color.blurple())
+        embed = discord.Embed(
+            title="New Suggestion",
+            description=f"{suggestion}",
+            color=discord.Color.blurple(),
+        )
         embed.timestamp = discord.utils.utcnow()
         name = interaction.user.nick or interaction.user
         embed.set_author(name=name, icon_url=interaction.user.avatar)
@@ -528,7 +595,9 @@ class General(commands.Cog):
         await suggest_message.add_reaction("\U0001f44e")
         await reports_channel.send(embed=embed)
         suggest_url = suggest_message.jump_url
-        embed2 = discord.Embed(title=" ", description=f"Posted! [Your Suggestion!]({suggest_url})")
+        embed2 = discord.Embed(
+            title=" ", description=f"Posted! [Your Suggestion!]({suggest_url})"
+        )
         await interaction.response.send_message(embed=embed2)
         suggest_id = suggest_message.id
         suggest_embed = suggest_message.embeds[0]
@@ -567,11 +636,11 @@ class General(commands.Cog):
         deleted = sum(spammers.values())
         messages = [f'{deleted} message{" was" if deleted == 1 else "s were"} removed.']
         if deleted:
-            messages.append('')
+            messages.append("")
             spammers = sorted(spammers.items(), key=lambda t: t[1], reverse=True)
-            messages.extend(f'- **{author}**: {count}' for author, count in spammers)
+            messages.extend(f"- **{author}**: {count}" for author, count in spammers)
 
-        await interaction.response.send_message('\n'.join(messages))
+        await interaction.response.send_message("\n".join(messages))
 
     #
     # @command()
@@ -661,13 +730,15 @@ class General(commands.Cog):
         if not interaction.guild.chunked:
             members = await interaction.guild.chunk(cache=True)
         else:
-            members = sorted(interaction.guild.members, key=lambda m: m.joined_at, reverse=True)[:count]
+            members = sorted(
+                interaction.guild.members, key=lambda m: m.joined_at, reverse=True
+            )[:count]
 
-        e = discord.Embed(title='New Members', colour=discord.Colour.green())
+        e = discord.Embed(title="New Members", colour=discord.Colour.green())
 
         for member in members:
-            body = f'Joined {times.format_relative(member.joined_at)}\nCreated {times.format_relative(member.created_at)}'
-            e.add_field(name=f'{member} (ID: {member.id})', value=body, inline=False)
+            body = f"Joined {times.format_relative(member.joined_at)}\nCreated {times.format_relative(member.created_at)}"
+            e.add_field(name=f"{member} (ID: {member.id})", value=body, inline=False)
 
         await interaction.response.send_message(embed=e)
 

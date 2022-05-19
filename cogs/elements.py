@@ -49,25 +49,33 @@ class Elements(commands.Cog):
     def get_xray_wavelength(element: ELEMENTS) -> str:
         try:
             ka = 1239.84 / (
-                    13.6057 * ((element.atomic_number - 1) ** 2) * ((1 / 1 ** 2) - (1 / 2 ** 2))
+                13.6057
+                * ((element.atomic_number - 1) ** 2)
+                * ((1 / 1**2) - (1 / 2**2))
             )
         except Exception:
             ka = ""
         try:
             kb = 1239.84 / (
-                    13.6057 * ((element.atomic_number - 1) ** 2) * ((1 / 1 ** 2) - (1 / 3 ** 2))
+                13.6057
+                * ((element.atomic_number - 1) ** 2)
+                * ((1 / 1**2) - (1 / 3**2))
             )
         except Exception:
             kb = ""
         try:
             la = 1239.84 / (
-                    13.6057 * ((element.atomic_number - 7.4) ** 2) * ((1 / 1 ** 2) - (1 / 2 ** 3))
+                13.6057
+                * ((element.atomic_number - 7.4) ** 2)
+                * ((1 / 1**2) - (1 / 2**3))
             )
         except Exception:
             la = ""
         try:
             lb = 1239.84 / (
-                    13.6057 * ((element.atomic_number - 7.4) ** 2) * ((1 / 1 ** 2) - (1 / 2 ** 4))
+                13.6057
+                * ((element.atomic_number - 7.4) ** 2)
+                * ((1 / 1**2) - (1 / 2**4))
             )
         except Exception:
             lb = ""
@@ -81,9 +89,9 @@ class Elements(commands.Cog):
     @command()
     @guilds(SERVER_ID)
     async def element(
-            self,
-            interaction: discord.Interaction,
-            element: str,
+        self,
+        interaction: discord.Interaction,
+        element: str,
     ) -> None:
         """
         Display information about an element
@@ -94,14 +102,16 @@ class Elements(commands.Cog):
 
     @command(name="periodic-table")
     @guilds(SERVER_ID)
-    async def periodictable(
-            self,
-            interaction: discord.Interaction
-    ) -> None:
+    async def periodictable(self, interaction: discord.Interaction) -> None:
         """Display a menu of all elements"""
         await interaction.response.defer(thinking=True)
         embeds = [await self.element_embed(ELEMENTS(e)) for e in range(1, 119)]
-        menu = Pages(bot=self.bot, interaction=interaction, source=Source(embeds, per_page=1), compact=False)
+        menu = Pages(
+            bot=self.bot,
+            interaction=interaction,
+            source=Source(embeds, per_page=1),
+            compact=False,
+        )
         await menu.start()
 
     async def element_embed(self, element: ELEMENTS) -> discord.Embed:
@@ -134,10 +144,10 @@ class Elements(commands.Cog):
             x = getattr(element, attr, "")
             if x:
                 embed.add_field(name=name[0], value=f"{x} {name[1]}")
-        embed.add_field(name="X-ray Fluorescence", value=self.get_xray_wavelength(element))
-        discovery = (
-            f"{element.discoverers} ({element.discovery_year}) in {element.discovery_location}"
+        embed.add_field(
+            name="X-ray Fluorescence", value=self.get_xray_wavelength(element)
         )
+        discovery = f"{element.discoverers} ({element.discovery_year}) in {element.discovery_location}"
         embed.add_field(name="Discovery", value=discovery)
 
         return embed

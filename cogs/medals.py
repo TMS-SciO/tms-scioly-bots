@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bot import TMS
 
+
 class Medals(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -57,7 +58,7 @@ class Medals(commands.Cog):
                 "\n**Luka** \N{THIRD PLACE MEDAL}"
                 "\n**Srikrishna** \N{SPORTS MEDAL}"
             ),
-            color=discord.Color.blurple()
+            color=discord.Color.blurple(),
         )
         await interaction.response.send_message(embed=embed)
 

@@ -25,12 +25,12 @@ class IgnoreButton(discord.ui.Button):
 
     view = None
 
-    def __init__(self, view):
+    def __init__(self, view: "InappropriateUsername"):
         self.view = view
         super().__init__(
             style=discord.ButtonStyle.gray,
             label="Ignore",
-            custom_id=f"{view.report_id}:ignore"
+            custom_id=f"{view.report_id}:ignore",
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -41,7 +41,8 @@ class IgnoreButton(discord.ui.Button):
         closed_reports = interaction.guild.get_channel(Channel.CLOSED_REPORTS)
         await closed_reports.send(
             f"**Report was ignored** by {interaction.user.mention} - {self.view.member.mention} had the inappropriate "
-            f"username `{self.view.offending_username}`, but the report was ignored.")
+            f"username `{self.view.offending_username}`, but the report was ignored."
+        )
 
 
 class ChangeInappropriateUsername(discord.ui.Button):
@@ -52,12 +53,12 @@ class ChangeInappropriateUsername(discord.ui.Button):
 
     view = None
 
-    def __init__(self, view):
+    def __init__(self, view: "InappropriateUsername"):
         self.view = view
         super().__init__(
             style=discord.ButtonStyle.green,
             label="Change Username",
-            custom_id=f"{view.report_id}:change_username"
+            custom_id=f"{view.report_id}:change_username",
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -72,7 +73,8 @@ class ChangeInappropriateUsername(discord.ui.Button):
             await closed_reports.send(
                 f"**Member's username was changed** by {interaction.user.mention} - {self.view.member.mention} had "
                 f"the inappropriate username `{self.view.offending_username}`, and their username was changed to "
-                f"`Scientist`.")
+                f"`Scientist`."
+            )
 
             # Change the user's username
             await self.view.member.edit(nick="Scientist")
@@ -81,7 +83,8 @@ class ChangeInappropriateUsername(discord.ui.Button):
             await closed_reports.send(
                 f"**Member's username was attempted to be changed** by {interaction.user.mention} - "
                 f"{self.view.member.mention} had the inappropriate username `{self.view.offending_username}`, and "
-                f"their username was attempted to be changed to `Scientist`, however, the user had left the server.")
+                f"their username was attempted to be changed to `Scientist`, however, the user had left the server."
+            )
 
 
 class KickUserButton(discord.ui.Button):
@@ -89,7 +92,11 @@ class KickUserButton(discord.ui.Button):
 
     def __init__(self, view):
         self.view = view
-        super().__init__(style=discord.ButtonStyle.red, label="Kick User", custom_id=f"{view.report_id}:kick")
+        super().__init__(
+            style=discord.ButtonStyle.red,
+            label="Kick User",
+            custom_id=f"{view.report_id}:kick",
+        )
 
     async def callback(self, interaction: discord.Interaction):
 
@@ -104,7 +111,8 @@ class KickUserButton(discord.ui.Button):
         if member_still_here:
             await closed_reports.send(
                 f"**Member was kicked** by {interaction.user.mention} - {self.view.member.mention} had the "
-                f"inappropriate username `{self.view.offending_username}`, and the user was kicked from the server.")
+                f"inappropriate username `{self.view.offending_username}`, and the user was kicked from the server."
+            )
 
             # Kick the user
             await self.view.member.kick()
@@ -113,7 +121,8 @@ class KickUserButton(discord.ui.Button):
             await closed_reports.send(
                 f"**Attempted to kick member* by {interaction.user.mention} - {self.view.member.mention} had the "
                 f"inappropriate username `{self.view.offending_username}` and a kick was attempted on the user, "
-                f"however, the user had left the server.")
+                f"however, the user had left the server."
+            )
 
 
 class InappropriateUsername(discord.ui.View):
@@ -134,7 +143,6 @@ class InappropriateUsername(discord.ui.View):
 
 
 class Reporter(commands.Cog):
-
     def __init__(self, bot: TMS):
         self.bot = bot
         print("Initialized Reporter cog.")
@@ -144,7 +152,9 @@ class Reporter(commands.Cog):
         reports_channel = guild.get_channel(Channel.REPORTS)
         await reports_channel.send(embed=embed)
 
-    async def create_inappropriate_username_report(self, member: discord.Member, offending_username: str):
+    async def create_inappropriate_username_report(
+        self, member: discord.Member, offending_username: str
+    ):
         guild = self.bot.get_guild(SERVER_ID)
         reports_channel = guild.get_channel(Channel.REPORTS)
 
@@ -154,7 +164,7 @@ class Reporter(commands.Cog):
             color=discord.Color.brand_red(),
             description=f"""{member.mention} was found to have the offending username: `{offending_username}`.
             You can take some action by using the buttons below.
-            """
+            """,
         )
         with open("data.json") as f:
             data = json.load(f)
@@ -162,9 +172,12 @@ class Reporter(commands.Cog):
             report_id = int(data["report_id"])
             report_id += 1
 
-        await reports_channel.send(embed=embed, view=InappropriateUsername(member, report_id, offending_username))
+        await reports_channel.send(
+            embed=embed,
+            view=InappropriateUsername(member, report_id, offending_username),
+        )
         data["report_id"] = int(report_id)
-        with open("data.json", 'w') as f:
+        with open("data.json", "w") as f:
             json.dump(data, f)
 
     async def create_cron_task_report(self, task: dict):
@@ -172,10 +185,11 @@ class Reporter(commands.Cog):
         reports_channel = guild.get_channel(Channel.REPORTS)
 
         # Serialize values
-        task['_id'] = str(task['_id'])  # ObjectID is not serializable by default
-        if 'time' in task:
-            task['time'] = datetime.datetime.strftime(task['time'],
-                                                      "%m/%d/%Y, %H:%M:%S")  # datetime.datetime is not serializable
+        task["_id"] = str(task["_id"])  # ObjectID is not serializable by default
+        if "time" in task:
+            task["time"] = datetime.datetime.strftime(
+                task["time"], "%m/%d/%Y, %H:%M:%S"
+            )  # datetime.datetime is not serializable
             # by default
 
         # Assemble the embed
@@ -186,7 +200,7 @@ class Reporter(commands.Cog):
                ```py
                {json.dumps(task, indent=4)} ``` Because this likely a development error, no actions can immediately 
                be taken. Please contact a developer to learn more. """,
-            color=discord.Color.brand_red()
+            color=discord.Color.brand_red(),
         )
         await reports_channel.send(embed=embed)
 

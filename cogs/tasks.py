@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import asyncio
+
 from discord.ext import tasks, commands
 import discord
 
-import mongo
 import datetime
-from typing import TYPE_CHECKING, Union
+from typing import List, Optional, TYPE_CHECKING, Union
 from utils import Role, SERVER_ID, STEALFISH_BAN
-
 
 if TYPE_CHECKING:
     from bot import TMS
@@ -21,15 +21,11 @@ class CronTasks(commands.Cog):
     def __init__(self, bot: TMS):
         self.bot = bot
         self.cron.start()
-
-    async def cog_unload(self) -> None:
-        self.cron.stop()
+        self.mongo = self.bot.mongo
 
     @tasks.loop(minutes=1)
     async def cron(self):
-        print("Executed cron.")
-        cron_list: list = await mongo.get_cron()
-
+        cron_list: List = await self.mongo.get_cron()
         for task in cron_list:
             if datetime.datetime.now() >= task['time']:
                 try:
@@ -38,7 +34,7 @@ class CronTasks(commands.Cog):
                         member: discord.Member = server.get_member(task['user'])
                         await server.unban(member)
                         print(f"Unbanned user ID: {member.id}")
-                        await mongo.delete("data", "cron", task["_id"])
+                        await self.mongo.delete("data", "cron", task["_id"])
 
                     elif task['type'] == "UNMUTE":
                         server = self.bot.get_guild(SERVER_ID)
@@ -47,31 +43,32 @@ class CronTasks(commands.Cog):
                         self_role = server.get_role(Role.SELFMUTE)
                         await member.remove_roles(role, self_role)
                         print(f"Unmuted user ID: {member.id}")
-                        await mongo.delete("data", "cron", task["_id"])
+                        await self.mongo.delete("data", "cron", task["_id"])
 
                     elif task['type'] == "UNSTEALCANDYBAN":
                         STEALFISH_BAN.remove(task['user'])
                         print(f"Un-stealcandybanneded user ID: {task['user']}")
-                        await mongo.delete("data", "cron", task["_id"])
+                        await self.mongo.delete("data", "cron", task["_id"])
                     else:
                         print("ERROR:")
                         reporter_cog: Union[commands.Cog, Reporter] = self.bot.get_cog('Reporter')
                         await reporter_cog.create_cron_task_report(task)
-                        await mongo.delete("data", "cron", task["_id"])
+                        await self.mongo.delete("data", "cron", task["_id"])
                 except Exception:
                     reporter_cog: Union[commands.Cog, Reporter] = self.bot.get_cog('Reporter')
                     await reporter_cog.create_cron_task_report(task)
+
+        print("Executed cron.")
 
     @cron.before_loop
     async def _before(self):
         await self.bot.wait_until_ready()
 
-    @staticmethod
-    async def add_to_cron(item_dict: dict):
+    async def add_to_cron(self, item_dict: dict):
         """
         Adds the given document to the CRON list.
         """
-        await mongo.insert('bot', 'cron', item_dict)
+        await self.mongo.insert('bot', 'cron', item_dict)
         print(f"Added item: {item_dict} to CRON_LIST")
 
     async def schedule_unban(self, user: discord.User, time: datetime.datetime):

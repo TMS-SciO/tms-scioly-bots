@@ -85,15 +85,17 @@ BASE_EXTENSIONS = [
     "cogs.tasks",
     "cogs.listeners",
     "cogs.google",
-    "jishaku"
+    "jishaku",
 ]
 
-random_hex_colors_purple = ["#dcb9f7",
-                            "#d4aef2",
-                            "#d3b5f2",
-                            "#baa6ea",
-                            "#ab93d8",
-                            "#781fd1",
-                            "#deb4f7",
-                            "#8b0bc1",
-                            "#dac9ff"]
+random_hex_colors_purple = [
+    "#dcb9f7",
+    "#d4aef2",
+    "#d3b5f2",
+    "#baa6ea",
+    "#ab93d8",
+    "#781fd1",
+    "#deb4f7",
+    "#8b0bc1",
+    "#dac9ff",
+]
