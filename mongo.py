@@ -1,19 +1,29 @@
 from __future__ import annotations
 
-import datetime
+import os
+from typing import Any, Dict, List, TYPE_CHECKING
 
 import motor.motor_asyncio
-from typing import List, Literal, TYPE_CHECKING, Dict
+from dotenv import load_dotenv
 
-D = Dict[str, datetime.datetime | int | str | Literal["UNSTEALCANDYBAN", "UNBAN", "UNMUTE"]]
+if TYPE_CHECKING:
+    from bot import TMS
+
+load_dotenv()
 
 
-class Mongo:
+class MongoDatabase:
+    """
+    Class for allowing the bot access to an external MongoDB database.
+    """
 
-    def __init__(self, mongo_url: str) -> None:
-        self.client: motor.motor_asyncio.AsyncIOMotorClient = motor.motor_asyncio.AsyncIOMotorClient(
-            mongo_url
+    client: motor.motor_asyncio.AsyncIOMotorClient
+
+    def __init__(self, bot: TMS):
+        self.client = motor.motor_asyncio.AsyncIOMotorClient(
+            os.getenv("MONGO_URL"), tz_aware=True
         )
+        self.bot = bot
 
     async def delete(self, db_name, collection_name, iden):
         collection = self.client[db_name][collection_name]

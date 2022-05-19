@@ -81,7 +81,7 @@ class TMS(commands.Bot):
         self.owner_id = 747126643587416174
         self.help_command = commands.DefaultHelpCommand()
         self.enable_debug_events = True
-        self.mongo: mongo.Mongo = mongo.Mongo(os.getenv("MONGO_URL"))
+        self.mongo: mongo.MongoDatabase = mongo.MongoDatabase(self)
         self.socket_stats: collections.Counter[str] = collections.Counter()
 
     async def setup_hook(self) -> None:
