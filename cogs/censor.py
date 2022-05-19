@@ -23,7 +23,7 @@ class Censor(commands.Cog):
     async def on_ready(self) -> None:
 
         global CENSORED
-        CENSORED = await mongo.get_censor()
+        CENSORED = await self.bot.mongo.get_censor()
 
     @staticmethod
     def censor_needed(content: str) -> bool:
