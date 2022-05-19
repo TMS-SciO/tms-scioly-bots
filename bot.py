@@ -85,7 +85,6 @@ class TMS(commands.Bot):
         self.socket_stats: collections.Counter[str] = collections.Counter()
 
     async def setup_hook(self) -> None:
-        await self.mongo
         await self.connect_slate()
         for extension in INITIAL_EXTENSIONS:
             try:
