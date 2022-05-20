@@ -594,7 +594,7 @@ class EmbedCommands(commands.Cog, name="Embeds"):
 
     @command(description="Staff command. Assembles an embed in a particular channel.")
     @guilds(SERVER_ID)
-    @checks.has_any_role(Role.SERVERLEADER)
+    @checks.has_any_role(Role.SERVERLEADER, Role.FORMER_SL)
     @describe(channel="The channel to send the message to.")
     async def prepembed(
         self, interaction: discord.Interaction, channel: discord.TextChannel

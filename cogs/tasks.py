@@ -27,7 +27,7 @@ class CronTasks(commands.Cog):
     async def cron(self):
         cron_list: List = await self.mongo.get_cron()
         for task in cron_list:
-            if datetime.datetime.now() >= task['time']:
+            if discord.utils.utcnow() >= task['time']:
                 try:
                     if task['type'] == "UNBAN":
                         server = self.bot.get_guild(SERVER_ID)

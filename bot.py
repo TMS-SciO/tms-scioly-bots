@@ -15,6 +15,7 @@ from discord import app_commands
 from discord.abc import Snowflake
 from discord.ext import commands
 from discord.ext.commands import errors
+from dotenv import load_dotenv
 
 import custom
 import mongo
@@ -54,6 +55,8 @@ INITIAL_EXTENSIONS: List[str] = [
 ]
 
 logging.basicConfig(level=logging.CRITICAL)
+
+load_dotenv()
 
 
 class TmsBotTree(app_commands.CommandTree):

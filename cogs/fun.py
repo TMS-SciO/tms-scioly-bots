@@ -197,9 +197,9 @@ class Fun(commands.Cog):
         print(latex)
         new_args = latex.replace(" ", r"&space;")
         print(new_args)
-        url = r"https://latex.codecogs.com/png.latex?\dpi{175}{\color{White}" + new_args + "}"
+        url = r"https://latex.codecogs.com/png.latex?\dpi{150}{\color{Gray}" + new_args + "}"
         await interaction.response.send_message(
-            content=url, view=LatexView(self.bot, current=new_args)
+            content=url, view=LatexView(self.bot, _interaction=interaction)
         )
 
     @command()

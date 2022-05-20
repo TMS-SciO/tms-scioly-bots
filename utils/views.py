@@ -1,50 +1,79 @@
+from __future__ import annotations
+
 import datetime
 import re
 
 import discord
 import json
 import asyncio
-from typing import List
+from typing import List, TYPE_CHECKING
 from utils.variables import *
 import mongo
 
+if TYPE_CHECKING:
+    from bot import TMS
+
 
 class LatexModal(discord.ui.Modal):
+
     def __init__(
-            self, bot, current: str, message: discord.Message
+            self, bot: TMS, message: discord.Message
     ):
         self.bot = bot
-        self.message = message
         super().__init__(title="Edit Your LaTeX")
-        self.edited_latex = discord.ui.TextInput(label="Your LaTeX", default=current, style=discord.TextStyle.paragraph)
+        self._message = message
+
+        self.edited_latex = self.add_item(
+            discord.ui.TextInput(
+                label="Your LaTeX",
+                default=self._message.content.split(r"{\color{Gray}")[1][:-1],
+                style=discord.TextStyle.short
+            )
+        )
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        url = r"https://latex.codecogs.com/png.latex?\dpi{150}{\color{Gray}" + str(self.edited_latex) + "}"
-        e = discord.Embed(title="LaTeX Simulator", colour=discord.Colour.blurple())
-        e.set_image(url=url)
-        await self.message.edit(embed=e)
+        _item = self.children[0]
+        assert isinstance(_item, discord.ui.TextInput)
+        url = r"https://latex.codecogs.com/png.latex?\dpi{150}{\color{Gray}" + f"{_item.value}" + r"}"
+        await self._message.edit(content=url.replace(" ", r"&space;"))
+        await interaction.response.defer()
 
 
 class LatexView(discord.ui.View):
-    def __init__(self, bot, current: str):
-        self.bot = bot
-        self.current = current
+    def __init__(
+            self, bot: TMS, _interaction: discord.Interaction
+    ):
         super().__init__(timeout=500)
+        self.bot: TMS = bot
+        self._interaction: discord.Interaction = _interaction
 
     async def on_timeout(self) -> None:
         self.clear_items()
 
-    @discord.ui.button()
-    async def edit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        modal = LatexModal(self.bot, self.current, await interaction.original_message())
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user == self._interaction.user
+
+    @discord.ui.button(label="✏️", style=discord.ButtonStyle.blurple)
+    async def edit_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+        message = interaction.message
+        modal = LatexModal(self.bot, message)
         await interaction.response.send_modal(modal)
+
+    @discord.ui.button(label="🗑️️", style=discord.ButtonStyle.red)
+    async def delete_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+        await interaction.response.defer()
+        await interaction.delete_original_message()
+
+    @discord.ui.button(label="✅", style=discord.ButtonStyle.green)
+    async def save_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+        await interaction.response.edit_message(view=None)
 
 
 class Confirm(discord.ui.View):
-    def __init__(self, ctx: discord.Interaction):
+    def __init__(self, _interaction: discord.Interaction):
         super().__init__()
         self.value = None
-        self.author = ctx.user
+        self.author = _interaction.user
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
 
@@ -1131,11 +1160,11 @@ class CronSelect(discord.ui.Select):
         print([d["time"] for d in docs])
         counts = {}
         for doc in docs[:20]:
-            timeframe = (doc["time"] - datetime.datetime.now()).days
+            timeframe = (doc["time"] - discord.utils.utcnow()).days
             if abs(timeframe) < 1:
-                timeframe = f"{((doc['time']) - datetime.datetime.now()).total_seconds() // 3600} hours"
+                timeframe = f"{((doc['time']) - discord.utils.utcnow()).total_seconds() // 3600} hours"
             else:
-                timeframe = f"{((doc['time']) - datetime.datetime.now()).days} days"
+                timeframe = f"{((doc['time']) - discord.utils.utcnow()).days} days"
             tag_name = f"{doc['type'].title()} {doc['tag']}"
             if tag_name in counts:
                 counts[tag_name] = counts[tag_name] + 1
@@ -1183,7 +1212,7 @@ class CronSelect(discord.ui.Select):
 
 
 class CronConfirm(discord.ui.View):
-    def __init__(self, doc, bot, ctx: discord.Interaction):
+    def __init__(self, doc, bot: TMS, ctx: discord.Interaction):
         super().__init__()
         self.doc = doc
         self.bot = bot
@@ -1202,7 +1231,7 @@ class CronConfirm(discord.ui.View):
     async def remove_button(
             self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        await mongo.remove_doc("bot", "cron", self.doc["_id"])
+        await self.bot.mongo.remove_doc("bot", "cron", self.doc["_id"])
         embed = discord.Embed(
             title="Action Dashboard",
             description="Awesome! I successfully removed the action from the CRON list.",
@@ -1230,7 +1259,7 @@ class CronConfirm(discord.ui.View):
             member = self.bot.get_user(self.doc["user"])
             await server.unban(member)
 
-            bans = await server.bans()
+            bans = [b async for b in server.bans()]
             for ban in bans:
                 if ban.user.id == self.doc["user"]:
                     embed.title = "\U000026a0 Failed to unban"
@@ -1240,7 +1269,7 @@ class CronConfirm(discord.ui.View):
                         embed=embed, content=None
                     )
 
-            await mongo.remove_doc("bot", "cron", self.doc["_id"])
+            await self.bot.mongo.remove_doc("bot", "cron", self.doc["_id"])
             embed.title = "Completed Unban"
             embed.description = (
                 "The operation was verified - the user can now rejoin the server."
@@ -1268,7 +1297,7 @@ class CronConfirm(discord.ui.View):
                 await interaction.response.edit_message(embed=embed, view=None)
 
                 try:
-                    role = discord.utils.get(server.roles, name=Role.MUTED)
+                    role = server.get_role(Role.MUTED)
                     await member.remove_roles(role)
                 except:
                     embed.title = "\U000026a0 Failed to unmute"
@@ -1278,7 +1307,7 @@ class CronConfirm(discord.ui.View):
                         embed=embed, content=None
                     )
 
-                await mongo.remove_doc("bot", "cron", self.doc["_id"])
+                await self.bot.mongo.remove_doc("bot", "cron", self.doc["_id"])
                 embed.title = "Success!"
                 embed.description = (
                     f"The operation was verified - the user ({member.mention}) can now speak in "
@@ -1299,7 +1328,7 @@ class CronConfirm(discord.ui.View):
 
             try:
                 STEALFISH_BAN.remove(self.doc["user"])
-                await mongo.remove_doc("bot", "cron", self.doc["_id"])
+                await self.bot.mongo.remove_doc("bot", "cron", self.doc["_id"])
                 embed.title = "\U0001f36c Success! \U0001f36c"
                 embed.description = (
                     f"Successfully unbanned {member} from stealing candy!"

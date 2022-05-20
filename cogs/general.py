@@ -5,20 +5,17 @@ import datetime
 import os
 from collections import Counter
 from typing import Literal, Optional, TYPE_CHECKING
-import mongo
 
 import discord
 import pkg_resources
 import psutil
-from discord.app_commands import command, guilds, describe, Group
+from discord.app_commands import command, Group, guilds
 from discord.ext import commands
 
 from utils import times
 from utils.checks import is_not_blacklisted
-from utils.views import Confirm
 from utils.rules import RULES
 from utils.variables import *
-from utils.views import ReportView
 
 if TYPE_CHECKING:
     from bot import TMS
