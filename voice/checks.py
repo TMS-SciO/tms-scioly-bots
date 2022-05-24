@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-__all__ = (
-    "is_track_seekable",
-)
+__all__ = ("is_track_seekable",)
 
 from collections.abc import Callable
 from typing import Literal, TypeVar, TYPE_CHECKING
@@ -19,8 +17,14 @@ if TYPE_CHECKING:
 
 def is_track_seekable() -> Callable[[T], T]:
     async def predicate(ctx: Context) -> bool:
-        if not ctx.voice_client or not ctx.voice_client.current or not ctx.voice_client.current.is_seekable():
-            raise exceptions.EmbedError(description="The current track is not seekable.")
+        if (
+            not ctx.player
+            or not ctx.player.current
+            or not ctx.player.current.is_seekable()
+        ):
+            raise exceptions.EmbedError(
+                description="The current track is not seekable."
+            )
         return True
 
     return commands.check(predicate)
@@ -28,7 +32,7 @@ def is_track_seekable() -> Callable[[T], T]:
 
 def is_queue_not_empty() -> Callable[[T], T]:
     async def predicate(ctx: Context) -> Literal[True]:
-        if not ctx.voice_client or not ctx.voice_client.queue.items:
+        if not ctx.player or not ctx.player.queue.items:
             raise exceptions.EmbedError(description="The queue is empty.")
 
         return True
@@ -38,7 +42,7 @@ def is_queue_not_empty() -> Callable[[T], T]:
 
 def is_queue_history_not_empty() -> Callable[[T], T]:
     async def predicate(ctx: Context) -> Literal[True]:
-        if not ctx.voice_client or not ctx.voice_client.queue.history:
+        if not ctx.player or not ctx.player.queue.history:
             raise exceptions.EmbedError(description="The queue history is empty.")
 
         return True
@@ -48,7 +52,7 @@ def is_queue_history_not_empty() -> Callable[[T], T]:
 
 def is_player_playing() -> Callable[[T], T]:
     async def predicate(ctx: Context) -> Literal[True]:
-        if not ctx.voice_client or not ctx.voice_client.is_playing():
+        if not ctx.player or not ctx.player.is_playing():
             raise exceptions.EmbedError(description="There are no tracks playing.")
 
         return True
@@ -58,8 +62,10 @@ def is_player_playing() -> Callable[[T], T]:
 
 def is_player_connected() -> Callable[[T], T]:
     async def predicate(ctx: Context) -> Literal[True]:
-        if not ctx.voice_client or not ctx.voice_client.is_connected():
-            raise exceptions.EmbedError(description="I'm not connected to any voice channels.")
+        if not ctx.player or not ctx.player.is_connected():
+            raise exceptions.EmbedError(
+                description="I'm not connected to any voice channels."
+            )
 
         return True
 
@@ -88,12 +94,12 @@ def is_author_connected() -> Callable[[T], T]:
         assert isinstance(ctx.author, discord.Member)
 
         author_channel = ctx.author.voice and ctx.author.voice.channel
-        voice_client_channel = ctx.voice_client and ctx.voice_client.voice_channel
+        voice_client_channel = ctx.player and ctx.player.voice_channel
 
         if voice_client_channel != author_channel:
             raise exceptions.EmbedError(
                 description=f"You must be connected to {getattr(voice_client_channel, 'mention', None)} to use this "
-                            f"command."
+                f"command."
             )
 
         return True
@@ -135,11 +141,13 @@ async def global_check(ctx: Context) -> bool:
         add_reactions=True,
         external_emojis=True,
     )
-    needed = {
-        permission: value for permission, value in permissions_ if value is True
-    }
+    needed = {permission: value for permission, value in permissions_ if value is True}
 
-    if missing := [permission for permission, value in needed.items() if current[permission] != value]:
+    if missing := [
+        permission
+        for permission, value in needed.items()
+        if current[permission] != value
+    ]:
         raise commands.BotMissingPermissions(missing)
 
     return True

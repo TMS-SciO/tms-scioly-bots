@@ -6,7 +6,7 @@ import random
 from typing import Any
 
 import slate
-from custom import Context
+from slate import Track
 
 __all__ = (
     "QueueItem",
@@ -14,24 +14,14 @@ __all__ = (
 )
 
 
-Track = slate.Track[Context]
-
-
 class QueueItem:
-
-    def __init__(
-        self,
-        track: Track, /,
-        *,
-        start_time: int = 0
-    ) -> None:
+    def __init__(self, track: Track, /, *, start_time: int = 0) -> None:
 
         self.track: Track = track
         self.start_time: int = start_time
 
 
 class Queue:
-
     def __init__(self) -> None:
 
         self.items: list[QueueItem] = []
@@ -71,11 +61,7 @@ class Queue:
         self.items.clear()
         self.history.clear()
 
-    def reset(
-        self,
-        *,
-        clear: bool = True
-    ) -> None:
+    def reset(self, *, clear: bool = True) -> None:
 
         if clear:
             self.clear()
@@ -85,25 +71,15 @@ class Queue:
 
         self._waiters.clear()
 
-    def set_loop_mode(
-        self,
-        mode: slate.QueueLoopMode, /
-    ) -> None:
+    def set_loop_mode(self, mode: slate.QueueLoopMode, /) -> None:
         self.loop_mode = mode
 
-    def set_shuffle_state(
-        self,
-        state: bool, /
-    ) -> None:
+    def set_shuffle_state(self, state: bool, /) -> None:
         self.shuffle_state = state
 
     # Get
 
-    def get(
-        self,
-        *,
-        position: int = 0
-    ) -> QueueItem | None:
+    def get(self, *, position: int = 0) -> QueueItem | None:
 
         if len(self.items) >= 2 and self.shuffle_state:
             random.shuffle(self.items)
@@ -114,7 +90,10 @@ class Queue:
             return None
 
         if self.loop_mode is not slate.QueueLoopMode.DISABLED:
-            self.put(item, position=0 if self.loop_mode is slate.QueueLoopMode.CURRENT else None)
+            self.put(
+                item,
+                position=0 if self.loop_mode is slate.QueueLoopMode.CURRENT else None,
+            )
 
         return item
 
@@ -150,12 +129,7 @@ class Queue:
 
     # Put
 
-    def put(
-        self,
-        item: QueueItem, /,
-        *,
-        position: int | None = None
-    ) -> None:
+    def put(self, item: QueueItem, /, *, position: int | None = None) -> None:
 
         if position is not None:
             self.items.insert(position, item)
@@ -164,15 +138,13 @@ class Queue:
 
         self._wakeup_next()
 
-    def extend(
-        self,
-        items: list[QueueItem], /,
-        *,
-        position: int | None = None
-    ) -> None:
+    def extend(self, items: list[QueueItem], /, *, position: int | None = None) -> None:
 
         if position is not None:
-            for index, item, in enumerate(items):
+            for (
+                index,
+                item,
+            ) in enumerate(items):
                 self.items.insert(position + index, item)
         else:
             self.items.extend(items)

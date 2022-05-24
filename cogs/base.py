@@ -281,7 +281,7 @@ class Module(Group):
         elif mode == "-c":
             embed.set_footer(text="Attempting to reloading cogs...")
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.channel.send(embed=embed)
 
         if mode == "-a":
             await self._force_restart(interaction)

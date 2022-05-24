@@ -13,11 +13,11 @@ from voice import utilities, values
 if TYPE_CHECKING:
     from .player import Player
 
-__all__ = (
-    "Controller",
-)
+__all__ = ("Controller",)
 
-_MessageBuilder = Callable[..., Awaitable[tuple[Optional[str], Optional[discord.Embed]]]]
+_MessageBuilder = Callable[
+    ..., Awaitable[tuple[Optional[str], Optional[discord.Embed]]]
+]
 
 _SHUFFLE_STATE_EMOJIS: dict[bool, str] = {
     False: values.PLAYER_SHUFFLE_DISABLED,
@@ -25,7 +25,7 @@ _SHUFFLE_STATE_EMOJIS: dict[bool, str] = {
 }
 _PAUSE_STATE_EMOJIS: dict[bool, str] = {
     False: values.PLAYER_IS_PLAYING,
-    True: values.PLAYER_IS_PAUSED
+    True: values.PLAYER_IS_PAUSED,
 }
 _LOOP_MODE_EMOJIS: dict[slate.QueueLoopMode, str] = {
     slate.QueueLoopMode.DISABLED: values.PLAYER_LOOP_DISABLED,
@@ -35,7 +35,6 @@ _LOOP_MODE_EMOJIS: dict[slate.QueueLoopMode, str] = {
 
 
 class ShuffleButton(discord.ui.Button["ControllerView"]):
-
     def __init__(self) -> None:
         super().__init__(
             emoji=values.PLAYER_SHUFFLE_DISABLED,
@@ -46,7 +45,7 @@ class ShuffleButton(discord.ui.Button["ControllerView"]):
         assert self.view is not None
         await interaction.response.defer()
 
-        voice_client = self.view.voice_client
+        voice_client = self.view.player
 
         match voice_client.queue.shuffle_state:
             case True:
@@ -58,7 +57,6 @@ class ShuffleButton(discord.ui.Button["ControllerView"]):
 
 
 class PreviousButton(discord.ui.Button["ControllerView"]):
-
     def __init__(self) -> None:
         super().__init__(
             emoji=values.PLAYER_PREVIOUS,
@@ -68,7 +66,7 @@ class PreviousButton(discord.ui.Button["ControllerView"]):
         assert self.view is not None
         await interaction.response.defer()
 
-        voice_client = self.view.voice_client
+        voice_client = self.view.player
 
         # Pop the previous track from the queue history and
         # then add it to front of the queue.
@@ -86,7 +84,6 @@ class PreviousButton(discord.ui.Button["ControllerView"]):
 
 
 class PauseStateButton(discord.ui.Button["ControllerView"]):
-
     def __init__(self) -> None:
         super().__init__(
             emoji=values.PLAYER_IS_PLAYING,
@@ -97,7 +94,7 @@ class PauseStateButton(discord.ui.Button["ControllerView"]):
         assert self.view is not None
         await interaction.response.defer()
 
-        voice_client = self.view.voice_client
+        voice_client = self.view.player
 
         if voice_client.is_paused():
             await voice_client.set_pause(False)
@@ -108,7 +105,6 @@ class PauseStateButton(discord.ui.Button["ControllerView"]):
 
 
 class NextButton(discord.ui.Button["ControllerView"]):
-
     def __init__(self) -> None:
         super().__init__(
             emoji=values.PLAYER_NEXT,
@@ -118,11 +114,10 @@ class NextButton(discord.ui.Button["ControllerView"]):
         assert self.view is not None
         await interaction.response.defer()
 
-        await self.view.voice_client.stop()
+        await self.view.player.stop()
 
 
 class LoopButton(discord.ui.Button["ControllerView"]):
-
     def __init__(self) -> None:
         super().__init__(
             emoji=values.PLAYER_LOOP_DISABLED,
@@ -133,7 +128,7 @@ class LoopButton(discord.ui.Button["ControllerView"]):
         assert self.view is not None
         await interaction.response.defer()
 
-        voice_client = self.view.voice_client
+        voice_client = self.view.player
 
         match voice_client.queue.loop_mode:
             case slate.QueueLoopMode.DISABLED:
@@ -147,11 +142,10 @@ class LoopButton(discord.ui.Button["ControllerView"]):
 
 
 class ControllerView(discord.ui.View):
-
-    def __init__(self, *, voice_client: 'Player') -> None:
+    def __init__(self, *, player: "Player") -> None:
         super().__init__(timeout=None)
 
-        self.voice_client: 'Player' = voice_client
+        self.player: "Player" = player
 
         self._shuffle_button: ShuffleButton = ShuffleButton()
         self._previous_button: PreviousButton = PreviousButton()
@@ -166,30 +160,31 @@ class ControllerView(discord.ui.View):
         self.add_item(self._loop_button)
 
     def update_state(self) -> None:
-        self._shuffle_button.emoji = _SHUFFLE_STATE_EMOJIS[self.voice_client.queue.shuffle_state]
-        self._previous_button.disabled = not self.voice_client.queue.history
-        self._pause_state_button.emoji = _PAUSE_STATE_EMOJIS[self.voice_client.paused]
-        self._loop_button.emoji = _LOOP_MODE_EMOJIS[self.voice_client.queue.loop_mode]
+        self._shuffle_button.emoji = _SHUFFLE_STATE_EMOJIS[
+            self.player.queue.shuffle_state
+        ]
+        self._previous_button.disabled = not self.player.queue.history
+        self._pause_state_button.emoji = _PAUSE_STATE_EMOJIS[self.player.paused]
+        self._loop_button.emoji = _LOOP_MODE_EMOJIS[self.player.queue.loop_mode]
 
 
 class Controller:
+    def __init__(self, *, player: Player) -> None:
 
-    def __init__(self, *, voice_client: Player) -> None:
-
-        self.voice_client: Player = voice_client
+        self.player: Player = player
 
         self.message: Optional[discord.Message] = None
-        self.view: ControllerView = ControllerView(voice_client=self.voice_client)
+        self.view: ControllerView = ControllerView(player=self.player)
 
         self._MESSAGE_BUILDERS: dict[enums.EmbedSize, _MessageBuilder] = {
             enums.EmbedSize.SMALL: self._build_small,
             enums.EmbedSize.MEDIUM: self._build_medium,
             enums.EmbedSize.LARGE: self._build_large,
         }
-        
+
     async def _build_small(self) -> tuple[None, discord.Embed]:
 
-        current = self.voice_client.current
+        current = self.player.current
         assert current is not None
 
         return (
@@ -198,25 +193,28 @@ class Controller:
                 colour=discord.Colour.blurple(),
                 title="Now Playing:",
                 description=f"**[{discord.utils.escape_markdown(current.title)}]({current.uri})**\n"
-                            f"by **{discord.utils.escape_markdown(current.author or 'Unknown')}**",
-                thumbnail=current.artwork_url or "https://dummyimage.com/1280x720/000/ffffff.png&text=no+thumbnail",
-            )
+                f"by **{discord.utils.escape_markdown(current.author or 'Unknown')}**",
+                thumbnail=current.artwork_url
+                or "https://dummyimage.com/1280x720/000/ffffff.png&text=no+thumbnail",
+            ),
         )
 
     async def _build_medium(self) -> tuple[None, discord.Embed]:
 
-        current = self.voice_client.current
+        current = self.player.current
         assert current is not None
 
         _, embed = await self._build_small()
 
         assert embed.description is not None
-        embed.description += "\n\n" \
-                             f"● **Requested by:** {getattr(current.requester, 'mention', None)}\n" \
-                             f"● **Source:** {current.source.value.title()}\n" \
-                             f"● **Paused:** {utilities.readable_bool(self.voice_client.paused).title()}\n" \
-                             f"● **Effects:** {', '.join([effect.value for effect in self.voice_client.effects] or ['N/A'])}\n" \
-                             f"● **Position:** {utilities.format_seconds(self.voice_client.position // 1000)} / {utilities.format_seconds(current.length // 1000)}\n"
+        embed.description += (
+            "\n\n"
+            f"● **Requested by:** {getattr(current.extras['ctx'].author, 'mention', None)}\n"
+            f"● **Source:** {current.source.value.title()}\n"
+            f"● **Paused:** {utilities.readable_bool(self.player.paused).title()}\n"
+            f"● **Effects:** {', '.join([effect.value for effect in self.player.effects] or ['N/A'])}\n"
+            f"● **Position:** {utilities.format_seconds(self.player.position // 1000)} / {utilities.format_seconds(current.length // 1000)}\n"
+        )
 
         return None, embed
 
@@ -224,17 +222,19 @@ class Controller:
 
         _, embed_ = await self._build_medium()
 
-        if self.voice_client.queue.is_empty():
+        if self.player.queue.is_empty():
             return _, embed_
 
         entries = [
             f"**{index}. [{discord.utils.escape_markdown(item.track.title)}]({item.track.uri})**\n"
             f"**⤷** by **{discord.utils.escape_markdown(item.track.author)}** | {utilities.format_seconds(item.track.length // 1000, friendly=True)}\n"
-            for index, item in enumerate(self.voice_client.queue.items[:3], start=1)
+            for index, item in enumerate(self.player.queue.items[:3], start=1)
         ]
 
         assert embed_.description is not None
-        embed_.description += f"\n● **Up next ({len(self.voice_client.queue)}):**\n{''.join(entries)}"
+        embed_.description += (
+            f"\n● **Up next ({len(self.player.queue)}):**\n{''.join(entries)}"
+        )
 
         return None, embed_
 
@@ -245,17 +245,17 @@ class Controller:
 
     async def send_new_message(self) -> None:
 
-        if not self.voice_client.current:
+        if not self.player.current:
             return
 
         kwargs = await self.build_message()
         self.view.update_state()
 
-        self.message = await self.voice_client.text_channel.send(**kwargs, view=self.view)
+        self.message = await self.player.text_channel.send(**kwargs, view=self.view)
 
     async def update_current_message(self) -> None:
 
-        if not self.message or not self.voice_client.current:
+        if not self.message or not self.player.current:
             return
 
         kwargs = await self.build_message()
@@ -276,8 +276,8 @@ class Controller:
         if not self.message:
             return
 
-        assert self.voice_client._current is not None
-        track = self.voice_client._current
+        assert self.player._current is not None
+        track = self.player._current
 
         if reason in [enums.TrackEndReason.NORMAL, enums.TrackEndReason.REPLACED]:
             colour = discord.Colour.blurple()
@@ -292,8 +292,9 @@ class Controller:
                     colour=colour,
                     title=title,
                     description=f"**[{discord.utils.escape_markdown(track.title)}]({track.uri})**\n"
-                                f"by **{discord.utils.escape_markdown(track.author or 'Unknown')}**",
-                    thumbnail=track.artwork_url or "https://dummyimage.com/500x500/000/ffffff.png&text=thumbnail+not+found",
+                    f"by **{discord.utils.escape_markdown(track.author or 'Unknown')}**",
+                    thumbnail=track.artwork_url
+                    or "https://dummyimage.com/500x500/000/ffffff.png&text=thumbnail+not+found",
                 ),
             )
         except (discord.NotFound, discord.HTTPException):

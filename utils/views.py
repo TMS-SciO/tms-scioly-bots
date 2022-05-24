@@ -15,10 +15,7 @@ if TYPE_CHECKING:
 
 
 class LatexModal(discord.ui.Modal):
-
-    def __init__(
-            self, bot: TMS, message: discord.Message
-    ):
+    def __init__(self, bot: TMS, message: discord.Message):
         self.bot = bot
         super().__init__(title="Edit Your LaTeX")
         self._message = message
@@ -26,23 +23,27 @@ class LatexModal(discord.ui.Modal):
         self.edited_latex = self.add_item(
             discord.ui.TextInput(
                 label="Your LaTeX",
-                default=self._message.content.split(r"{\color{Gray}")[1][:-1],
-                style=discord.TextStyle.short
+                default=self._message.content.split(r"{\color{Gray}")[1][:-1].replace(
+                    r"&space;", " "
+                ),
+                style=discord.TextStyle.short,
             )
         )
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         _item = self.children[0]
         assert isinstance(_item, discord.ui.TextInput)
-        url = r"https://latex.codecogs.com/png.latex?\dpi{150}{\color{Gray}" + f"{_item.value}" + r"}"
+        url = (
+            r"https://latex.codecogs.com/png.latex?\dpi{150}{\color{Gray}"
+            + f"{_item.value}"
+            + r"}"
+        )
         await self._message.edit(content=url.replace(" ", r"&space;"))
         await interaction.response.defer()
 
 
 class LatexView(discord.ui.View):
-    def __init__(
-            self, bot: TMS, _interaction: discord.Interaction
-    ):
+    def __init__(self, bot: TMS, _interaction: discord.Interaction):
         super().__init__(timeout=500)
         self.bot: TMS = bot
         self._interaction: discord.Interaction = _interaction
@@ -60,7 +61,9 @@ class LatexView(discord.ui.View):
         await interaction.response.send_modal(modal)
 
     @discord.ui.button(label="🗑️️", style=discord.ButtonStyle.red)
-    async def delete_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def delete_button(
+        self, interaction: discord.Interaction, _: discord.ui.Button
+    ):
         await interaction.response.defer()
         await interaction.delete_original_message()
 
@@ -87,7 +90,7 @@ class Confirm(discord.ui.View):
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
     async def confirm(
-            self, interaction: discord.Interaction, button: discord.ui.Button
+        self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         for child in self.children:
             child.disabled = True
@@ -231,9 +234,9 @@ class Close(discord.ui.View):
 
                 def check(message):
                     return (
-                            message.author == interaction.user
-                            and message.channel == interaction.channel
-                            and message.content.lower() == "close"
+                        message.author == interaction.user
+                        and message.channel == interaction.channel
+                        and message.content.lower() == "close"
                     )
 
                 try:
@@ -507,7 +510,7 @@ class Role1(discord.ui.View):
 
     @discord.ui.button(label="\U0001f9e0 Anatomy & Physiology", custom_id="ap", row=1)
     async def anatomy(
-            self, interaction: discord.Interaction, button: discord.ui.Button
+        self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         role = discord.utils.get(interaction.guild.roles, id=Role.AP)
         if role in interaction.user.roles:
@@ -1116,7 +1119,7 @@ class ReportView(discord.ui.View):
         label="\U00002705", custom_id="green_check", style=discord.ButtonStyle.green
     )
     async def green_check(
-            self, interaction: discord.Interaction, button: discord.ui.Button
+        self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         if interaction.channel.id == Channel.REPORTS:
             await interaction.response.defer()
@@ -1229,7 +1232,7 @@ class CronConfirm(discord.ui.View):
 
     @discord.ui.button(label="Remove", style=discord.ButtonStyle.danger)
     async def remove_button(
-            self, interaction: discord.Interaction, button: discord.ui.Button
+        self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         await self.bot.mongo.remove_doc("bot", "cron", self.doc["_id"])
         embed = discord.Embed(
@@ -1241,7 +1244,7 @@ class CronConfirm(discord.ui.View):
 
     @discord.ui.button(label="Complete Now", style=discord.ButtonStyle.green)
     async def complete_button(
-            self, interaction: discord.Interaction, button: discord.ui.Button
+        self, interaction: discord.Interaction, button: discord.ui.Button
     ):
 
         server = self.bot.get_guild(SERVER_ID)

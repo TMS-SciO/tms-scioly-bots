@@ -34,7 +34,7 @@ class Player(commands.Cog):
         assert isinstance(ctx.author, discord.Member)
 
         author_voice_channel = ctx.author.voice and ctx.author.voice.channel
-        bot_voice_channel = ctx.voice_client and ctx.voice_client.voice_channel
+        bot_voice_channel = ctx.player and ctx.player.voice_channel
 
         if (author_voice_channel and bot_voice_channel) and (
             author_voice_channel == bot_voice_channel
@@ -68,9 +68,9 @@ class Player(commands.Cog):
                 description="You must be connected to a voice channel to use this command."
             )
 
-        if ctx.voice_client and ctx.voice_client.voice_channel:
+        if ctx.player and ctx.player.voice_channel:
             raise exceptions.EmbedError(
-                description=f"I'm already connected to {ctx.voice_client.voice_channel.mention}."
+                description=f"I'm already connected to {ctx.player.voice_channel.mention}."
             )
 
         # slate doesn't like this for some reason, investigate later.
@@ -90,15 +90,15 @@ class Player(commands.Cog):
         Disconnects the bot from its voice channel.
         """
 
-        assert ctx.voice_client is not None
+        assert ctx.player is not None
 
         await ctx.send(
             embed=embed(
                 colour=discord.Color.brand_green(),
-                description=f"Disconnected from {ctx.voice_client.voice_channel.mention}.",
+                description=f"Disconnected from {ctx.player.voice_channel.mention}.",
             )
         )
-        await ctx.voice_client.disconnect()
+        await ctx.player.disconnect()
 
     # Pausing
 
@@ -110,12 +110,12 @@ class Player(commands.Cog):
         Pauses the player.
         """
 
-        assert ctx.voice_client is not None
+        assert ctx.player is not None
 
-        if ctx.voice_client.paused is True:
+        if ctx.player.paused is True:
             raise exceptions.EmbedError(description="The player is already paused.")
 
-        await ctx.voice_client.set_pause(True)
+        await ctx.player.set_pause(True)
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(), description="Paused the player."
@@ -130,13 +130,13 @@ class Player(commands.Cog):
         Resumes the player.
         """
 
-        assert ctx.voice_client is not None
+        assert ctx.player is not None
 
-        if ctx.voice_client.paused is False:
+        if ctx.player.paused is False:
             await ctx.reply("The player is already playing.")
             return
 
-        await ctx.voice_client.set_pause(False)
+        await ctx.player.set_pause(False)
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(), description="Resumed the player."
@@ -170,20 +170,20 @@ class Player(commands.Cog):
         - etc, most permutations of these will work.
         """
 
-        assert ctx.voice_client is not None
-        assert ctx.voice_client.current is not None
+        assert ctx.player is not None
+        assert ctx.player.current is not None
 
         milliseconds = position * 1000
 
-        if 0 < milliseconds > ctx.voice_client.current.length:
+        if 0 < milliseconds > ctx.player.current.length:
             raise exceptions.EmbedError(
                 description=f"**{utilities.format_seconds(position, friendly=True)}** is not a valid position, the "
                 f"current track is only "
-                f"**{utilities.format_seconds(ctx.voice_client.current.length // 1000, friendly=True)}** "
+                f"**{utilities.format_seconds(ctx.player.current.length // 1000, friendly=True)}** "
                 f"long.",
             )
 
-        await ctx.voice_client.set_position(milliseconds)
+        await ctx.player.set_position(milliseconds)
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(),
@@ -218,12 +218,12 @@ class Player(commands.Cog):
         - etc, most permutations of these will work.
         """
 
-        assert ctx.voice_client is not None
-        assert ctx.voice_client.current is not None
+        assert ctx.player is not None
+        assert ctx.player.current is not None
 
         milliseconds = time * 1000
-        position = ctx.voice_client.position
-        remaining = ctx.voice_client.current.length - position
+        position = ctx.player.position
+        remaining = ctx.player.current.length - position
 
         formatted = utilities.format_seconds(time, friendly=True)
 
@@ -233,7 +233,7 @@ class Player(commands.Cog):
                 f"**{utilities.format_seconds(remaining // 1000, friendly=True)}** remaining."
             )
 
-        await ctx.voice_client.set_position(position + milliseconds)
+        await ctx.player.set_position(position + milliseconds)
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(),
@@ -265,11 +265,11 @@ class Player(commands.Cog):
         - etc, most permutations of these will work.
         """
 
-        assert ctx.voice_client is not None
-        assert ctx.voice_client.current is not None
+        assert ctx.player is not None
+        assert ctx.player.current is not None
 
         milliseconds = time * 1000
-        position = ctx.voice_client.position
+        position = ctx.player.position
 
         formatted = utilities.format_seconds(time, friendly=True)
 
@@ -280,7 +280,7 @@ class Player(commands.Cog):
                 f"has passed."
             )
 
-        await ctx.voice_client.set_position(position - milliseconds)
+        await ctx.player.set_position(position - milliseconds)
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(),
@@ -299,10 +299,10 @@ class Player(commands.Cog):
         Replays the current track.
         """
 
-        assert ctx.voice_client is not None
-        assert ctx.voice_client.current is not None
+        assert ctx.player is not None
+        assert ctx.player.current is not None
 
-        await ctx.voice_client.set_position(0)
+        await ctx.player.set_position(0)
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(),
@@ -322,9 +322,9 @@ class Player(commands.Cog):
         Shows the current track.
         """
 
-        assert ctx.voice_client is not None
+        assert ctx.player is not None
 
-        kwargs = await ctx.voice_client.controller.build_message()
+        kwargs = await ctx.player.controller.build_message()
         await ctx.send(**kwargs)
 
     # Skipping
@@ -374,17 +374,17 @@ class Player(commands.Cog):
 
         await self._check_force_skip_permissions(ctx)
 
-        assert ctx.voice_client is not None
+        assert ctx.player is not None
 
         if amount:
-            if 0 <= amount > len(ctx.voice_client.queue) + 1:
+            if 0 <= amount > len(ctx.player.queue) + 1:
                 raise exceptions.EmbedError(
                     description=f"**{amount}** is not a valid amount of tracks to skip, there are only"
-                    f"**{len(ctx.voice_client.queue) + 1}** tracks in the queue."
+                    f"**{len(ctx.player.queue) + 1}** tracks in the queue."
                 )
-            del ctx.voice_client.queue.items[: amount - 1]
+            del ctx.player.queue.items[: amount - 1]
 
-        await ctx.voice_client.stop()
+        await ctx.player.stop()
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(),
@@ -392,7 +392,7 @@ class Player(commands.Cog):
             )
         )
 
-        ctx.voice_client.skip_request_ids.clear()
+        ctx.player.skip_request_ids.clear()
 
     @commands.hybrid_command(
         name="skip", aliases=["vote-skip", "vote_skip", "voteskip", "vs"]
@@ -412,6 +412,9 @@ class Player(commands.Cog):
         - You are the requester of the current track.
         """
 
+        assert ctx.player is not None
+        assert ctx.player.current is not None
+
         try:
             await self._check_force_skip_permissions(ctx)
             await self._force_skip(ctx, amount=0)
@@ -419,34 +422,31 @@ class Player(commands.Cog):
         except exceptions.EmbedError:
             pass
 
-        assert ctx.voice_client is not None
-        assert ctx.voice_client.current is not None
-        assert ctx.voice_client.current.requester is not None
-
-        if ctx.author not in ctx.voice_client.listeners:
+        if ctx.author not in ctx.player.listeners:
             raise exceptions.EmbedError(
                 description="You can't vote to skip because you are currently deafened."
             )
 
         async def skip() -> None:
 
-            assert ctx.voice_client is not None
+            assert ctx.player is not None
 
-            await ctx.voice_client.stop()
+            await ctx.player.stop()
             await ctx.reply(
                 embed=embed(
                     colour=discord.Color.brand_green(),
                     description="Skipped the current track.",
                 )
             )
-            ctx.voice_client.skip_request_ids.clear()
+            ctx.player.skip_request_ids.clear()
 
-        if ctx.author.id == ctx.voice_client.current.requester.id:
+        if ctx.author.id == ctx.player.current.extras["ctx"].author.id:
             await skip()
             return
 
-        if ctx.author.id in ctx.voice_client.skip_request_ids:
-            ctx.voice_client.skip_request_ids.remove(ctx.author.id)
+        if ctx.author.id in ctx.player.skip_request_ids:
+
+            ctx.player.skip_request_ids.remove(ctx.author.id)
             await ctx.reply(
                 embed=embed(
                     colour=discord.Color.brand_green(),
@@ -455,24 +455,23 @@ class Player(commands.Cog):
             )
             return
 
-        skips_needed = math.floor(75 * len(ctx.voice_client.listeners) / 100)
+        skips_needed = math.floor(75 * len(ctx.player.listeners) / 100)
 
         if (
-            len(ctx.voice_client.listeners) < 3
-            or (len(ctx.voice_client.skip_request_ids) + 1) >= skips_needed
+            len(ctx.player.listeners) < 3
+            or (len(ctx.player.skip_request_ids) + 1) >= skips_needed
         ):
             await skip()
             return
 
-        ctx.voice_client.skip_request_ids.add(ctx.author.id)
+        ctx.player.skip_request_ids.add(ctx.author.id)
         await ctx.reply(
             embed=embed(
                 colour=discord.Color.brand_green(),
-                description=f"Added your vote to skip, now at **{len(ctx.voice_client.skip_request_ids)}** out of **{skips_needed}** votes.",
+                description=f"Added your vote to skip, now at "
+                f"**{len(ctx.player.skip_request_ids)}** out of **{skips_needed}** votes.",
             )
         )
-
-    # TODO: Refactor the following.
 
     @commands.command(name="lyrics")
     async def lyrics(self, ctx: Context, *, query: Optional[str]) -> None:
@@ -515,8 +514,8 @@ class Player(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        assert ctx.voice_client is not None
-        await ctx.voice_client.searcher.queue(
+        assert ctx.player is not None
+        await ctx.player.searcher.queue(
             activity.track_url,
             source=slate.Source.YOUTUBE,
             ctx=ctx,

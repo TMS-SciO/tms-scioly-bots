@@ -52,9 +52,10 @@ INITIAL_EXTENSIONS: List[str] = [
     "cogs.medals",
     "cogs.player",
     "cogs.music",
+    "jishaku",
 ]
 
-logging.basicConfig(level=logging.CRITICAL)
+logging.basicConfig(level=logging.WARNING)
 
 load_dotenv()
 
@@ -144,7 +145,7 @@ class TMS(commands.Bot):
         await super().close()
 
     async def connect_slate(self) -> None:
-        self.slate = slate.Pool()
+        self.slate: slate.Pool['TMS', custom.Player] = slate.Pool()
         node = await self.slate.create_node(
             provider=slate.Provider.LAVALINK,
             bot=self,

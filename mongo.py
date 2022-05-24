@@ -31,7 +31,9 @@ class MongoDatabase:
         collection = self.client[db_name][collection_name]
         await collection.delete_one({"_id": iden})
 
-    async def get_entire_collection(self, db_name: str, collection_name: str, return_one=False):
+    async def get_entire_collection(
+        self, db_name: str, collection_name: str, return_one=False
+    ):
 
         collection = self.client[db_name][collection_name]
         if return_one:
@@ -47,7 +49,9 @@ class MongoDatabase:
         return cron_list
 
     async def get_stealfish_ban(self) -> List:
-        ret: dict = await self.get_entire_collection("bot", "stealfishban", return_one=True)
+        ret: dict = await self.get_entire_collection(
+            "bot", "stealfishban", return_one=True
+        )
         return ret["ids"]
 
     async def get_pings(self) -> List:
@@ -63,19 +67,15 @@ class MongoDatabase:
 
     async def update(self, db_name, collection_name, doc_id, update_dict: Dict) -> None:
         collection = self.client[db_name][collection_name]
-        await collection.update_one({'_id': doc_id}, update_dict)
+        await collection.update_one({"_id": doc_id}, update_dict)
 
-    async def update_many(self, db_name, collection_name, docs, update_dict: Dict) -> None:
+    async def update_many(
+        self, db_name, collection_name, docs, update_dict: Dict
+    ) -> None:
         collection = self.client[db_name][collection_name]
         ids = [doc.get("_id") for doc in docs]
-        await collection.update_many(
-            {"_id": {
-                "$in": ids
-            }
-            },
-            update_dict
-        )
+        await collection.update_many({"_id": {"$in": ids}}, update_dict)
 
     async def remove_doc(self, db_name, collection_name, doc_id) -> None:
         collection = self.client[db_name][collection_name]
-        await collection.delete_one({'_id': doc_id})
+        await collection.delete_one({"_id": doc_id})

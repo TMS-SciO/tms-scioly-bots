@@ -35,7 +35,7 @@ class Play(commands.Cog):
         assert isinstance(ctx.author, discord.Member)
 
         author_voice_channel = ctx.author.voice and ctx.author.voice.channel
-        bot_voice_channel = ctx.voice_client and ctx.voice_client.voice_channel
+        bot_voice_channel = ctx.player and ctx.player.voice_channel
 
         if (author_voice_channel and bot_voice_channel) and (
             author_voice_channel == bot_voice_channel
@@ -72,9 +72,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
-            query, source=slate.Source.YOUTUBE, ctx=ctx
-        )
+        await ctx.player.searcher.queue(query, source=slate.Source.YOUTUBE, ctx=ctx)
 
     @commands.hybrid_command(name="play-next", aliases=["play_next", "playnext", "pne"])
     async def play_next(self, ctx: Context, *, query: str) -> None:
@@ -88,7 +86,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.YOUTUBE, ctx=ctx, play_next=True
         )
 
@@ -104,7 +102,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.YOUTUBE, ctx=ctx, play_now=True
         )
 
@@ -122,9 +120,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
-            query, source=slate.Source.YOUTUBE, ctx=ctx
-        )
+        await ctx.player.searcher.select(query, source=slate.Source.YOUTUBE, ctx=ctx)
 
     @commands.hybrid_command(
         name="search-next", aliases=["search_next", "searchnext", "sne"]
@@ -139,7 +135,7 @@ class Play(commands.Cog):
         """
 
         await self._ensure_connected(ctx)
-        await ctx.voice_client.searcher.select(
+        await ctx.player.searcher.select(
             query, source=slate.Source.YOUTUBE, ctx=ctx, play_next=True
         )
 
@@ -157,7 +153,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
+        await ctx.player.searcher.select(
             query, source=slate.Source.YOUTUBE, ctx=ctx, play_now=True
         )
 
@@ -229,7 +225,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.YOUTUBE_MUSIC, ctx=ctx
         )
 
@@ -242,7 +238,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.YOUTUBE_MUSIC, ctx=ctx, play_next=True
         )
 
@@ -255,7 +251,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.YOUTUBE_MUSIC, ctx=ctx, play_now=True
         )
 
@@ -274,7 +270,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
+        await ctx.player.searcher.select(
             query, source=slate.Source.YOUTUBE_MUSIC, ctx=ctx
         )
 
@@ -287,7 +283,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
+        await ctx.player.searcher.select(
             query, source=slate.Source.YOUTUBE_MUSIC, ctx=ctx, play_next=True
         )
 
@@ -300,7 +296,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
+        await ctx.player.searcher.select(
             query, source=slate.Source.YOUTUBE_MUSIC, ctx=ctx, play_now=True
         )
 
@@ -316,9 +312,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
-            query, source=slate.Source.SOUNDCLOUD, ctx=ctx
-        )
+        await ctx.player.searcher.queue(query, source=slate.Source.SOUNDCLOUD, ctx=ctx)
 
     @commands.command(
         name="soundcloud-next",
@@ -329,7 +323,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.SOUNDCLOUD, ctx=ctx, play_next=True
         )
 
@@ -342,7 +336,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.SOUNDCLOUD, ctx=ctx, play_now=True
         )
 
@@ -361,9 +355,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
-            query, source=slate.Source.SOUNDCLOUD, ctx=ctx
-        )
+        await ctx.player.searcher.select(query, source=slate.Source.SOUNDCLOUD, ctx=ctx)
 
     @commands.command(
         name="soundcloud-search-next",
@@ -374,7 +366,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
+        await ctx.player.searcher.select(
             query, source=slate.Source.SOUNDCLOUD, ctx=ctx, play_next=True
         )
 
@@ -387,7 +379,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.select(
+        await ctx.player.searcher.select(
             query, source=slate.Source.SOUNDCLOUD, ctx=ctx, play_now=True
         )
 
@@ -399,7 +391,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(query, source=slate.Source.LOCAL, ctx=ctx)
+        await ctx.player.searcher.queue(query, source=slate.Source.LOCAL, ctx=ctx)
 
     @commands.command(
         name="local-next", aliases=["local_next", "localnext", "lne"], hidden=True
@@ -409,7 +401,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.LOCAL, ctx=ctx, play_next=True
         )
 
@@ -421,7 +413,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.LOCAL, ctx=ctx, play_now=True
         )
 
@@ -431,7 +423,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(query, source=slate.Source.NONE, ctx=ctx)
+        await ctx.player.searcher.queue(query, source=slate.Source.NONE, ctx=ctx)
 
     @commands.command(
         name="http-next", aliases=["http_next", "httpnext", "hne"], hidden=True
@@ -441,7 +433,7 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.NONE, ctx=ctx, play_next=True
         )
 
@@ -453,14 +445,14 @@ class Play(commands.Cog):
 
         await self._ensure_connected(ctx)
 
-        await ctx.voice_client.searcher.queue(
+        await ctx.player.searcher.queue(
             query, source=slate.Source.NONE, ctx=ctx, play_now=True
         )
 
     # Controls
 
-    EFFECT_MAP: dict[enums.Effect, dict[str, slate.BaseFilter]] = {
-        enums.Effect.ROTATION: {"rotation": slate.Rotation(rotation_hertz=0.5)},
+    EFFECT_MAP: dict[enums.Effect, dict[str, slate.Filter]] = {
+        enums.Effect.ROTATION: {"rotation": slate.Rotation(speed=0.5)},
         enums.Effect.NIGHTCORE: {"timescale": slate.Timescale(speed=1.12, pitch=1.12)},
         enums.Effect.MONO: {
             "channel_mix": slate.ChannelMix(left_to_right=1, right_to_left=1)
@@ -473,7 +465,7 @@ class Play(commands.Cog):
         },
     }
 
-    INVERSE_EFFECT_MAP: dict[enums.Effect, dict[str, slate.BaseFilter]] = {
+    INVERSE_EFFECT_MAP: dict[enums.Effect, dict[str, slate.Filter]] = {
         enums.Effect.ROTATION: {"rotation": slate.Rotation()},
         enums.Effect.NIGHTCORE: {"timescale": slate.Timescale()},
         enums.Effect.MONO: {"channel_mix": slate.ChannelMix()},
@@ -489,26 +481,26 @@ class Play(commands.Cog):
 
     async def _toggle_effect(self, ctx: Context, effect: enums.Effect) -> None:
 
-        assert ctx.voice_client
+        assert ctx.player
 
-        if effect in ctx.voice_client.effects:
+        if effect in ctx.player.effects:
             description = f"Disabled the **{effect.value}** audio effect."
-            ctx.voice_client.effects.remove(effect)
-            await ctx.voice_client.set_filter(
-                slate.Filter(ctx.voice_client.filter, **self.INVERSE_EFFECT_MAP[effect])
+            ctx.player.effects.remove(effect)
+            await ctx.player.set_filter(
+                slate.Filter(ctx.player.filter, **self.INVERSE_EFFECT_MAP[effect])
             )
 
         else:
             description = f"Enabled the **{effect.value}** audio effect."
-            ctx.voice_client.effects.add(effect)
-            await ctx.voice_client.set_filter(
-                slate.Filter(ctx.voice_client.filter, **self.EFFECT_MAP[effect])
+            ctx.player.effects.add(effect)
+            await ctx.player.set_filter(
+                slate.Filter(ctx.player.filter, **self.EFFECT_MAP[effect])
             )
 
             if effect in self.INCOMPATIBLE_EFFECTS:
                 for incompatible_effect in self.INCOMPATIBLE_EFFECTS[effect]:
                     try:
-                        ctx.voice_client.effects.remove(incompatible_effect)
+                        ctx.player.effects.remove(incompatible_effect)
                     except KeyError:
                         pass
 
@@ -590,10 +582,10 @@ class Play(commands.Cog):
         Resets all audio effects.
         """
 
-        assert ctx.voice_client is not None
+        assert ctx.player is not None
 
-        ctx.voice_client.effects.clear()
-        await ctx.voice_client.set_filter(slate.Filter())
+        ctx.player.effects.clear()
+        await ctx.player.set_filter(slate.Filter())
         await ctx.reply(
             embed=embed(
                 colour=discord.Colour.brand_green(),

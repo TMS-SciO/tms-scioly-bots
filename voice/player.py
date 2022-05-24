@@ -13,32 +13,24 @@ from .queue import Queue
 from .controller import Controller
 from .searcher import Searcher
 
-__all__ = (
-    "Player",
-)
+__all__ = ("Player",)
 
-Track = slate.Track[Context]
 BotT = TypeVar("BotT", bound=commands.Bot)
 
 
 class Player(slate.Player):
-
     def __init__(self, *, text_channel: discord.TextChannel) -> None:
         super().__init__()
 
         self.text_channel: discord.TextChannel = text_channel
-        self.controller: Controller = Controller(voice_client=self)
-        self.searcher: Searcher = Searcher(voice_client=self)
+        self.controller: Controller = Controller(player=self)
+        self.searcher: Searcher = Searcher(player=self)
         self.queue: Queue = Queue()
         self.skip_request_ids: Set[int] = set()
         self.effects: Set[enums.Effect] = set()
         self.waiting: bool = False
 
-    async def stop(
-            self,
-            *,
-            force: bool = False
-    ) -> None:
+    async def stop(self, *, force: bool = False) -> None:
 
         current = self._current
         await super().stop(force=force)
@@ -50,40 +42,35 @@ class Player(slate.Player):
         await self.text_channel.send(
             embed=embed(
                 colour=discord.Colour.blurple(),
-                description=f"Left {self.voice_channel.mention}, nothing was added to the queue for two minutes."
+                description=f"Left {self.voice_channel.mention}, nothing was added to the queue for two minutes.",
             )
         )
         await self.disconnect()
 
-    async def _convert_spotify_track(self, track: Track['Context']) -> Optional[Track]:
+    async def _convert_spotify_track(self, track: slate.Track) -> slate.Track | None:
 
-        assert track.ctx is not None
-
+        ctx: Context = track.extras["ctx"]
         search = None
 
         if track.isrc:
             try:
-                search = await self.searcher._search(
-                    track.isrc,
-                    source=slate.Source.YOUTUBE_MUSIC,
-                    ctx=track.ctx
+                search = await self.searcher.search(
+                    track.isrc, source=slate.Source.YOUTUBE_MUSIC, ctx=ctx
                 )
             except EmbedError:
                 try:
-                    search = await self.searcher._search(
-                        track.isrc,
-                        source=slate.Source.YOUTUBE,
-                        ctx=track.ctx
+                    search = await self.searcher.search(
+                        track.isrc, source=slate.Source.YOUTUBE, ctx=ctx
                     )
                 except EmbedError:
                     pass
 
         if search is None:
             try:
-                search = await self.searcher._search(
+                search = await self.searcher.search(
                     f"{track.author} - {track.title}",
                     source=slate.Source.YOUTUBE,
-                    ctx=track.ctx
+                    ctx=ctx,
                 )
             except EmbedError:
                 pass
@@ -117,8 +104,8 @@ class Player(slate.Player):
                     embed=embed(
                         colour=discord.Colour.brand_red(),
                         description=f"No YouTube tracks were found for the Spotify track "
-                                    f"**[{discord.utils.escape_markdown(track.title)}]({track.uri})** "
-                                    f"by **{discord.utils.escape_markdown(track.author or 'Unknown')}**."
+                        f"**[{discord.utils.escape_markdown(track.title)}]({track.uri})** "
+                        f"by **{discord.utils.escape_markdown(track.author or 'Unknown')}**.",
                     )
                 )
                 self.waiting = False
@@ -134,10 +121,14 @@ class Player(slate.Player):
 
     async def handle_track_start(self) -> None:
 
+        self.bot.dispatch("dashboard_track_start", voice_client=self)
+
         # Update controller message.
         await self.controller.handle_track_start()
 
     async def handle_track_end(self, reason: enums.TrackEndReason) -> None:
+
+        self.bot.dispatch("dashboard_track_end", voice_client=self)
 
         if reason is not enums.TrackEndReason.REPLACED:
             # Add current track to the queue history.
@@ -152,3 +143,27 @@ class Player(slate.Player):
 
         # Play the next track.
         await self._play_next()
+
+    async def connect(
+        self,
+        *,
+        timeout: float | None = None,
+        reconnect: bool | None = None,
+        self_mute: bool = False,
+        self_deaf: bool = True,
+    ) -> None:
+
+        await super().connect(
+            timeout=timeout,
+            reconnect=reconnect,
+            self_mute=self_mute,
+            self_deaf=self_deaf,
+        )
+
+        self.bot.dispatch("dashboard_player_connect", voice_client=self)
+
+    async def disconnect(self, *, force: bool = False) -> None:
+
+        await super().disconnect(force=force)
+
+        self.bot.dispatch("dashboard_player_disconnect", voice_client=self)

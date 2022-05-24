@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class Context(commands.Context[commands.Bot]):
 
     @property
-    def voice_client(self) -> Player | None:
+    def player(self) -> Player | None:
         return getattr(self.guild, "voice_client", None)
 
     async def try_dm(self, *args: Any, **kwargs: Any) -> discord.Message | None:

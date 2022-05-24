@@ -27,7 +27,8 @@ from utils import (
     GOOGLE_LANGUAGES,
     image_filters,
     is_not_blacklisted,
-    LatexView, SERVER_ID,
+    LatexView,
+    SERVER_ID,
     STEALFISH_BAN,
     TicTacToe,
 )
@@ -197,7 +198,11 @@ class Fun(commands.Cog):
         print(latex)
         new_args = latex.replace(" ", r"&space;")
         print(new_args)
-        url = r"https://latex.codecogs.com/png.latex?\dpi{150}{\color{Gray}" + new_args + "}"
+        url = (
+            r"https://latex.codecogs.com/png.latex?\dpi{150}{\color{Gray}"
+            + new_args
+            + "}"
+        )
         await interaction.response.send_message(
             content=url, view=LatexView(self.bot, _interaction=interaction)
         )
